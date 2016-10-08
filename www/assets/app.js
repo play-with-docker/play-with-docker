@@ -3,10 +3,21 @@
 
 	var app = angular.module('DockerPlay', ['ngMaterial']);
 
-	app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', function($scope, $log, $http, $location, $timeout) {
+	app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', function($scope, $log, $http, $location, $timeout, $mdDialog) {
 		$scope.sessionId = window.location.pathname.replace('/p/', '');
 		$scope.instances = [];
 		$scope.selectedInstance = null;
+
+    $scope.showAlert = function(title, content) {
+     $mdDialog.show(
+       $mdDialog.alert()
+        .parent(angular.element(document.querySelector('#popupContainer')))
+        .clickOutsideToClose(true)
+        .title(title)
+        .textContent(content)
+        .ok('Got it!')
+     );
+    }
 
 		$scope.newInstance = function() {
 			$http({
@@ -17,7 +28,9 @@
 				$scope.instances.push(i);
 				$scope.showInstance(i);
 			}, function(response) {
-				console.log('error', response);
+        if (response.status == 409) {
+          $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
+        }
 			});
 		}
 

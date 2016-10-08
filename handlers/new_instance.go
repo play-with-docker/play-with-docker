@@ -13,6 +13,12 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	sessionId := bone.GetValue(req, "sessionId")
 
 	s := services.GetSession(sessionId)
+
+	if len(s.Instances) >= 5 {
+		rw.WriteHeader(http.StatusConflict)
+		return
+	}
+
 	i, err := services.NewInstance(s)
 	if err != nil {
 		log.Println(err)
