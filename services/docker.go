@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	ptypes "github.com/xetorthio/play-with-docker/types"
+	ptypes "github.com/franela/play-with-docker/types"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -31,6 +31,16 @@ func GetContainerInfo(id string) (types.ContainerJSON, error) {
 func CreateNetwork(name string) error {
 	opts := types.NetworkCreate{Attachable: true}
 	_, err := c.NetworkCreate(context.Background(), name, opts)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteNetwork(id string) error {
+	err := c.NetworkRemove(context.Background(), id)
 
 	if err != nil {
 		return err

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/franela/play-with-docker/services"
 	"github.com/go-zoo/bone"
-	"github.com/xetorthio/play-with-docker/services"
 )
 
 func GetSession(rw http.ResponseWriter, req *http.Request) {

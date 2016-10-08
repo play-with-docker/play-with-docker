@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/xetorthio/play-with-docker/services"
+	"github.com/franela/play-with-docker/services"
 )
 
 func NewSession(rw http.ResponseWriter, req *http.Request) {

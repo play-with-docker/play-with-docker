@@ -1,8 +1,11 @@
 package services
 
 import (
+	"log"
+	"time"
+
+	"github.com/franela/play-with-docker/types"
 	"github.com/twinj/uuid"
-	"github.com/xetorthio/play-with-docker/types"
 )
 
 var sessions map[string]*types.Session
@@ -18,6 +21,16 @@ func NewSession() (*types.Session, error) {
 
 	//TODO: Store in something like redis
 	sessions[s.Id] = s
+
+	// Schedule cleanup of the session
+	time.AfterFunc(1*time.Minute, func() {
+		for _, i := range s.Instances {
+			if err := DeleteContainer(i.Name); err != nil {
+				log.Println(err)
+			}
+		}
+		DeleteNetwork(s.Id)
+	})
 
 	if err := CreateNetwork(s.Id); err != nil {
 		return nil, err

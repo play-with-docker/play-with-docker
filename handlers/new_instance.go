@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/franela/play-with-docker/services"
 	"github.com/go-zoo/bone"
-	"github.com/xetorthio/play-with-docker/services"
 )
 
 func NewInstance(rw http.ResponseWriter, req *http.Request) {

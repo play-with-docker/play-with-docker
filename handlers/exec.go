@@ -6,8 +6,8 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/net/websocket"
 
+	"github.com/franela/play-with-docker/services"
 	"github.com/go-zoo/bone"
-	"github.com/xetorthio/play-with-docker/services"
 )
 
 // Echo the data received on the WebSocket.

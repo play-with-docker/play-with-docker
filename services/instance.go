@@ -1,6 +1,6 @@
 package services
 
-import "github.com/xetorthio/play-with-docker/types"
+import "github.com/franela/play-with-docker/types"
 
 var instances map[string]map[string]*types.Instance
 

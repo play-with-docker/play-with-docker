@@ -6,9 +6,9 @@ import (
 
 	"golang.org/x/net/websocket"
 
+	"github.com/franela/play-with-docker/handlers"
 	"github.com/go-zoo/bone"
 	"github.com/urfave/negroni"
-	"github.com/xetorthio/play-with-docker/handlers"
 )
 
 func main() {
