@@ -12,9 +12,22 @@ import (
 
 // Echo the data received on the WebSocket.
 func Exec(ws *websocket.Conn) {
-	id := bone.GetValue(ws.Request(), "instanceId")
+	sessionId := bone.GetValue(ws.Request(), "sessionId")
+	instanceId := bone.GetValue(ws.Request(), "instanceId")
+
 	ctx := context.Background()
-	conn, err := services.GetExecConnection(id, ctx)
+
+	session := services.GetSession(sessionId)
+	instance := services.GetInstance(session, instanceId)
+
+	if instance.ExecId == "" {
+		execId, err := services.CreateExecConnection(instance.Name, ctx)
+		if err != nil {
+			return
+		}
+		instance.ExecId = execId
+	}
+	conn, err := services.AttachExecConnection(instance.ExecId, ctx)
 	if err != nil {
 		return
 	}

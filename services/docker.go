@@ -49,26 +49,25 @@ func DeleteNetwork(id string) error {
 	return nil
 }
 
-func GetExecConnection(id string, ctx context.Context) (*types.HijackedResponse, error) {
+func CreateExecConnection(id string, ctx context.Context) (string, error) {
 	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true, Cmd: []string{"sh"}}
 	resp, err := c.ContainerExecCreate(ctx, id, conf)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	//err = c.ContainerExecStart(context.Background(), resp.ID, types.ExecStartCheck{Tty: true})
-	//if err != nil {
-	//return nil, err
-	//}
+	return resp.ID, nil
+}
 
-	conn, err := c.ContainerExecAttach(ctx, resp.ID, conf)
+func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedResponse, error) {
+	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true, Cmd: []string{"sh"}}
+	conn, err := c.ContainerExecAttach(ctx, execId, conf)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return &conn, nil
-
 }
 
 func CreateInstance(net string) (*ptypes.Instance, error) {

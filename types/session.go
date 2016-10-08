@@ -6,6 +6,7 @@ type Session struct {
 }
 
 type Instance struct {
-	Name string `json:"name"`
-	IP   string `json:"ip"`
+	Name   string `json:"name"`
+	IP     string `json:"ip"`
+	ExecId string `json:"-"`
 }
