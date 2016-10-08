@@ -29,7 +29,7 @@ func GetContainerInfo(id string) (types.ContainerJSON, error) {
 }
 
 func CreateNetwork(name string) error {
-	opts := types.NetworkCreate{Attachable: true}
+	opts := types.NetworkCreate{Attachable: true, Driver: "overlay"}
 	_, err := c.NetworkCreate(context.Background(), name, opts)
 
 	if err != nil {
