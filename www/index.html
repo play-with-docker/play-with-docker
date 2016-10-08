@@ -1,0 +1,79 @@
+<!doctype html>
+<html ng-app="DockerPlay" ng-controller="PlayController">
+    <head>
+        <title>Docker Playground</title>
+	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+        <link rel="stylesheet" href="/assets/xterm.css" />
+        <link rel="stylesheet" href="/assets/style.css" />
+    </head>
+    <body>
+	<div layout="column" style="height:100%;" ng-cloak>
+
+  <section layout="row" flex>
+
+    <md-sidenav
+        class="md-sidenav-left"
+        md-component-id="left"
+        md-is-locked-open="$mdMedia('gt-md')"
+        md-whiteframe="4">
+
+      <md-toolbar class="md-theme-indigo">
+        <h1 class="md-toolbar-tools">Instances</h1>
+      </md-toolbar>
+      <md-content layout-padding>
+        <md-button ng-click="newInstance()" class="md-primary">
+		+ Add new instance
+        </md-button>
+	
+	<md-list>
+		<md-list-item class="md-3-line" ng-repeat="instance in instances" ng-click="showInstance(instance)" ng-class="instance.name == selectedInstance.name ? 'selected' : false">
+			<div class="md-list-item-text">{{instance.name}}</div>
+			<md-divider ng-if="!$last"></md-divider>
+		</md-list-item>
+	</md-list>
+      </md-content>
+
+    </md-sidenav>
+
+    <md-content flex layout-padding ng-if="!instances.length">
+      <div layout="column" layout-align="top center">
+        <p>
+	Add instances to your playground.
+        </p>
+      </div>
+
+      <div flex></div>
+    </md-content>
+    <md-content flex layout-padding ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name">
+	<md-card md-theme="default" md-theme-watch>
+		<md-card-title>
+			<md-card-title-text>
+				<span class="md-headline">{{instance.name}}</span>
+				<span class="md-subhead">{{instance.ip}}</span>
+			<md-card-title-text>
+		</md-card-title>
+		<md-card-actions layout="row">
+			<md-button class="md-warn" ng-click="deleteInstance(instance)">Delete</md-button>
+		</md-card-actions>
+		<md-card-content>
+			<div id="terminal-{{instance.name}}"></div>
+		</md-card-content>
+	</md-card>
+    </md-content>
+
+
+  </section>
+
+</div>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+	<script src="/assets/app.js"></script>
+	<script src="/assets/main.js"></script>
+        <script src="/assets/xterm.js"></script>
+        <script src="/assets/attach.js"></script>
+    </body>
+</html>
