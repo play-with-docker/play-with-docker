@@ -26,7 +26,7 @@ func main() {
 	mux.Get("/p/:sessionId", h)
 	mux.Get("/assets/*", http.FileServer(http.Dir("./www")))
 
-	mux.Get("/exec/:id", websocket.Handler(handlers.Exec))
+	mux.Get("/sessions/:sessionId/instances/:instanceId/attach", websocket.Handler(handlers.Exec))
 
 	n := negroni.Classic()
 	n.UseHandler(mux)

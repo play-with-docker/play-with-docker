@@ -12,7 +12,7 @@ import (
 
 // Echo the data received on the WebSocket.
 func Exec(ws *websocket.Conn) {
-	id := bone.GetValue(ws.Request(), "id")
+	id := bone.GetValue(ws.Request(), "instanceId")
 	ctx := context.Background()
 	conn, err := services.GetExecConnection(id, ctx)
 	if err != nil {
@@ -29,8 +29,4 @@ func Exec(ws *websocket.Conn) {
 	select {
 	case <-ctx.Done():
 	}
-	//io.Copy(ws, os.Stdout)
-	//go func() {
-	//io.Copy(*conn, ws)
-	//}()
 }

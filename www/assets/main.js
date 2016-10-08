@@ -40,8 +40,9 @@ function createTerminal(name) {
   term = new Terminal({
     cursorBlink: false
   });
+  var sessionId = location.pathname.substr(location.pathname.lastIndexOf("/")+1);
   protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-  socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/exec/' + name;
+  socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/sessions/' + sessionId + '/instances/' + name + '/attach';
 
   term.open(terminalContainer);
 

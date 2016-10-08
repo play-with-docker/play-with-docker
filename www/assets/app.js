@@ -36,7 +36,10 @@
 					$scope.showInstance($scope.instances[0]);
 				}
 			}, function(response) {
-				console.log('error', response);
+        if (response.status == 404) {
+          document.write('session not found');
+          return
+        }
 			});
 		}
 
