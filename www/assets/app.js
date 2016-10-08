@@ -62,9 +62,11 @@
 		$scope.showInstance = function(instance) {
 			$scope.selectedInstance = instance;
 			if (!instance.isAttached) {
-				$timeout(function() {createTerminal(instance.name)});
+				$timeout(function() {instance.term = createTerminal(instance.name);});
 				instance.isAttached = true;
-			}
+			} else {
+				$timeout(function() {instance.term.focus()});
+      }
 		}
 
 		$scope.deleteInstance = function(instance) {

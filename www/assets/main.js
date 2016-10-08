@@ -37,7 +37,7 @@ function createTerminal(name) {
   while (terminalContainer.children.length) {
     terminalContainer.removeChild(terminalContainer.children[0]);
   }
-  term = new Terminal({
+  var term = new Terminal({
     cursorBlink: false
   });
   var sessionId = location.pathname.substr(location.pathname.lastIndexOf("/")+1);
@@ -47,12 +47,14 @@ function createTerminal(name) {
   term.open(terminalContainer);
 
   socket = new WebSocket(socketURL);
-  socket.onopen = runRealTerminal;
+  socket.onopen = runRealTerminal(term);
+
+  return term;
 
 }
 
 
-function runRealTerminal() {
+function runRealTerminal(term) {
   term.attach(socket);
   term._initialized = true;
 }
