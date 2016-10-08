@@ -14,6 +14,7 @@ import (
 func main() {
 	mux := bone.New()
 
+	mux.Get("/ping", http.HandlerFunc(handlers.Ping))
 	mux.Get("/", http.HandlerFunc(handlers.NewSession))
 	mux.Get("/sessions/:sessionId", http.HandlerFunc(handlers.GetSession))
 	mux.Post("/sessions/:sessionId/instances", http.HandlerFunc(handlers.NewInstance))
@@ -30,6 +31,6 @@ func main() {
 	n := negroni.Classic()
 	n.UseHandler(mux)
 
-	log.Fatal(http.ListenAndServe(":3000", n))
+	log.Fatal(http.ListenAndServe("0.0.0.0:3000", n))
 
 }
