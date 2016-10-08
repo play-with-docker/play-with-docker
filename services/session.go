@@ -27,6 +27,7 @@ func NewSession() (*types.Session, error) {
 		s = GetSession(s.Id)
 		log.Printf("Starting clean up of session [%s]\n", s.Id)
 		for _, i := range s.Instances {
+			i.Conn.Close()
 			if err := DeleteContainer(i.Name); err != nil {
 				log.Println(err)
 			}
