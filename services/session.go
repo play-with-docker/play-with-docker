@@ -23,30 +23,35 @@ func NewSession() (*types.Session, error) {
 	sessions[s.Id] = s
 
 	// Schedule cleanup of the session
-	time.AfterFunc(1*time.Minute, func() {
+	time.AfterFunc(1*time.Hour, func() {
+		s = GetSession(s.Id)
+		log.Printf("Starting clean up of session [%s]\n", s.Id)
 		for _, i := range s.Instances {
 			if err := DeleteContainer(i.Name); err != nil {
 				log.Println(err)
 			}
 		}
-		DeleteNetwork(s.Id)
+		if err := DeleteNetwork(s.Id); err != nil {
+			log.Println(err)
+		}
+		delete(sessions, s.Id)
+		log.Printf("Cleaned up session [%s]\n", s.Id)
 	})
 
 	if err := CreateNetwork(s.Id); err != nil {
 		return nil, err
 	}
 
-	//TODO: Schedule deletion after an hour
-
 	return s, nil
 }
 
 func GetSession(sessionId string) *types.Session {
 	//TODO: Use redis
-	s := sessions[sessionId]
-	if instances[sessionId] != nil {
+	s, found := sessions[sessionId]
+	if found {
 		s.Instances = instances[sessionId]
+		return s
+	} else {
+		return nil
 	}
-
-	return s
 }

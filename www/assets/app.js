@@ -8,16 +8,16 @@
 		$scope.instances = [];
 		$scope.selectedInstance = null;
 
-    $scope.showAlert = function(title, content) {
-     $mdDialog.show(
-       $mdDialog.alert()
-        .parent(angular.element(document.querySelector('#popupContainer')))
-        .clickOutsideToClose(true)
-        .title(title)
-        .textContent(content)
-        .ok('Got it!')
-     );
-    }
+		    $scope.showAlert = function(title, content) {
+		     $mdDialog.show(
+		       $mdDialog.alert()
+			.parent(angular.element(document.querySelector('#popupContainer')))
+			.clickOutsideToClose(true)
+			.title(title)
+			.textContent(content)
+			.ok('Got it!')
+		     );
+		    }
 
 		$scope.newInstance = function() {
 			$http({
@@ -48,11 +48,14 @@
 				if ($scope.instances.length) {
 					$scope.showInstance($scope.instances[0]);
 				}
+
+				// Since session exists, we check it still exists every 10 seconds
+				$scope.checkHandler = setInterval(checkSession, 10*1000);
 			}, function(response) {
-        if (response.status == 404) {
-          document.write('session not found');
-          return
-        }
+				if (response.status == 404) {
+				  document.write('session not found');
+				  return
+				}
 			});
 		}
 
@@ -79,5 +82,17 @@
 		}
 
 		$scope.getSession($scope.sessionId);
+
+		function checkSession() {
+			$http({
+				method: 'GET',
+				url: '/sessions/' + $scope.sessionId,
+			}).then(function(response) {}, function(response) {
+				if (response.status == 404) {
+					clearInterval($scope.checkHandler);
+					$scope.showAlert('Session timedout!', 'Your session has expire and all your instances has been deleted.')
+				}
+			});
+		}
 	}]);
 })();
