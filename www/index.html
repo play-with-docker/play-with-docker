@@ -9,7 +9,7 @@
     <body>
     <div layout="column" style="height:100%;" ng-cloak>
 
-  <section layout="row" flex>
+  <section id="popupContainer" layout="row" flex>
 
     <md-sidenav
         class="md-sidenav-left"
@@ -47,7 +47,7 @@
 
       <div flex></div>
     </md-content>
-    <md-content id="popupContainer" flex layout-padding ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name">
+    <md-content  flex layout-padding ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name">
 	<md-card md-theme="default" md-theme-watch>
 		<md-card-title>
 			<md-card-title-text>

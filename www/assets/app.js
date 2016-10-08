@@ -8,15 +8,15 @@
 		$scope.instances = [];
 		$scope.selectedInstance = null;
 
-		    $scope.showAlert = function(title, content) {
-		     $mdDialog.show(
-		       $mdDialog.alert()
-			.parent(angular.element(document.querySelector('#popupContainer')))
-			.clickOutsideToClose(true)
-			.title(title)
-			.textContent(content)
-			.ok('Got it!')
-		     );
+      $scope.showAlert = function(title, content) {
+        $mdDialog.show(
+           $mdDialog.alert()
+          .parent(angular.element(document.querySelector('#popupContainer')))
+          .clickOutsideToClose(true)
+          .title(title)
+          .textContent(content)
+          .ok('Got it!')
+       );
 		    }
 
 		$scope.newInstance = function() {
