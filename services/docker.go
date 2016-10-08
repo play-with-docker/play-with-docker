@@ -60,7 +60,7 @@ func CreateExecConnection(id string, ctx context.Context) (string, error) {
 }
 
 func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedResponse, error) {
-	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true, Cmd: []string{"sh"}}
+	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true}
 	conn, err := c.ContainerExecAttach(ctx, execId, conf)
 
 	if err != nil {
