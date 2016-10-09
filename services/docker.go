@@ -94,5 +94,5 @@ func CreateInstance(net string) (*ptypes.Instance, error) {
 }
 
 func DeleteContainer(id string) error {
-	return c.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+	return c.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
 }
