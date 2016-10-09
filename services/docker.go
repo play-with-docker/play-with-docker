@@ -2,6 +2,7 @@ package services
 
 import (
 	"log"
+	"os"
 	"strings"
 
 	ptypes "github.com/franela/play-with-docker/types"
@@ -81,7 +82,12 @@ func CreateInstance(net string) (*ptypes.Instance, error) {
 	h := &container.HostConfig{NetworkMode: container.NetworkMode(net), Privileged: true}
 	h.Resources.PidsLimit = maximumPidLimit
 
-	conf := &container.Config{Image: "docker:dind"}
+	dindImage := os.Getenv("DIND_IMAGE")
+	if len(dindImage) == 0 {
+		dindImage = "docker:1.12.2-rc2-dind"
+	}
+
+	conf := &container.Config{Image: dindImage}
 	container, err := c.ContainerCreate(context.Background(), conf, h, nil, "")
 
 	if err != nil {
