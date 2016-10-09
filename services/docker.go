@@ -2,7 +2,6 @@ package services
 
 import (
 	"log"
-	"os"
 	"strings"
 
 	ptypes "github.com/franela/play-with-docker/types"
@@ -75,17 +74,12 @@ func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedRe
 	return &conn, nil
 }
 
-func CreateInstance(net string) (*ptypes.Instance, error) {
+func CreateInstance(net string, dindImage string) (*ptypes.Instance, error) {
 
 	var maximumPidLimit int64
 	maximumPidLimit = 150 // Set a ulimit value to prevent misuse
 	h := &container.HostConfig{NetworkMode: container.NetworkMode(net), Privileged: true}
 	h.Resources.PidsLimit = maximumPidLimit
-
-	dindImage := os.Getenv("DIND_IMAGE")
-	if len(dindImage) == 0 {
-		dindImage = "docker:1.12.2-rc2-dind"
-	}
 
 	conf := &container.Config{Image: dindImage}
 	container, err := c.ContainerCreate(context.Background(), conf, h, nil, "")

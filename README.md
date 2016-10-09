@@ -9,6 +9,8 @@ A live version is available at: http://play-with-docker.com/
 
 ## Installation
 
+Start the Docker daemon on your machine and run `docker pull docker:1.12.2-rc2-dind`. 
+
 1) Install go 1.7.1 with `brew` on Mac or through a package manager.
 
 2) `go get`
@@ -21,5 +23,7 @@ A live version is available at: http://play-with-docker.com/
 
 Notes:
 
-There is a hard-coded limit to 5 Docker playgrounds per session. After 1 hour sessions are deleted.
+* There is a hard-coded limit to 5 Docker playgrounds per session. After 1 hour sessions are deleted.
+* If you want to override the DIND version or image then set the environmental variable i.e.
+  `DIND_IMAGE=docker:dind`
 
