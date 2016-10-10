@@ -29,10 +29,14 @@ func GetContainerInfo(id string) (types.ContainerJSON, error) {
 }
 
 func CreateNetwork(name string) error {
+	// TODO: This line appears to give an error when running on localhost:3000
+	// when driver is specified a name must be given.
 	opts := types.NetworkCreate{Attachable: true, Driver: "overlay"}
 	_, err := c.NetworkCreate(context.Background(), name, opts)
 
 	if err != nil {
+		log.Printf("Starting session err [%s]\n", err)
+
 		return err
 	}
 
@@ -70,10 +74,14 @@ func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedRe
 	return &conn, nil
 }
 
-func CreateInstance(net string) (*ptypes.Instance, error) {
+func CreateInstance(net string, dindImage string) (*ptypes.Instance, error) {
 
+	var maximumPidLimit int64
+	maximumPidLimit = 150 // Set a ulimit value to prevent misuse
 	h := &container.HostConfig{NetworkMode: container.NetworkMode(net), Privileged: true}
-	conf := &container.Config{Image: "docker:dind"}
+	h.Resources.PidsLimit = maximumPidLimit
+
+	conf := &container.Config{Image: dindImage}
 	container, err := c.ContainerCreate(context.Background(), conf, h, nil, "")
 
 	if err != nil {

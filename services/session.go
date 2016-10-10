@@ -18,6 +18,7 @@ func NewSession() (*types.Session, error) {
 	s := &types.Session{}
 	s.Id = uuid.NewV4().String()
 	s.Instances = map[string]*types.Instance{}
+	log.Printf("NewSession id=[%s]\n", s.Id)
 
 	//TODO: Store in something like redis
 	sessions[s.Id] = s
