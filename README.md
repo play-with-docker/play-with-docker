@@ -7,6 +7,10 @@ Under the hood DIND or Docker-in-Docker is used to give the effect of multiple V
 
 A live version is available at: http://play-with-docker.com/
 
+## Requirements
+
+Docker 1.13-dev or higher is required as **attachable** overlay networks feature is required.
+
 ## Installation
 
 Start the Docker daemon on your machine and run `docker pull docker:1.12.2-rc2-dind`. 
