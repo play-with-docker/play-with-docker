@@ -81,7 +81,7 @@ func CreateInstance(net string, dindImage string) (*ptypes.Instance, error) {
 	h := &container.HostConfig{NetworkMode: container.NetworkMode(net), Privileged: true}
 	h.Resources.PidsLimit = maximumPidLimit
 
-	conf := &container.Config{Image: dindImage}
+	conf := &container.Config{Image: dindImage, Tty: true}
 	container, err := c.ContainerCreate(context.Background(), conf, h, nil, "")
 
 	if err != nil {
