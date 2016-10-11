@@ -71,6 +71,12 @@ func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedRe
 		return nil, err
 	}
 
+	err = c.ContainerExecResize(ctx, execId, types.ResizeOptions{Height: 24, Width: 80})
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &conn, nil
 }
 
