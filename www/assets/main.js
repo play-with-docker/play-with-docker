@@ -30,7 +30,8 @@
 //optionElements.cursorBlink.addEventListener('change', createTerminal);
 
 //createTerminal();
-
+//
+//
 function createTerminal(name) {
   var terminalContainer = document.getElementById('terminal-' + name);
   // Clean terminal

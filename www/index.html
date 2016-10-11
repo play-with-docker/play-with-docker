@@ -78,5 +78,18 @@
 	<script src="/assets/main.js"></script>
         <script src="/assets/xterm.js"></script>
         <script src="/assets/attach.js"></script>
+        <script type="text/javascript" charset="utf-8">
+            window.onbeforeunload = function (e) {
+                e = e || window.event;
+
+                // For IE and Firefox prior to version 4
+                if (e) {
+                    e.returnValue = 'Make sure you saved your session URL';
+                }
+
+                // For Safari
+                return 'Make sure you saved your session URL';
+            };
+        </script>
     </body>
 </html>
