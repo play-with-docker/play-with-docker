@@ -54,7 +54,7 @@ func DeleteNetwork(id string) error {
 }
 
 func CreateExecConnection(id string, ctx context.Context) (string, error) {
-	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true, Cmd: []string{"sh"}}
+	conf := types.ExecConfig{AttachStdin: true, AttachStderr: true, AttachStdout: true, Cmd: []string{"sh"}}
 	resp, err := c.ContainerExecCreate(ctx, id, conf)
 	if err != nil {
 		return "", err
@@ -64,7 +64,7 @@ func CreateExecConnection(id string, ctx context.Context) (string, error) {
 }
 
 func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedResponse, error) {
-	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true}
+	conf := types.ExecConfig{AttachStdin: true, AttachStderr: true, AttachStdout: true}
 	conn, err := c.ContainerExecAttach(ctx, execId, conf)
 
 	if err != nil {
