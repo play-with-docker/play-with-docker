@@ -43,6 +43,7 @@ func Exec(ws *websocket.Conn) {
 		}()
 		go func() {
 			io.Copy(instance.Conn.Conn, ws)
+			instance.Stdout.RemoveWriter(u1.String())
 		}()
 		select {
 		case <-ctx.Done():
