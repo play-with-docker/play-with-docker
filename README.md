@@ -10,6 +10,7 @@ A live version is available at: http://play-with-docker.com/
 ## Requirements
 
 Docker 1.13-dev or higher is required as **attachable** overlay networks feature is required.
+Here's a boot2docker 1.13-dev ISO you can use to spawn a VM with this version: https://dl.dropboxusercontent.com/u/29887388/boot2docker.iso
 
 ## Installation
 
