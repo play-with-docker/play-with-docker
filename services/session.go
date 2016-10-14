@@ -49,11 +49,5 @@ func NewSession() (*types.Session, error) {
 
 func GetSession(sessionId string) *types.Session {
 	//TODO: Use redis
-	s, found := sessions[sessionId]
-	if found {
-		s.Instances = instances[sessionId]
-		return s
-	} else {
-		return nil
-	}
+	return sessions[sessionId]
 }

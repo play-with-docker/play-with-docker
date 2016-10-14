@@ -7,20 +7,17 @@ import (
 	"github.com/franela/play-with-docker/types"
 )
 
-var instances map[string]map[string]*types.Instance
-
 var dindImage string
 var defaultDindImageName string
 
 func init() {
-	instances = make(map[string]map[string]*types.Instance)
-        dindImage = getDindImageName()
+	dindImage = getDindImageName()
 }
 
 func getDindImageName() string {
 	dindImage := os.Getenv("DIND_IMAGE")
-        defaultDindImageName = "docker:1.12.2-rc2-dind"
-        if len(dindImage) == 0 {
+	defaultDindImageName = "docker:1.12.2-rc2-dind"
+	if len(dindImage) == 0 {
 		dindImage = defaultDindImageName
 	}
 	return dindImage
@@ -37,21 +34,20 @@ func NewInstance(session *types.Session) (*types.Instance, error) {
 		return nil, err
 	}
 
-	if instances[session.Id] == nil {
-		instances[session.Id] = make(map[string]*types.Instance)
+	if session.Instances == nil {
+		session.Instances = make(map[string]*types.Instance)
 	}
-	instances[session.Id][instance.Name] = instance
+	session.Instances[instance.Name] = instance
 
 	return instance, nil
 }
 
-func GetInstance(session *types.Session, instanceId string) *types.Instance {
+func GetInstance(session *types.Session, name string) *types.Instance {
 	//TODO: Use redis
-	i := instances[session.Id][instanceId]
-	return i
+	return session.Instances[name]
 }
 func DeleteInstance(session *types.Session, instance *types.Instance) error {
 	//TODO: Use redis
-	delete(instances[session.Id], instance.Name)
+	delete(session.Instances, instance.Name)
 	return DeleteContainer(instance.Name)
 }

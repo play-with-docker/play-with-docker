@@ -15,12 +15,12 @@ import (
 // Echo the data received on the WebSocket.
 func Exec(ws *websocket.Conn) {
 	sessionId := bone.GetValue(ws.Request(), "sessionId")
-	instanceId := bone.GetValue(ws.Request(), "instanceId")
+	instanceName := bone.GetValue(ws.Request(), "instanceName")
 
 	ctx := context.Background()
 
 	session := services.GetSession(sessionId)
-	instance := services.GetInstance(session, instanceId)
+	instance := services.GetInstance(session, instanceName)
 
 	if instance.Stdout == nil {
 		id, err := services.CreateExecConnection(instance.Name, ctx)

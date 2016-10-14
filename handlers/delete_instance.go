@@ -9,10 +9,10 @@ import (
 
 func DeleteInstance(rw http.ResponseWriter, req *http.Request) {
 	sessionId := bone.GetValue(req, "sessionId")
-	instanceId := bone.GetValue(req, "instanceId")
+	instanceName := bone.GetValue(req, "instanceName")
 
 	s := services.GetSession(sessionId)
-	i := services.GetInstance(s, instanceId)
+	i := services.GetInstance(s, instanceName)
 	err := services.DeleteInstance(s, i)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)

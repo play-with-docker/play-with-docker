@@ -18,7 +18,7 @@ func main() {
 	mux.Get("/", http.HandlerFunc(handlers.NewSession))
 	mux.Get("/sessions/:sessionId", http.HandlerFunc(handlers.GetSession))
 	mux.Post("/sessions/:sessionId/instances", http.HandlerFunc(handlers.NewInstance))
-	mux.Delete("/sessions/:sessionId/instances/:instanceId", http.HandlerFunc(handlers.DeleteInstance))
+	mux.Delete("/sessions/:sessionId/instances/:instanceName", http.HandlerFunc(handlers.DeleteInstance))
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./www/index.html")
@@ -26,7 +26,7 @@ func main() {
 	mux.Get("/p/:sessionId", h)
 	mux.Get("/assets/*", http.FileServer(http.Dir("./www")))
 
-	mux.Get("/sessions/:sessionId/instances/:instanceId/attach", websocket.Handler(handlers.Exec))
+	mux.Get("/sessions/:sessionId/instances/:instanceName/attach", websocket.Handler(handlers.Exec))
 
 	n := negroni.Classic()
 	n.UseHandler(mux)
