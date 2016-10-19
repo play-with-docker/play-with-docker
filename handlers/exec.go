@@ -5,6 +5,7 @@ import (
 
 	"golang.org/x/net/context"
 	"golang.org/x/net/websocket"
+	"golang.org/x/text/encoding"
 
 	"github.com/franela/play-with-docker/cookoo"
 	"github.com/franela/play-with-docker/services"
@@ -32,13 +33,14 @@ func Exec(ws *websocket.Conn) {
 			return
 		}
 
+		encoder := encoding.Replacement.NewEncoder()
 		instance.Conn = conn
 		instance.Stdout = &cookoo.MultiWriter{}
 		instance.Stdout.Init()
 		u1 := uuid.NewV4()
 		instance.Stdout.AddWriter(u1.String(), ws)
 		go func() {
-			io.Copy(instance.Stdout, instance.Conn.Reader)
+			io.Copy(encoder.Writer(instance.Stdout), instance.Conn.Reader)
 			instance.Stdout.RemoveWriter(u1.String())
 		}()
 		go func() {
