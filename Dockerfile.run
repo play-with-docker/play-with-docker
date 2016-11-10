@@ -1,0 +1,11 @@
+FROM alpine
+
+RUN apk --update add ca-certificates
+
+ADD play-with-docker /bin/play-with-docker
+COPY ./www /bin/www
+
+WORKDIR /bin
+CMD ["play-with-docker"]
+
+EXPOSE 3000
