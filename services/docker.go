@@ -4,8 +4,6 @@ import (
 	"log"
 	"strings"
 
-	ptypes "github.com/franela/play-with-docker/types"
-
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -29,9 +27,7 @@ func GetContainerInfo(id string) (types.ContainerJSON, error) {
 }
 
 func CreateNetwork(name string) error {
-	// TODO: This line appears to give an error when running on localhost:3000
-	// when driver is specified a name must be given.
-	opts := types.NetworkCreate{Attachable: true, Driver: "overlay"}
+	opts := types.NetworkCreate{}
 	_, err := c.NetworkCreate(context.Background(), name, opts)
 
 	if err != nil {
@@ -71,16 +67,14 @@ func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedRe
 		return nil, err
 	}
 
-	err = c.ContainerExecResize(ctx, execId, types.ResizeOptions{Height: 24, Width: 80})
-
-	if err != nil {
-		return nil, err
-	}
-
 	return &conn, nil
 }
 
-func CreateInstance(net string, dindImage string) (*ptypes.Instance, error) {
+func ResizeExecConnection(execId string, ctx context.Context, cols, rows uint) error {
+	return c.ContainerExecResize(ctx, execId, types.ResizeOptions{Height: rows, Width: cols})
+}
+
+func CreateInstance(net string, dindImage string) (*Instance, error) {
 
 	var maximumPidLimit int64
 	maximumPidLimit = 150 // Set a ulimit value to prevent misuse
@@ -104,7 +98,7 @@ func CreateInstance(net string, dindImage string) (*ptypes.Instance, error) {
 		return nil, err
 	}
 
-	return &ptypes.Instance{Name: strings.Replace(cinfo.Name, "/", "", 1), IP: cinfo.NetworkSettings.Networks[net].IPAddress}, nil
+	return &Instance{Name: strings.Replace(cinfo.Name, "/", "", 1), IP: cinfo.NetworkSettings.Networks[net].IPAddress}, nil
 }
 
 func DeleteContainer(id string) error {

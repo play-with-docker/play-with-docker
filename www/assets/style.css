@@ -1,3 +1,20 @@
 .selected button {
 	background-color: rgba(158,158,158,0.2);
 }
+
+md-card-content.terminal {
+    background-color: rgb(113, 113, 113);
+    padding: 0;
+}
+
+.terminal {
+    background-color: rgb(113, 113, 113);
+}
+
+.terminal .xterm-viewport {
+    background-color: rgb(113, 113, 113);
+}
+
+.terminal .xterm-rows {
+    background-color: #000;
+}

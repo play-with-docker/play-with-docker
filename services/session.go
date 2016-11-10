@@ -2,30 +2,66 @@ package services
 
 import (
 	"log"
+	"math"
+	"sync"
 	"time"
 
-	"github.com/franela/play-with-docker/types"
+	"github.com/googollee/go-socket.io"
 	"github.com/twinj/uuid"
 )
 
-var sessions map[string]*types.Session
+var wsServer *socketio.Server
 
-func init() {
-	sessions = make(map[string]*types.Session)
+type Session struct {
+	sync.Mutex
+	Id        string               `json:"id"`
+	Instances map[string]*Instance `json:"instances"`
+	Clients   []*Client            `json:"-"`
 }
 
-func NewSession() (*types.Session, error) {
-	s := &types.Session{}
+func (s *Session) GetSmallestViewPort() ViewPort {
+	minRows := s.Clients[0].ViewPort.Rows
+	minCols := s.Clients[0].ViewPort.Cols
+
+	for _, c := range s.Clients {
+		minRows = uint(math.Min(float64(minRows), float64(c.ViewPort.Rows)))
+		minCols = uint(math.Min(float64(minCols), float64(c.ViewPort.Cols)))
+	}
+
+	return ViewPort{Rows: minRows, Cols: minCols}
+}
+
+func (s *Session) AddNewClient(c *Client) {
+	s.Clients = append(s.Clients, c)
+}
+
+var sessions map[string]*Session
+
+func init() {
+	sessions = make(map[string]*Session)
+}
+
+func CreateWSServer() *socketio.Server {
+	server, err := socketio.NewServer(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	wsServer = server
+	return server
+}
+
+func NewSession() (*Session, error) {
+	s := &Session{}
 	s.Id = uuid.NewV4().String()
-	s.Instances = map[string]*types.Instance{}
+	s.Instances = map[string]*Instance{}
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
-	//TODO: Store in something like redis
 	sessions[s.Id] = s
 
 	// Schedule cleanup of the session
 	time.AfterFunc(1*time.Hour, func() {
 		s = GetSession(s.Id)
+		wsServer.BroadcastTo(s.Id, "session end")
 		log.Printf("Starting clean up of session [%s]\n", s.Id)
 		for _, i := range s.Instances {
 			i.Conn.Close()
@@ -41,13 +77,13 @@ func NewSession() (*types.Session, error) {
 	})
 
 	if err := CreateNetwork(s.Id); err != nil {
+		log.Println("ERROR NETWORKING")
 		return nil, err
 	}
 
 	return s, nil
 }
 
-func GetSession(sessionId string) *types.Session {
-	//TODO: Use redis
+func GetSession(sessionId string) *Session {
 	return sessions[sessionId]
 }

@@ -1,11 +1,24 @@
 package services
 
 import (
+	"context"
+	"io"
 	"log"
 	"os"
 
-	"github.com/franela/play-with-docker/types"
+	"golang.org/x/text/encoding"
+
+	"github.com/docker/docker/api/types"
 )
+
+type Instance struct {
+	Session *Session                `json:"-"`
+	Name    string                  `json:"name"`
+	IP      string                  `json:"ip"`
+	Conn    *types.HijackedResponse `json:"-"`
+	ExecId  string                  `json:"-"`
+	Ctx     context.Context         `json:"-"`
+}
 
 var dindImage string
 var defaultDindImageName string
@@ -23,31 +36,78 @@ func getDindImageName() string {
 	return dindImage
 }
 
-func NewInstance(session *types.Session) (*types.Instance, error) {
+func NewInstance(session *Session) (*Instance, error) {
 
 	//TODO: Validate that a session can only have 5 instances
-	//TODO: Create in redis
 	log.Printf("NewInstance - using image: [%s]\n", dindImage)
 	instance, err := CreateInstance(session.Id, dindImage)
+	instance.Session = session
 
 	if err != nil {
 		return nil, err
 	}
 
 	if session.Instances == nil {
-		session.Instances = make(map[string]*types.Instance)
+		session.Instances = make(map[string]*Instance)
 	}
 	session.Instances[instance.Name] = instance
+
+	go instance.Exec()
+
+	wsServer.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP)
 
 	return instance, nil
 }
 
-func GetInstance(session *types.Session, name string) *types.Instance {
+type sessionWriter struct {
+	instance *Instance
+}
+
+func (s *sessionWriter) Write(p []byte) (n int, err error) {
+	wsServer.BroadcastTo(s.instance.Session.Id, "terminal out", s.instance.Name, string(p))
+	return len(p), nil
+}
+
+func (i *Instance) ResizeTerminal(cols, rows uint) {
+	ResizeExecConnection(i.ExecId, i.Ctx, cols, rows)
+}
+
+func (i *Instance) Exec() {
+	i.Ctx = context.Background()
+
+	id, err := CreateExecConnection(i.Name, i.Ctx)
+	if err != nil {
+		return
+	}
+	i.ExecId = id
+	conn, err := AttachExecConnection(id, i.Ctx)
+	if err != nil {
+		return
+	}
+
+	i.Conn = conn
+
+	go func() {
+		encoder := encoding.Replacement.NewEncoder()
+		sw := &sessionWriter{instance: i}
+		io.Copy(encoder.Writer(sw), conn.Reader)
+	}()
+
+	select {
+	case <-i.Ctx.Done():
+	}
+}
+
+func GetInstance(session *Session, name string) *Instance {
 	//TODO: Use redis
 	return session.Instances[name]
 }
-func DeleteInstance(session *types.Session, instance *types.Instance) error {
+func DeleteInstance(session *Session, instance *Instance) error {
 	//TODO: Use redis
 	delete(session.Instances, instance.Name)
-	return DeleteContainer(instance.Name)
+	err := DeleteContainer(instance.Name)
+
+	wsServer.BroadcastTo(session.Id, "delete instance", instance.Name)
+
+	return err
 }

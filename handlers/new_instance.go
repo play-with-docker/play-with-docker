@@ -6,16 +6,18 @@ import (
 	"net/http"
 
 	"github.com/franela/play-with-docker/services"
-	"github.com/go-zoo/bone"
+	"github.com/gorilla/mux"
 )
 
 func NewInstance(rw http.ResponseWriter, req *http.Request) {
-	sessionId := bone.GetValue(req, "sessionId")
+	vars := mux.Vars(req)
+	sessionId := vars["sessionId"]
 
 	s := services.GetSession(sessionId)
 
 	s.Lock()
 	if len(s.Instances) >= 5 {
+		s.Unlock()
 		rw.WriteHeader(http.StatusConflict)
 		return
 	}

@@ -1,22 +1,42 @@
 package handlers
 
 import (
-	"io"
+	"log"
 
-	"golang.org/x/net/context"
-	"golang.org/x/net/websocket"
-	"golang.org/x/text/encoding"
-
-	"github.com/franela/play-with-docker/cookoo"
 	"github.com/franela/play-with-docker/services"
-	"github.com/go-zoo/bone"
-	"github.com/twinj/uuid"
+	"github.com/googollee/go-socket.io"
+	"github.com/gorilla/mux"
 )
 
-// Echo the data received on the WebSocket.
-func Exec(ws *websocket.Conn) {
-	sessionId := bone.GetValue(ws.Request(), "sessionId")
-	instanceName := bone.GetValue(ws.Request(), "instanceName")
+func WS(so socketio.Socket) {
+	vars := mux.Vars(so.Request())
+
+	sessionId := vars["sessionId"]
+
+	session := services.GetSession(sessionId)
+	if session == nil {
+		log.Printf("Session with id [%s] does not exist!\n", sessionId)
+		return
+	}
+
+	session.AddNewClient(services.NewClient(so, session))
+}
+func WSError(so socketio.Socket) {
+	log.Println("error ws")
+}
+
+/*
+	so.Join(sessionId)
+
+	// TODO: Reset terminal geometry
+
+	so.On("resize", func(cols, rows int) {
+		// TODO: Reset terminal geometry
+	})
+
+	so.On("disconnection", func() {
+		//TODO: reset the best terminal geometry
+	})
 
 	ctx := context.Background()
 
@@ -62,5 +82,5 @@ func Exec(ws *websocket.Conn) {
 		case <-ctx.Done():
 		}
 	}
-
 }
+*/

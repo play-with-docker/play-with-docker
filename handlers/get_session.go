@@ -2,14 +2,17 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/franela/play-with-docker/services"
-	"github.com/go-zoo/bone"
+	"github.com/gorilla/mux"
 )
 
 func GetSession(rw http.ResponseWriter, req *http.Request) {
-	sessionId := bone.GetValue(req, "sessionId")
+	vars := mux.Vars(req)
+	sessionId := vars["sessionId"]
+	log.Println(sessionId)
 
 	session := services.GetSession(sessionId)
 

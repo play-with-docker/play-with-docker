@@ -4,12 +4,13 @@ import (
 	"net/http"
 
 	"github.com/franela/play-with-docker/services"
-	"github.com/go-zoo/bone"
+	"github.com/gorilla/mux"
 )
 
 func DeleteInstance(rw http.ResponseWriter, req *http.Request) {
-	sessionId := bone.GetValue(req, "sessionId")
-	instanceName := bone.GetValue(req, "instanceName")
+	vars := mux.Vars(req)
+	sessionId := vars["sessionId"]
+	instanceName := vars["instanceName"]
 
 	s := services.GetSession(sessionId)
 	i := services.GetInstance(s, instanceName)
