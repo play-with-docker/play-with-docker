@@ -48,11 +48,13 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 				break
 			}
 		}
-		vp := session.GetSmallestViewPort()
-		// Resize all terminals in the session
-		wsServer.BroadcastTo(session.Id, "viewport resize", vp.Cols, vp.Rows)
-		for _, instance := range session.Instances {
-			instance.ResizeTerminal(vp.Cols, vp.Rows)
+		if len(session.Clients) > 0 {
+			vp := session.GetSmallestViewPort()
+			// Resize all terminals in the session
+			wsServer.BroadcastTo(session.Id, "viewport resize", vp.Cols, vp.Rows)
+			for _, instance := range session.Instances {
+				instance.ResizeTerminal(vp.Cols, vp.Rows)
+			}
 		}
 	})
 
