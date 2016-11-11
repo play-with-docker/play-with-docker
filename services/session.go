@@ -59,7 +59,7 @@ func NewSession() (*Session, error) {
 	sessions[s.Id] = s
 
 	// Schedule cleanup of the session
-	time.AfterFunc(1*time.Hour, func() {
+	time.AfterFunc(4*time.Hour, func() {
 		s = GetSession(s.Id)
 		wsServer.BroadcastTo(s.Id, "session end")
 		log.Printf("Starting clean up of session [%s]\n", s.Id)
