@@ -25,7 +25,7 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 	so.On("terminal in", func(name, data string) {
 		// User wrote something on the terminal. Need to write it to the instance terminal
 		instance := GetInstance(session, name)
-		if len(data) > 0 {
+		if instance != nil && len(data) > 0 {
 			instance.Conn.Conn.Write([]byte(data))
 		}
 	})
