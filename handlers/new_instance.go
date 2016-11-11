@@ -16,14 +16,13 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	s := services.GetSession(sessionId)
 
 	s.Lock()
+	defer s.Unlock()
 	if len(s.Instances) >= 5 {
-		s.Unlock()
 		rw.WriteHeader(http.StatusConflict)
 		return
 	}
 
 	i, err := services.NewInstance(s)
-	s.Unlock()
 	if err != nil {
 		log.Println(err)
 		//TODO: Set a status error

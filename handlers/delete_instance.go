@@ -13,6 +13,8 @@ func DeleteInstance(rw http.ResponseWriter, req *http.Request) {
 	instanceName := vars["instanceName"]
 
 	s := services.GetSession(sessionId)
+	s.Lock()
+	defer s.Unlock()
 	i := services.GetInstance(s, instanceName)
 	err := services.DeleteInstance(s, i)
 	if err != nil {
