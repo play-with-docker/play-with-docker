@@ -59,7 +59,7 @@ func NewSession() (*Session, error) {
 	sessions[s.Id] = s
 
 	// Schedule cleanup of the session
-	time.AfterFunc(15*time.Second, func() {
+	time.AfterFunc(4*time.Hour, func() {
 		s = GetSession(s.Id)
 		s.Lock()
 		defer s.Unlock()
