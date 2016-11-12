@@ -22,6 +22,10 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 
 	c := &Client{SO: so}
 
+	so.On("session close", func() {
+		CloseSession(session)
+	})
+
 	so.On("terminal in", func(name, data string) {
 		// User wrote something on the terminal. Need to write it to the instance terminal
 		instance := GetInstance(session, name)

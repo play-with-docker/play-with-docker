@@ -32,6 +32,10 @@
         $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
       }
 
+      $scope.closeSession = function() {
+        $scope.socket.emit('session close');
+      }
+
       $scope.upsertInstance = function(info) {
             var i = info;
             if (!$scope.idx[i.name]) {

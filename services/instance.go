@@ -37,8 +37,6 @@ func getDindImageName() string {
 }
 
 func NewInstance(session *Session) (*Instance, error) {
-
-	//TODO: Validate that a session can only have 5 instances
 	log.Printf("NewInstance - using image: [%s]\n", dindImage)
 	instance, err := CreateInstance(session.Id, dindImage)
 	instance.Session = session
