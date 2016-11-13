@@ -39,11 +39,10 @@ func getDindImageName() string {
 func NewInstance(session *Session) (*Instance, error) {
 	log.Printf("NewInstance - using image: [%s]\n", dindImage)
 	instance, err := CreateInstance(session.Id, dindImage)
-	instance.Session = session
-
 	if err != nil {
 		return nil, err
 	}
+	instance.Session = session
 
 	if session.Instances == nil {
 		session.Instances = make(map[string]*Instance)
@@ -66,8 +65,8 @@ func (s *sessionWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func (i *Instance) ResizeTerminal(cols, rows uint) {
-	ResizeExecConnection(i.ExecId, i.Ctx, cols, rows)
+func (i *Instance) ResizeTerminal(cols, rows uint) error {
+	return ResizeExecConnection(i.ExecId, i.Ctx, cols, rows)
 }
 
 func (i *Instance) Exec() {

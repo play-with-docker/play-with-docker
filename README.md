@@ -9,7 +9,11 @@ A live version is available at: http://play-with-docker.com/
 
 ## Requirements
 
-Docker 1.12.1 or higher is required.
+Docker 1.13+ is required. You can use docker-machine with the following command:
+
+```
+docker-machine create -d virtualbox --virtualbox-boot2docker-url https://github.com/boot2docker/boot2docker/releases/download/v1.13.0-rc1/boot2docker.iso <name>
+```
 
 ## Installation
 

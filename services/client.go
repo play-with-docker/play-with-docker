@@ -1,6 +1,10 @@
 package services
 
-import "github.com/googollee/go-socket.io"
+import (
+	"log"
+
+	"github.com/googollee/go-socket.io"
+)
 
 type ViewPort struct {
 	Rows uint
@@ -41,7 +45,10 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 		// Resize all terminals in the session
 		wsServer.BroadcastTo(session.Id, "viewport resize", vp.Cols, vp.Rows)
 		for _, instance := range session.Instances {
-			instance.ResizeTerminal(vp.Cols, vp.Rows)
+			err := instance.ResizeTerminal(vp.Cols, vp.Rows)
+			if err != nil {
+				log.Println("Error resizing terminal", err)
+			}
 		}
 	})
 	so.On("disconnection", func() {
