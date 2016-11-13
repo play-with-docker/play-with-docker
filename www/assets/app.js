@@ -188,6 +188,7 @@
           });
 
           term.open(terminalContainer);
+          term.fit();
 
           $scope.resize(term.proposeGeometry());
 
