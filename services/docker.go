@@ -76,10 +76,9 @@ func ResizeExecConnection(execId string, ctx context.Context, cols, rows uint) e
 
 func CreateInstance(net string, dindImage string) (*Instance, error) {
 
-	var maximumPidLimit int64
-	maximumPidLimit = 150 // Set a ulimit value to prevent misuse
 	h := &container.HostConfig{NetworkMode: container.NetworkMode(net), Privileged: true}
-	h.Resources.PidsLimit = maximumPidLimit
+	h.Resources.PidsLimit = int64(150)
+	h.Resources.Memory = int64(5.12E+8)
 
 	conf := &container.Config{Image: dindImage, Tty: true}
 	container, err := c.ContainerCreate(context.Background(), conf, h, nil, "")
