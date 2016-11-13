@@ -1,4 +1,4 @@
-FROM golang:1.7.1
+FROM golang:1.7
 
 # Copy the runtime dockerfile into the context as Dockerfile
 COPY Dockerfile.run /go/bin/Dockerfile
