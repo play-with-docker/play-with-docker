@@ -12,6 +12,12 @@ import (
 
 var c *client.Client
 
+const (
+	Byte     = 1
+	Kilobyte = 1024 * Byte
+	Megabyte = 1024 * Kilobyte
+)
+
 func init() {
 	var err error
 	c, err = client.NewEnvClient()
@@ -78,7 +84,9 @@ func CreateInstance(net string, dindImage string) (*Instance, error) {
 
 	h := &container.HostConfig{NetworkMode: container.NetworkMode(net), Privileged: true}
 	h.Resources.PidsLimit = int64(150)
-	h.Resources.Memory = int64(5.12E+8)
+	h.Resources.Memory = 512 * Megabyte
+	t := true
+	h.Resources.OomKillDisable = &t
 
 	conf := &container.Config{Image: dindImage, Tty: true}
 	container, err := c.ContainerCreate(context.Background(), conf, h, nil, "")
