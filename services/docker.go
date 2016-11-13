@@ -55,20 +55,10 @@ func DeleteNetwork(id string) error {
 	return nil
 }
 
-func CreateExecConnection(id string, ctx context.Context) (string, error) {
-	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true, Cmd: []string{"sh"}, DetachKeys: "ctrl-x,ctrl-x"}
-	resp, err := c.ContainerExecCreate(ctx, id, conf)
-	if err != nil {
-		return "", err
-	}
+func CreateAttachConnection(id string, ctx context.Context) (*types.HijackedResponse, error) {
 
-	return resp.ID, nil
-}
-
-func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedResponse, error) {
-	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true, DetachKeys: "ctrl-x,ctrl-x"}
-	conn, err := c.ContainerExecAttach(ctx, execId, conf)
-
+	conf := types.ContainerAttachOptions{true, true, true, true, "ctrl-x,ctrl-x", true}
+	conn, err := c.ContainerAttach(ctx, id, conf)
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +66,8 @@ func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedRe
 	return &conn, nil
 }
 
-func ResizeExecConnection(execId string, ctx context.Context, cols, rows uint) error {
-	return c.ContainerExecResize(ctx, execId, types.ResizeOptions{Height: rows, Width: cols})
+func ResizeConnection(name string, cols, rows uint) error {
+	return c.ContainerResize(context.Background(), name, types.ResizeOptions{Height: rows, Width: cols})
 }
 
 func CreateInstance(net string, dindImage string) (*Instance, error) {
@@ -88,7 +78,7 @@ func CreateInstance(net string, dindImage string) (*Instance, error) {
 	t := true
 	h.Resources.OomKillDisable = &t
 
-	conf := &container.Config{Image: dindImage, Tty: true}
+	conf := &container.Config{Image: dindImage, Tty: true, OpenStdin: true, AttachStdin: true, AttachStdout: true, AttachStderr: true}
 	container, err := c.ContainerCreate(context.Background(), conf, h, nil, "")
 
 	if err != nil {

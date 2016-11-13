@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/franela/play-with-docker/handlers"
 	"github.com/franela/play-with-docker/services"
@@ -11,10 +12,16 @@ import (
 )
 
 func main() {
+
 	server := services.CreateWSServer()
 
 	server.On("connection", handlers.WS)
 	server.On("error", handlers.WSError)
+
+	err := services.LoadSessionsFromDisk()
+	if err != nil && !os.IsNotExist(err) {
+		log.Fatal("Error decoding sessions from disk ", err)
+	}
 
 	r := mux.NewRouter()
 	r.StrictSlash(false)

@@ -5,20 +5,31 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 
 	"golang.org/x/text/encoding"
 
 	"github.com/docker/docker/api/types"
 )
 
+var rw sync.Mutex
+
 type Instance struct {
-	Session  *Session                `json:"-"`
+	session  *Session                `json:"-"`
 	Name     string                  `json:"name"`
 	Hostname string                  `json:"hostname"`
 	IP       string                  `json:"ip"`
-	Conn     *types.HijackedResponse `json:"-"`
-	ExecId   string                  `json:"-"`
-	Ctx      context.Context         `json:"-"`
+	conn     *types.HijackedResponse `json:"-"`
+	ctx      context.Context         `json:"-"`
+}
+
+func (i *Instance) IsConnected() bool {
+	return i.conn != nil
+
+}
+
+func (i *Instance) SetSession(s *Session) {
+	i.session = s
 }
 
 var dindImage string
@@ -43,14 +54,18 @@ func NewInstance(session *Session) (*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
-	instance.Session = session
+	instance.session = session
 
 	if session.Instances == nil {
 		session.Instances = make(map[string]*Instance)
 	}
 	session.Instances[instance.Name] = instance
 
-	go instance.Exec()
+	go instance.Attach()
+
+	rw.Lock()
+	err = saveSessionsToDisk()
+	rw.Unlock()
 
 	wsServer.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP, instance.Hostname)
 
@@ -62,28 +77,23 @@ type sessionWriter struct {
 }
 
 func (s *sessionWriter) Write(p []byte) (n int, err error) {
-	wsServer.BroadcastTo(s.instance.Session.Id, "terminal out", s.instance.Name, string(p))
+	wsServer.BroadcastTo(s.instance.session.Id, "terminal out", s.instance.Name, string(p))
 	return len(p), nil
 }
 
 func (i *Instance) ResizeTerminal(cols, rows uint) error {
-	return ResizeExecConnection(i.ExecId, i.Ctx, cols, rows)
+	return ResizeConnection(i.Name, cols, rows)
 }
 
-func (i *Instance) Exec() {
-	i.Ctx = context.Background()
+func (i *Instance) Attach() {
+	i.ctx = context.Background()
+	conn, err := CreateAttachConnection(i.Name, i.ctx)
 
-	id, err := CreateExecConnection(i.Name, i.Ctx)
-	if err != nil {
-		return
-	}
-	i.ExecId = id
-	conn, err := AttachExecConnection(id, i.Ctx)
 	if err != nil {
 		return
 	}
 
-	i.Conn = conn
+	i.conn = conn
 
 	go func() {
 		encoder := encoding.Replacement.NewEncoder()
@@ -92,10 +102,9 @@ func (i *Instance) Exec() {
 	}()
 
 	select {
-	case <-i.Ctx.Done():
+	case <-i.ctx.Done():
 	}
 }
-
 func GetInstance(session *Session, name string) *Instance {
 	//TODO: Use redis
 	return session.Instances[name]
