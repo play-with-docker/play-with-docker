@@ -68,7 +68,7 @@
 				method: 'GET',
 				url: '/sessions/' + $scope.sessionId,
 			}).then(function(response) {
-                var socket = io({path: '/sessions/' + sessionId + '/ws'});
+                var socket = io({path: '/sessions/' + sessionId + '/ws', transports: ['websocket', 'polling']});
 
                 socket.on('terminal out', function(name, data) {
                     var instance = $scope.idx[name];
