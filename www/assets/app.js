@@ -86,7 +86,7 @@
                 });
 
                 socket.on('session end', function() {
-					$scope.showAlert('Session timedout!', 'Your session has expire and all your instances has been deleted.', '#sessionEnd')
+					$scope.showAlert('Session timed out!', 'Your session has expired and all of your instances have been deleted.', '#sessionEnd')
                     $scope.isAlive = false;
                 });
 
