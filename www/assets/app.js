@@ -93,8 +93,8 @@
                 socket.on('viewport', function(rows, cols) {
                 });
 
-                socket.on('new instance', function(name, ip) {
-                    $scope.upsertInstance({name: name, ip: ip});
+                socket.on('new instance', function(name, ip, hostname) {
+                    $scope.upsertInstance({name: name, ip: ip, hostname: hostname});
                     $scope.$apply(function() {
                         if ($scope.instances.length == 1) {
                             $scope.showInstance($scope.instances[0]);

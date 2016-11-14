@@ -12,12 +12,13 @@ import (
 )
 
 type Instance struct {
-	Session *Session                `json:"-"`
-	Name    string                  `json:"name"`
-	IP      string                  `json:"ip"`
-	Conn    *types.HijackedResponse `json:"-"`
-	ExecId  string                  `json:"-"`
-	Ctx     context.Context         `json:"-"`
+	Session  *Session                `json:"-"`
+	Name     string                  `json:"name"`
+	Hostname string                  `json:"hostname"`
+	IP       string                  `json:"ip"`
+	Conn     *types.HijackedResponse `json:"-"`
+	ExecId   string                  `json:"-"`
+	Ctx      context.Context         `json:"-"`
 }
 
 var dindImage string
@@ -51,7 +52,7 @@ func NewInstance(session *Session) (*Instance, error) {
 
 	go instance.Exec()
 
-	wsServer.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP)
+	wsServer.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP, instance.Hostname)
 
 	return instance, nil
 }

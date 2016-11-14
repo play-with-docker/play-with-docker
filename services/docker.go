@@ -105,7 +105,7 @@ func CreateInstance(net string, dindImage string) (*Instance, error) {
 		return nil, err
 	}
 
-	return &Instance{Name: strings.Replace(cinfo.Name, "/", "", 1), IP: cinfo.NetworkSettings.Networks[net].IPAddress}, nil
+	return &Instance{Name: strings.Replace(cinfo.Name, "/", "", 1), Hostname: cinfo.Config.Hostname, IP: cinfo.NetworkSettings.Networks[net].IPAddress}, nil
 }
 
 func DeleteContainer(id string) error {
