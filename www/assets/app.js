@@ -137,18 +137,17 @@
         $scope.showInstance = function(instance) {
             $scope.selectedInstance = instance;
             if (!instance.creatingTerminal) {
-                instance.creatingTerminal = true;
                 if (!instance.term) {
                     $timeout(function() {
                         createTerminal(instance);
                         instance.term.focus();
                     }, 0, false);
-                } else {
-                    $timeout(function() {
-                        instance.term.focus();
-                    }, 0, false);
+                    return
                 }
             }
+            $timeout(function() {
+                instance.term.focus();
+            }, 0, false);
         }
 
         $scope.removeInstance = function(name) {
