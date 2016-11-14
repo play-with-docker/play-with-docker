@@ -42,7 +42,7 @@ func init() {
 }
 
 func CreateWSServer() *socketio.Server {
-	server, err := socketio.NewServer([]string{"websocket", "polling"})
+	server, err := socketio.NewServer(nil)
 	if err != nil {
 		log.Fatal(err)
 	}
