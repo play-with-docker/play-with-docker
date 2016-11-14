@@ -83,8 +83,8 @@ func ResizeExecConnection(execId string, ctx context.Context, cols, rows uint) e
 func CreateInstance(net string, dindImage string) (*Instance, error) {
 
 	h := &container.HostConfig{NetworkMode: container.NetworkMode(net), Privileged: true}
-	h.Resources.PidsLimit = int64(150)
-	h.Resources.Memory = 512 * Megabyte
+	h.Resources.PidsLimit = int64(500)
+	h.Resources.Memory = 4092 * Megabyte
 	t := true
 	h.Resources.OomKillDisable = &t
 
