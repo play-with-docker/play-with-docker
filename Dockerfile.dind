@@ -1,0 +1,8 @@
+FROM docker:1.12.3-experimental-dind
+
+RUN apk add --no-cache git tmux py-pip apache2-utils vim \
+    && pip install 'docker-compose==1.8.0'
+
+COPY vimrc ./root/.vimrc
+
+
