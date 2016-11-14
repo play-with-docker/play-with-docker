@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/franela/play-with-docker/services"
@@ -9,6 +10,11 @@ import (
 )
 
 func WS(so socketio.Socket) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from ", r)
+		}
+	}()
 	vars := mux.Vars(so.Request())
 
 	sessionId := vars["sessionId"]
