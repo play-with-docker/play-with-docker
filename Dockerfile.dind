@@ -5,5 +5,5 @@ RUN apk add --no-cache git tmux py-pip apache2-utils vim \
 
 COPY vimrc ./root/.vimrc
 
-CMD docker daemon --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --storage-driver=vfs &>- & /bin/sh
+CMD docker daemon --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --storage-driver=vfs &>- & while true; do /bin/sh; done
 
