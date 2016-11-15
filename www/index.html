@@ -34,7 +34,6 @@
                   <md-button ng-click="newInstance()" class="md-primary">
                 + Add new instance
                   </md-button>
-              f
               <md-list>
                 <md-list-item class="md-3-line" ng-repeat="instance in instances" ng-click="showInstance(instance)" ng-class="instance.name == selectedInstance.name ? 'selected' : false">
                     <div class="md-list-item-text">{{instance.name}} ({{instance.hostname}})</div>
