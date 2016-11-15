@@ -37,6 +37,9 @@ func main() {
 	})
 	r.HandleFunc("/p/{sessionId}", h).Methods("GET")
 	r.PathPrefix("/assets").Handler(http.FileServer(http.Dir("./www")))
+	r.HandleFunc("/robots.txt", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		http.ServeFile(rw, r, "www/robots.txt")
+	}))
 
 	r.Handle("/sessions/{sessionId}/ws/", server)
 
