@@ -19,6 +19,8 @@ type Session struct {
 	Id        string               `json:"id"`
 	Instances map[string]*Instance `json:"instances"`
 	clients   []*Client            `json:"-"`
+	CreatedAt time.Time            `json:"created_at"`
+	ExpiresAt time.Time            `json:"expires_at"`
 }
 
 func (s *Session) Lock() {
@@ -87,6 +89,8 @@ func NewSession() (*Session, error) {
 	s := &Session{}
 	s.Id = uuid.NewV4().String()
 	s.Instances = map[string]*Instance{}
+	s.CreatedAt = time.Now()
+	s.ExpiresAt = s.CreatedAt.Add(4 * time.Hour)
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
 	sessions[s.Id] = s
