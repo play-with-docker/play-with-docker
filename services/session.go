@@ -62,6 +62,12 @@ func CreateWSServer() *socketio.Server {
 	return server
 }
 
+func CloseSessionAfter(s *Session, d time.Duration) {
+	time.AfterFunc(d, func() {
+		CloseSession(s)
+	})
+}
+
 func CloseSession(s *Session) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
@@ -96,12 +102,15 @@ func NewSession() (*Session, error) {
 	sessions[s.Id] = s
 
 	// Schedule cleanup of the session
-	time.AfterFunc(4*time.Hour, func() {
-		CloseSession(s)
-	})
+	CloseSessionAfter(s, 4*time.Hour)
 
 	if err := CreateNetwork(s.Id); err != nil {
 		log.Println("ERROR NETWORKING")
+		return nil, err
+	}
+
+	// We store sessions as soon as we create one so we don't delete new sessions on an api restart
+	if err := saveSessionsToDisk(); err != nil {
 		return nil, err
 	}
 	return s, nil
@@ -126,12 +135,24 @@ func LoadSessionsFromDisk() error {
 	if err == nil {
 		decoder := gob.NewDecoder(file)
 		err = decoder.Decode(&sessions)
+
+		if err != nil {
+			return err
+		}
+
+		// schedule session expiration
+		for _, s := range sessions {
+			timeLeft := s.ExpiresAt.Sub(time.Now())
+			CloseSessionAfter(s, timeLeft)
+		}
 	}
 	file.Close()
 	return err
 }
 
 func saveSessionsToDisk() error {
+	rw.Lock()
+	defer rw.Unlock()
 	file, err := os.Create("./pwd/sessions.gob")
 	if err == nil {
 		encoder := gob.NewEncoder(file)

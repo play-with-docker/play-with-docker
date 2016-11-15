@@ -63,9 +63,7 @@ func NewInstance(session *Session) (*Instance, error) {
 
 	go instance.Attach()
 
-	rw.Lock()
 	err = saveSessionsToDisk()
-	rw.Unlock()
 	if err != nil {
 		return nil, err
 	}
