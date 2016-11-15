@@ -66,7 +66,9 @@ func CloseSession(s *Session) error {
 	wsServer.BroadcastTo(s.Id, "session end")
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	for _, i := range s.Instances {
-		i.conn.Close()
+		if i.conn != nil {
+			i.conn.Close()
+		}
 		if err := DeleteContainer(i.Name); err != nil {
 			log.Println(err)
 			return err

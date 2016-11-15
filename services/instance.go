@@ -41,7 +41,7 @@ func init() {
 
 func getDindImageName() string {
 	dindImage := os.Getenv("DIND_IMAGE")
-	defaultDindImageName = "docker:1.12.3-dind"
+	defaultDindImageName = "franela/pwd-1.12.3-experimental-dind"
 	if len(dindImage) == 0 {
 		dindImage = defaultDindImageName
 	}
