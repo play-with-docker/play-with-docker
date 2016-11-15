@@ -42,3 +42,7 @@ md-card-content.terminal {
     margin-bottom: auto;
     margin-top: 50px;
 }
+
+.disconnected {
+    background-color: #FDF4B6;
+}

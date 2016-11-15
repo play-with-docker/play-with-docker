@@ -10,6 +10,7 @@
 		$scope.selectedInstance = null;
         $scope.isAlive = true;
         $scope.ttl = '--:--:--';
+        $scope.connected = true;
 
       angular.element($window).bind('resize', function(){
         if ($scope.selectedInstance) {
@@ -121,6 +122,13 @@
                     $scope.instances.forEach(function(instance) {
                         instance.term.resize(cols, rows);
                     });
+                });
+
+                socket.on('connect_error', function() {
+                    $scope.connected = false;
+                });
+                socket.on('connect', function() {
+                    $scope.connected = true;
                 });
 
                 $scope.socket = socket;
