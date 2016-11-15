@@ -1,3 +1,5 @@
+@import url('http://fonts.googleapis.com/css?family=Rationale');
+
 .selected button {
 	background-color: rgba(158,158,158,0.2);
 }
@@ -17,4 +19,11 @@ md-card-content.terminal {
 
 .terminal .xterm-rows {
     background-color: #000;
+}
+
+.clock {
+    font-family: 'Rationale', sans-serif;
+    font-size: 3.0em;
+    color: #1da4eb;
+    text-align: center;
 }

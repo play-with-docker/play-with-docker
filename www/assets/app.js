@@ -9,6 +9,7 @@
         $scope.idx = {};
 		$scope.selectedInstance = null;
         $scope.isAlive = true;
+        $scope.ttl = '--:--:--';
 
       angular.element($window).bind('resize', function(){
         if ($scope.selectedInstance) {
@@ -68,6 +69,13 @@
 				method: 'GET',
 				url: '/sessions/' + $scope.sessionId,
 			}).then(function(response) {
+                if (response.data.created_at) {
+                    $scope.expiresAt = moment(response.data.expires_at);
+                    setInterval(function() {
+                        $scope.ttl = moment.utc($scope.expiresAt.diff(moment())).format('HH:mm:ss');
+                        $scope.$apply();
+                    }, 1000);
+                }
                 var socket = io({path: '/sessions/' + sessionId + '/ws'});
 
                 socket.on('terminal out', function(name, data) {
