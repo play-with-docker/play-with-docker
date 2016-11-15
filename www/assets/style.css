@@ -27,3 +27,18 @@ md-card-content.terminal {
     color: #1da4eb;
     text-align: center;
 }
+
+.welcome {
+    background-color: #e7e7e7;
+}
+
+.welcome > div {
+    text-align: center;
+}
+
+.g-recaptcha div {
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: auto;
+    margin-top: 50px;
+}
