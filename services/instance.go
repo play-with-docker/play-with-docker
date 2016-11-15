@@ -66,6 +66,9 @@ func NewInstance(session *Session) (*Instance, error) {
 	rw.Lock()
 	err = saveSessionsToDisk()
 	rw.Unlock()
+	if err != nil {
+		return nil, err
+	}
 
 	wsServer.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP, instance.Hostname)
 

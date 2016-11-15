@@ -116,7 +116,7 @@ func GetSession(sessionId string) *Session {
 }
 
 func LoadSessionsFromDisk() error {
-	file, err := os.Open("./sessions.gob")
+	file, err := os.Open("./pwd/sessions.gob")
 	if err == nil {
 		decoder := gob.NewDecoder(file)
 		err = decoder.Decode(&sessions)
@@ -126,7 +126,7 @@ func LoadSessionsFromDisk() error {
 }
 
 func saveSessionsToDisk() error {
-	file, err := os.Create("./sessions.gob")
+	file, err := os.Create("./pwd/sessions.gob")
 	if err == nil {
 		encoder := gob.NewEncoder(file)
 		err = encoder.Encode(&sessions)
