@@ -7,11 +7,17 @@ import (
 
 	"github.com/franela/play-with-docker/handlers"
 	"github.com/franela/play-with-docker/services"
+	"github.com/franela/play-with-docker/templates"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
 
 func main() {
+
+	welcome, tmplErr := templates.GetWelcomeTemplate()
+	if tmplErr != nil {
+		log.Fatal(tmplErr)
+	}
 
 	server := services.CreateWSServer()
 
@@ -27,7 +33,11 @@ func main() {
 	r.StrictSlash(false)
 
 	r.HandleFunc("/ping", http.HandlerFunc(handlers.Ping)).Methods("GET")
-	r.HandleFunc("/", http.HandlerFunc(handlers.NewSession)).Methods("GET")
+	r.HandleFunc("/", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Write(welcome)
+	})).Methods("GET")
+	r.HandleFunc("/", http.HandlerFunc(handlers.NewSession)).Methods("POST")
+
 	r.HandleFunc("/sessions/{sessionId}", http.HandlerFunc(handlers.GetSession)).Methods("GET")
 	r.HandleFunc("/sessions/{sessionId}/instances", http.HandlerFunc(handlers.NewInstance)).Methods("POST")
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", http.HandlerFunc(handlers.DeleteInstance)).Methods("DELETE")
