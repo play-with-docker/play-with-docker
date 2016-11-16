@@ -32,6 +32,9 @@ type recaptchaResponse struct {
 }
 
 func IsHuman(req *http.Request) bool {
+	if os.Getenv("GOOGLE_RECAPTCHA_DISABLED") != "" {
+		return true
+	}
 	req.ParseForm()
 	challenge := req.Form.Get("g-recaptcha-response")
 
