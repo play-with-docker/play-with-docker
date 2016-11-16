@@ -18,6 +18,10 @@
                 <div flex></div>
               </md-content>
             </section>
+            <section ng-if="!connected" class="disconnected" layout="row" layout-align="center center">
+                <h1 class="md-headline">No connection to server. Reconnecting...</h1>
+                <md-progress-circular class="md-hue-2" md-diameter="20px"></md-progress-circular>
+            </section>
             <section id="popupContainer" layout="row" flex ng-if="isAlive">
               <md-sidenav
                   class="md-sidenav-left"
@@ -43,7 +47,6 @@
                 </md-content>
 
               </md-sidenav>
-
               <md-content flex layout-padding ng-if="!instances.length">
                 <div layout="column" layout-align="top center">
                   <p>
