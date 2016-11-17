@@ -1,0 +1,15 @@
+version: '2'
+services:
+    web:
+        # use the latest golang image
+        image: golang
+        # go to the right place and starts the app
+        command: /bin/sh -c 'cd /go/src/github.com/franela/play-with-docker; go run api.go'
+        ports:
+            # app exposes port 3000
+            - "3000:3000"
+        volumes:
+            # since this app creates networks and launches containers, we need to talk to docker daemon
+            - /var/run/docker.sock:/var/run/docker.sock
+            # mount the box mounted shared folder to the container
+            - /go/src:/go/src
