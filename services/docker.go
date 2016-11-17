@@ -52,6 +52,17 @@ func CreateNetwork(name string) error {
 
 	return nil
 }
+func ConnectNetwork(containerId, networkId string) error {
+	err := c.NetworkConnect(context.Background(), networkId, containerId, &network.EndpointSettings{})
+
+	if err != nil {
+		log.Printf("Connection container to network err [%s]\n", err)
+
+		return err
+	}
+
+	return nil
+}
 
 func DeleteNetwork(id string) error {
 	err := c.NetworkRemove(context.Background(), id)
