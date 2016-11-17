@@ -1,6 +1,8 @@
 version: '2'
 services:
     web:
+        # pwd daemon container always needs to be named this way
+        container_name: pwd
         # use the latest golang image
         image: golang
         # go to the right place and starts the app
