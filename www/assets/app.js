@@ -46,6 +46,7 @@
                 $scope.idx[i.name] = i;
             } else {
                 $scope.idx[i.name].ip = i.ip;
+                $scope.idx[i.name].hostname = i.hostname;
             }
 
             return $scope.idx[i.name];
