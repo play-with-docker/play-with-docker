@@ -47,5 +47,5 @@ Notes:
 
 ### How can I connect to a published port from the outside world?
 
-We're planning to setup a reverse proxy that handles redirection automatically, in the meantime you can use [ngrok](https://ngrok.com) within PWD running `docker run -d --net=host fnichol/ngrok "-log-level debug 127.0.0.1:<port>"` where `"<port>"` is the published service port. After that check the created container logs to look for the *.ngrok.io URL so it can be used in the browser and that's it. 
+We're planning to setup a reverse proxy that handles redirection automatically, in the meantime you can use [ngrok](https://ngrok.com) within PWD running `docker run --name supergrok -d jpetazzo/supergrok` then `docker logs --follow supergrok` , it will give you a ngrok URL, now you can go to that URL and add the IP+port that you want to connect to… e.g. if your PWD instance is 10.0.42.3, you can go to http://xxxxxx.ngrok.io/10.0.42.3:8000 (where the xxxxxx is given to you in the supergrok logs).
 
