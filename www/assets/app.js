@@ -204,9 +204,11 @@
           });
 
           term.open(terminalContainer);
-          term.fit();
-
-          $scope.resize(term.proposeGeometry());
+          
+          // Set geometry during the next tick, to avoid race conditions.
+          setTimeout(function() {
+              $scope.resize(term.proposeGeometry());
+          }, 4);
 
           term.on('data', function(d) {
             $scope.socket.emit('terminal in', instance.name, d);
