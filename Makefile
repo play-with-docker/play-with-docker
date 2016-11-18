@@ -11,7 +11,7 @@ prepare:
 	# Adds the host GOPATH as a shared folder in the box
 	-VBoxManage sharedfolder add pwd --name gopathsrc --hostpath ${GOPATH}src --automount
 	# Do port forwaring so we can reach the app using localhost:3000
-	-VBoxManage modifyvm pwd --natpf1 "nameformapping,tcp,,3000,,3000"
+	-VBoxManage modifyvm pwd --natpf1 "localhost,tcp,,3000,,3000"
 
 # Starts the virtual box instance
 start:
