@@ -144,6 +144,13 @@ func LoadSessionsFromDisk() error {
 		for _, s := range sessions {
 			timeLeft := s.ExpiresAt.Sub(time.Now())
 			CloseSessionAfter(s, timeLeft)
+
+			// start collecting stats for every instance
+			for _, i := range s.Instances {
+				// wire the session back to the instance
+				i.session = s
+				go i.CollectStats()
+			}
 		}
 	}
 	file.Close()

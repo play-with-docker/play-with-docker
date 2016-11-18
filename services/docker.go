@@ -1,6 +1,7 @@
 package services
 
 import (
+	"io"
 	"log"
 	"strings"
 
@@ -26,6 +27,12 @@ func init() {
 		log.Fatal("Cannot initialize docker client")
 	}
 
+}
+
+func GetContainerStats(id string) (io.ReadCloser, error) {
+	stats, err := c.ContainerStats(context.Background(), id, true)
+
+	return stats.Body, err
 }
 
 func GetContainerInfo(id string) (types.ContainerJSON, error) {
