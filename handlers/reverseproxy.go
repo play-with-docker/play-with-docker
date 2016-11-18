@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -13,6 +14,10 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		v := mux.Vars(req)
 		node := v["node"]
+		port := v["port"]
+		if port == "" {
+			port = "80"
+		}
 		if strings.HasPrefix(node, "ip") {
 			// Node is actually an ip, need to convert underscores by dots.
 			ip := strings.Replace(strings.TrimPrefix(node, "ip"), "_", ".", -1)
@@ -24,13 +29,10 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 			}
 		}
 
-		// Validate that the node actually exists in the network
-		// TODO:
-
 		// Only proxy http for now
 		req.URL.Scheme = "http"
 
-		req.URL.Host = node
+		req.URL.Host = fmt.Sprintf("%s:%s", node, port)
 	}
 
 	return &httputil.ReverseProxy{Director: director}

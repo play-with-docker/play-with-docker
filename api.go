@@ -60,7 +60,8 @@ func main() {
 	r.Handle("/sessions/{sessionId}/ws/", server)
 
 	// Reverse proxy
-	r.Host(`{node}.{session}.play-with-docker.com`).Handler(handlers.NewMultipleHostReverseProxy())
+	r.Host(`{node}-{port:[0-9]*}.play-with-docker.com`).Handler(handlers.NewMultipleHostReverseProxy())
+	r.Host(`{node}.play-with-docker.com`).Handler(handlers.NewMultipleHostReverseProxy())
 
 	n := negroni.Classic()
 	n.UseHandler(r)
