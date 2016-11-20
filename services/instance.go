@@ -106,10 +106,12 @@ func (i *Instance) Attach() {
 	case <-i.ctx.Done():
 	}
 }
+
 func GetInstance(session *Session, name string) *Instance {
 	//TODO: Use redis
 	return session.Instances[name]
 }
+
 func DeleteInstance(session *Session, instance *Instance) error {
 	//TODO: Use redis
 	delete(session.Instances, instance.Name)

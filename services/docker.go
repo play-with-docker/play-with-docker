@@ -2,6 +2,7 @@ package services
 
 import (
 	"log"
+	"os"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -33,7 +34,15 @@ func GetContainerInfo(id string) (types.ContainerJSON, error) {
 }
 
 func CreateNetwork(name string) error {
-	opts := types.NetworkCreate{Driver: "overlay", Attachable: true}
+	dockerVersion := os.Getenv("DOCKER_VERSION")
+	var opts types.NetworkCreate
+
+	if len(dockerVersion) > 0 && dockerVersion == "1.12" {
+		opts = types.NetworkCreate{Attachable: true}
+	} else {
+		opts = types.NetworkCreate{Attachable: true, Driver: "overlay"}
+	}
+
 	_, err := c.NetworkCreate(context.Background(), name, opts)
 
 	if err != nil {
@@ -57,7 +66,7 @@ func DeleteNetwork(id string) error {
 
 func CreateAttachConnection(id string, ctx context.Context) (*types.HijackedResponse, error) {
 
-	conf := types.ContainerAttachOptions{true, true, true, true, "ctrl-x,ctrl-x", true}
+	conf := types.ContainerAttachOptions{true, true, true, true, "ctrl-x,ctrl-x"}
 	conn, err := c.ContainerAttach(ctx, id, conf)
 	if err != nil {
 		return nil, err
