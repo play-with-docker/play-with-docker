@@ -36,6 +36,10 @@ md-card-content.terminal {
     text-align: center;
 }
 
+.welcome > div > img {
+    max-width: 100%;
+}
+
 .g-recaptcha div {
     margin-left: auto;
     margin-right: auto;
