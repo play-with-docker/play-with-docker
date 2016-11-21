@@ -21,6 +21,11 @@ just run `docker swarm init`.
 It's also necessary to manually load the IPVS kernel module because as swarms are created in `dind`, 
 the daemon won't load it automatically. Run the following command for that purpose: `sudo lsmod xt_ipvs`
 
+If you are developing, there is a `Makefile` file with 2 targets that can set the whole environment for you (using docker-machine and virtual box).
+Just run once `make create`, which will create the docker-machine environment.
+Additionally, every time you want to start you environment run `make start`.
+And to start the application on a container on the docker machine host, run: `eval $(docker-machine env pwd) && docker-compose up`
+
 
 ## Installation
 
