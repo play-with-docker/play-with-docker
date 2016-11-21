@@ -15,7 +15,6 @@ import (
 )
 
 func main() {
-
 	var portNumber int
 	flag.IntVar(&portNumber, "port", 3000, "Give a TCP port to run the application")
 	flag.Parse()
@@ -25,8 +24,9 @@ func main() {
 		log.Fatal(tmplErr)
 	}
 
-	server := services.CreateWSServer()
+	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
 
+	server := services.CreateWSServer()
 	server.On("connection", handlers.WS)
 	server.On("error", handlers.WSError)
 
@@ -45,9 +45,19 @@ func main() {
 	r.StrictSlash(false)
 
 	r.HandleFunc("/ping", http.HandlerFunc(handlers.Ping)).Methods("GET")
+
 	r.HandleFunc("/", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		rw.Write(welcome)
+		if bypassCaptcha {
+			http.ServeFile(rw, r, "./www/bypass.html")
+		} else {
+			welcome, tmplErr := templates.GetWelcomeTemplate()
+			if tmplErr != nil {
+				log.Fatal(tmplErr)
+			}
+			rw.Write(welcome)
+		}
 	})).Methods("GET")
+
 	r.HandleFunc("/", http.HandlerFunc(handlers.NewSession)).Methods("POST")
 
 	r.HandleFunc("/sessions/{sessionId}", http.HandlerFunc(handlers.GetSession)).Methods("GET")
@@ -57,6 +67,7 @@ func main() {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./www/index.html")
 	})
+
 	r.HandleFunc("/p/{sessionId}", h).Methods("GET")
 	r.PathPrefix("/assets").Handler(http.FileServer(http.Dir("./www")))
 	r.HandleFunc("/robots.txt", http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
