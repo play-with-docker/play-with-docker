@@ -3,6 +3,14 @@
 
 	var app = angular.module('DockerPlay', ['ngMaterial']);
 
+    app.controller("BypassController", ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
+        setTimeout(function() {
+            var el = document.querySelector("#submit");
+            console.log(el);
+            el.click();
+        }, 500);
+    }]);
+
 	app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
 		$scope.sessionId = window.location.pathname.replace('/p/', '');
 		$scope.instances = [];

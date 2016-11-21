@@ -9,7 +9,7 @@ A live version is available at: http://play-with-docker.com/
 
 ## Requirements
 
-Docker 1.13+ is required. You can use docker-machine with the following command:
+Docker 1.13-dev or higher is required to make use of **attachable** overlay networks. You can use docker-machine with the following command:
 
 ```
 docker-machine create -d virtualbox --virtualbox-boot2docker-url https://github.com/boot2docker/boot2docker/releases/download/v1.13.0-rc1/boot2docker.iso <name>
@@ -21,6 +21,11 @@ just run `docker swarm init`.
 It's also necessary to manually load the IPVS kernel module because as swarms are created in `dind`, 
 the daemon won't load it automatically. Run the following command for that purpose: `sudo lsmod xt_ipvs`
 
+If you want to experiment with a stable version of Docker 1.12 then you can override the requirement for Docker 1.13-dev.
+
+```
+DOCKER_VERSION=1.12 ./play-with-docker
+```
 
 ## Installation
 
@@ -39,9 +44,8 @@ Start the Docker daemon on your machine and run `docker pull docker:1.12.2-rc2-d
 Notes:
 
 * There is a hard-coded limit to 5 Docker playgrounds per session. After 1 hour sessions are deleted.
-* If you want to override the DIND version or image then set the environmental variable i.e.
+* If you want to override the DIND (Docker-In-Docker) version or image then set the environmental variable i.e.
   `DIND_IMAGE=docker:dind`
-
 
 ## FAQ
 

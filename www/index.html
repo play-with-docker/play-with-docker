@@ -8,6 +8,7 @@
         <link rel="stylesheet" href="/assets/style.css" />
     </head>
     <body>
+
         <div layout="column" style="height:100%;" ng-cloak>
             <section id="sessionEnd" layout="row" flex ng-if="!isAlive">
               <md-content flex layout-padding ng-if="!instances.length">
@@ -19,10 +20,12 @@
                 <div flex></div>
               </md-content>
             </section>
+
             <section ng-if="!connected" class="disconnected" layout="row" layout-align="center center">
                 <h1 class="md-headline">No connection to server. Reconnecting...</h1>
                 <md-progress-circular class="md-hue-2" md-diameter="20px"></md-progress-circular>
             </section>
+
             <section id="popupContainer" layout="row" flex ng-if="isAlive">
               <md-sidenav
                   class="md-sidenav-left"
@@ -36,9 +39,7 @@
                   <h1 class="md-toolbar-tools">Instances</h1>
                 </md-toolbar>
                 <md-content layout-padding>
-                  <md-button ng-click="newInstance()" class="md-primary">
-                + Add new instance
-                  </md-button>
+                  <md-button ng-click="newInstance()" class="md-primary">+ Add new instance</md-button>
               <md-list>
                 <md-list-item class="md-3-line" ng-repeat="instance in instances" ng-click="showInstance(instance)" ng-class="instance.name == selectedInstance.name ? 'selected' : false">
                     <div class="md-list-item-text">{{instance.name}} ({{instance.hostname}})</div>
@@ -50,12 +51,8 @@
               </md-sidenav>
               <md-content flex layout-padding ng-if="!instances.length">
                 <div layout="column" layout-align="top center">
-                  <p>
-              Add instances to your playground.
-                  </p>
-                  <p>
-              <strong>Sessions and all their instances are deleted after 4 hours.</strong>
-                  </p>
+                  <p>Add instances to your playground.</p>
+                  <p><strong>Sessions and all their instances are deleted after {{ttl}} hours.</strong></p>
                 </div>
 
                 <div flex></div>
@@ -90,12 +87,8 @@
                       </md-card-content>
                   </md-card>
               </md-content>
-
-
             </section>
-
         </div>
-
         <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
         <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
         <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
