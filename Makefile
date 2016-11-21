@@ -22,9 +22,5 @@ start:
 	# Mount the host's GOPATH shared folder
 	docker-machine ssh pwd "sudo mount -t vboxsf gopathsrc /go/src"
 
-# Runs the app
-run:
-	@eval $$(docker-machine env pwd); \
-	docker-compose up
 
 .PHONY: prepare start run
