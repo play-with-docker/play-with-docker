@@ -40,7 +40,7 @@ Notes:
 
 * There is a hard-coded limit to 5 Docker playgrounds per session. After 1 hour sessions are deleted.
 * If you want to override the DIND version or image then set the environmental variable i.e.
-  `DIND_IMAGE=docker:dind`
+  `DIND_IMAGE=franela/docker<version>-rc:dind`. Take into account that you can't use standard `dind` images, only [franela](https://hub.docker.com/r/franela/) ones work.
 
 
 ## FAQ
