@@ -132,6 +132,12 @@
                     $scope.connected = true;
                 });
 
+                socket.on('instance stats', function(name, mem, cpu) {
+                    $scope.idx[name].mem = mem;
+                    $scope.idx[name].cpu = cpu;
+                    $scope.$apply();
+                });
+
                 $scope.socket = socket;
 
 				var i = response.data;

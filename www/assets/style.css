@@ -46,3 +46,10 @@ md-card-content.terminal {
 .disconnected {
     background-color: #FDF4B6;
 }
+md-input-container {
+    margin-bottom: 0;
+}
+md-input-container .md-errors-spacer {
+    height: 0;
+    min-height: 0;
+}

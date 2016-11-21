@@ -2,6 +2,7 @@
 <html ng-app="DockerPlay" ng-controller="PlayController">
     <head>
         <title>Docker Playground</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic" />
 	    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
         <link rel="stylesheet" href="/assets/xterm.css" />
         <link rel="stylesheet" href="/assets/style.css" />
@@ -64,7 +65,20 @@
                       <md-card-title>
                           <md-card-title-text>
                               <span class="md-headline">{{instance.name}}</span>
-                              <span class="md-subhead">{{instance.ip}}</span>
+                              <md-input-container class="md-icon-float md-block">
+                                <label>IP</label>
+                                <input ng-model="instance.ip" type="text" readonly="readonly">
+                              </md-input-container>
+                               <div layout-gt-sm="row">
+                                  <md-input-container class="md-block" flex-gt-sm>
+                                    <label>Memory</label>
+                                    <input ng-model="instance.mem" type="text" readonly="readonly">
+                                  </md-input-container>
+                                  <md-input-container class="md-block" flex-gt-sm>
+                                    <label>CPU</label>
+                                    <input ng-model="instance.cpu" type="text" readonly="readonly">
+                                  </md-input-container>
+                              </div>
                           <md-card-title-text>
                       </md-card-title>
                       <md-card-actions>
