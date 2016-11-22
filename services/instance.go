@@ -90,7 +90,7 @@ func (s *sessionWriter) Write(p []byte) (n int, err error) {
 }
 
 func (o *Instance) CollectStats() {
-	reader, err := GetContainerStats(o.Hostname)
+	reader, err := GetContainerStats(o.Name)
 	if err != nil {
 		log.Println("Error while trying to collect instance stats", err)
 		return

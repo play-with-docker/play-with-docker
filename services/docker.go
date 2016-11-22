@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -94,7 +93,8 @@ func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 			session.Id: &network.EndpointSettings{Aliases: []string{nodeName}},
 		},
 	}
-	container, err := c.ContainerCreate(context.Background(), conf, h, networkConf, fmt.Sprintf("%s_%s", session.Id[:4], nodeName))
+	containerName := fmt.Sprintf("%s_%s", session.Id[:8], nodeName)
+	container, err := c.ContainerCreate(context.Background(), conf, h, networkConf, containerName)
 
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 		return nil, err
 	}
 
-	return &Instance{Name: strings.Replace(cinfo.Name, "/", "", 1), Hostname: cinfo.Config.Hostname, IP: cinfo.NetworkSettings.Networks[session.Id].IPAddress}, nil
+	return &Instance{Name: containerName, Hostname: cinfo.Config.Hostname, IP: cinfo.NetworkSettings.Networks[session.Id].IPAddress}, nil
 }
 
 func DeleteContainer(id string) error {
