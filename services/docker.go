@@ -94,7 +94,7 @@ func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 			session.Id: &network.EndpointSettings{Aliases: []string{nodeName}},
 		},
 	}
-	container, err := c.ContainerCreate(context.Background(), conf, h, networkConf, "")
+	container, err := c.ContainerCreate(context.Background(), conf, h, networkConf, fmt.Sprintf("%s_%s", session.Id[:4], nodeName))
 
 	if err != nil {
 		return nil, err
