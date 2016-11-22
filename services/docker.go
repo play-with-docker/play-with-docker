@@ -1,12 +1,14 @@
 package services
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
@@ -77,16 +79,22 @@ func ResizeConnection(name string, cols, rows uint) error {
 	return c.ContainerResize(context.Background(), name, types.ResizeOptions{Height: rows, Width: cols})
 }
 
-func CreateInstance(net string, dindImage string) (*Instance, error) {
+func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 
-	h := &container.HostConfig{NetworkMode: container.NetworkMode(net), Privileged: true}
+	h := &container.HostConfig{NetworkMode: container.NetworkMode(session.Id), Privileged: true}
 	h.Resources.PidsLimit = int64(500)
 	h.Resources.Memory = 4092 * Megabyte
 	t := true
 	h.Resources.OomKillDisable = &t
 
-	conf := &container.Config{Image: dindImage, Tty: true, OpenStdin: true, AttachStdin: true, AttachStdout: true, AttachStderr: true}
-	container, err := c.ContainerCreate(context.Background(), conf, h, nil, "")
+	nodeName := fmt.Sprintf("node%d", len(session.Instances)+1)
+	conf := &container.Config{Hostname: nodeName, Image: dindImage, Tty: true, OpenStdin: true, AttachStdin: true, AttachStdout: true, AttachStderr: true}
+	networkConf := &network.NetworkingConfig{
+		map[string]*network.EndpointSettings{
+			session.Id: &network.EndpointSettings{Aliases: []string{nodeName}},
+		},
+	}
+	container, err := c.ContainerCreate(context.Background(), conf, h, networkConf, "")
 
 	if err != nil {
 		return nil, err
@@ -102,7 +110,7 @@ func CreateInstance(net string, dindImage string) (*Instance, error) {
 		return nil, err
 	}
 
-	return &Instance{Name: strings.Replace(cinfo.Name, "/", "", 1), Hostname: cinfo.Config.Hostname, IP: cinfo.NetworkSettings.Networks[net].IPAddress}, nil
+	return &Instance{Name: strings.Replace(cinfo.Name, "/", "", 1), Hostname: cinfo.Config.Hostname, IP: cinfo.NetworkSettings.Networks[session.Id].IPAddress}, nil
 }
 
 func DeleteContainer(id string) error {

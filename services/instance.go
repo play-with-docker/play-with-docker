@@ -54,7 +54,7 @@ func getDindImageName() string {
 
 func NewInstance(session *Session) (*Instance, error) {
 	log.Printf("NewInstance - using image: [%s]\n", dindImage)
-	instance, err := CreateInstance(session.Id, dindImage)
+	instance, err := CreateInstance(session, dindImage)
 	if err != nil {
 		return nil, err
 	}
