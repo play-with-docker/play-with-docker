@@ -1,6 +1,7 @@
 FROM alpine
 
 RUN apk --update add ca-certificates
+RUN mkdir /app/pwd
 
 ADD play-with-docker /app/play-with-docker
 COPY ./www /app/www
