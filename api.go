@@ -10,9 +10,15 @@ import (
 	"github.com/franela/play-with-docker/templates"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
+	"flag"
+	"strconv"
 )
 
 func main() {
+
+	var portNumber int
+	flag.IntVar(&portNumber, "port", 3000, "Give a TCP port to run the application")
+	flag.Parse()
 
 	welcome, tmplErr := templates.GetWelcomeTemplate()
 	if tmplErr != nil {
@@ -56,6 +62,7 @@ func main() {
 	n := negroni.Classic()
 	n.UseHandler(r)
 
-	log.Fatal(http.ListenAndServe("0.0.0.0:3000", n))
+	log.Println("Listening on port "+ strconv.Itoa(portNumber))
+	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(portNumber), n))
 
 }
