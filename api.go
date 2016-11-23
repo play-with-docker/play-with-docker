@@ -36,6 +36,12 @@ func main() {
 	}
 
 	r := mux.NewRouter()
+
+	// Reverse proxy (needs to be the first route, to make sure it is the first thing we check)
+	proxyHandler := handlers.NewMultipleHostReverseProxy()
+	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).Handler(proxyHandler)
+	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).Handler(proxyHandler)
+
 	r.StrictSlash(false)
 
 	r.HandleFunc("/ping", http.HandlerFunc(handlers.Ping)).Methods("GET")
@@ -58,11 +64,6 @@ func main() {
 	}))
 
 	r.Handle("/sessions/{sessionId}/ws/", server)
-
-	// Reverse proxy
-	proxyHandler := handlers.NewMultipleHostReverseProxy()
-	r.Host(`{node}-{port:[0-9]*}.play-with-docker.com`).Handler(proxyHandler)
-	r.Host(`{node}.play-with-docker.com`).Handler(proxyHandler)
 
 	n := negroni.Classic()
 	n.UseHandler(r)
