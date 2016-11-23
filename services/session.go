@@ -108,6 +108,14 @@ func NewSession() (*Session, error) {
 		log.Println("ERROR NETWORKING")
 		return nil, err
 	}
+	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
+
+	// Connect PWD daemon to the new network
+	if err := ConnectNetwork("pwd", s.Id); err != nil {
+		log.Println("ERROR NETWORKING")
+		return nil, err
+	}
+	log.Printf("Connected pwd to network [%s]\n", s.Id)
 
 	// We store sessions as soon as we create one so we don't delete new sessions on an api restart
 	if err := saveSessionsToDisk(); err != nil {
