@@ -14,4 +14,4 @@ services:
             # since this app creates networks and launches containers, we need to talk to docker daemon
             - /var/run/docker.sock:/var/run/docker.sock
             # mount the box mounted shared folder to the container
-            - /go/src:/go/src
+            - $GOPATH/src:/go/src

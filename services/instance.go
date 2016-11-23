@@ -12,6 +12,7 @@ import (
 	"golang.org/x/text/encoding"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/swarm"
 	units "github.com/docker/go-units"
 )
 
@@ -90,6 +91,7 @@ func (s *sessionWriter) Write(p []byte) (n int, err error) {
 }
 
 func (o *Instance) CollectStats() {
+
 	reader, err := GetContainerStats(o.Name)
 	if err != nil {
 		log.Println("Error while trying to collect instance stats", err)
@@ -115,6 +117,15 @@ func (o *Instance) CollectStats() {
 			break
 		}
 
+		var isManager *bool
+		if info, err := GetDaemonInfo(fmt.Sprintf("http://%s:2375", o.IP)); err == nil {
+			if info.Swarm.LocalNodeState != swarm.LocalNodeStateInactive && info.Swarm.LocalNodeState != swarm.LocalNodeStateLocked {
+				isManager = &info.Swarm.ControlAvailable
+			}
+		} else {
+			fmt.Println(info, err)
+		}
+
 		// Memory
 		if v.MemoryStats.Limit != 0 {
 			memPercent = float64(v.MemoryStats.Usage) / float64(v.MemoryStats.Limit) * 100.0
@@ -130,7 +141,7 @@ func (o *Instance) CollectStats() {
 		cpuPercent = calculateCPUPercentUnix(previousCPU, previousSystem, v)
 		cpuFormatted = fmt.Sprintf("%.2f%%", cpuPercent)
 
-		wsServer.BroadcastTo(o.session.Id, "instance stats", o.Name, memFormatted, cpuFormatted)
+		wsServer.BroadcastTo(o.session.Id, "instance stats", o.Name, memFormatted, cpuFormatted, isManager)
 	}
 
 }

@@ -3,6 +3,7 @@
 
 	var app = angular.module('DockerPlay', ['ngMaterial']);
 
+
 	app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
 		$scope.sessionId = window.location.pathname.replace('/p/', '');
 		$scope.instances = [];
@@ -132,9 +133,10 @@
                     $scope.connected = true;
                 });
 
-                socket.on('instance stats', function(name, mem, cpu) {
+                socket.on('instance stats', function(name, mem, cpu, isManager) {
                     $scope.idx[name].mem = mem;
                     $scope.idx[name].cpu = cpu;
+                    $scope.idx[name].isManager = isManager;
                     $scope.$apply();
                 });
 
@@ -210,7 +212,7 @@
           });
 
           term.open(terminalContainer);
-          
+
           // Set geometry during the next tick, to avoid race conditions.
           setTimeout(function() {
               $scope.resize(term.proposeGeometry());
@@ -231,5 +233,9 @@
             cb();
           }
         }
-	}]);
+	}])
+
+  .config(['$mdIconProvider', function($mdIconProvider) {
+      $mdIconProvider.defaultIconSet('../assets/social-icons.svg', 24);
+  }]);
 })();

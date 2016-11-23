@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
+	"net/http"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -38,6 +41,22 @@ func GetContainerStats(id string) (io.ReadCloser, error) {
 
 func GetContainerInfo(id string) (types.ContainerJSON, error) {
 	return c.ContainerInspect(context.Background(), id)
+}
+
+func GetDaemonInfo(host string) (types.Info, error) {
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   1 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext}
+	cli := &http.Client{
+		Transport: transport,
+	}
+	c, err := client.NewClient(host, client.DefaultVersion, cli, nil)
+	if err != nil {
+		return types.Info{}, err
+	}
+	return c.Info(context.Background())
 }
 
 func CreateNetwork(name string) error {
