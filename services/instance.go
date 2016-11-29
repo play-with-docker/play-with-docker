@@ -46,7 +46,7 @@ func init() {
 
 func getDindImageName() string {
 	dindImage := os.Getenv("DIND_IMAGE")
-	defaultDindImageName = "franela/pwd-1.12.3-experimental-dind"
+	defaultDindImageName = "franela/dind"
 	if len(dindImage) == 0 {
 		dindImage = defaultDindImageName
 	}
@@ -122,8 +122,6 @@ func (o *Instance) CollectStats() {
 			if info.Swarm.LocalNodeState != swarm.LocalNodeStateInactive && info.Swarm.LocalNodeState != swarm.LocalNodeStateLocked {
 				isManager = &info.Swarm.ControlAvailable
 			}
-		} else {
-			fmt.Println(info, err)
 		}
 
 		// Memory
