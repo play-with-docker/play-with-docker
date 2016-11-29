@@ -40,8 +40,10 @@
                 + Add new instance
                   </md-button>
               <md-list>
-                <md-list-item class="md-3-line" ng-repeat="instance in instances" ng-click="showInstance(instance)" ng-class="instance.name == selectedInstance.name ? 'selected' : false">
-                    <div class="md-list-item-text">{{instance.name}} ({{instance.hostname}})</div>
+                <md-list-item ng-switch on="instance.isManager" class="md-3-line" ng-repeat="instance in instances" ng-click="showInstance(instance)" ng-class="instance.name == selectedInstance.name ? 'selected' : false">
+                    <md-icon ng-switch-when="true" style="color: blue" md-svg-icon="person"></md-icon>
+                    <md-icon ng-switch-when="false" md-svg-icon="person-outline"></md-icon>
+                    <p>{{instance.name}}</p>
                     <md-divider ng-if="!$last"></md-divider>
                 </md-list-item>
               </md-list>
