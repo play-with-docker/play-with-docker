@@ -15,3 +15,5 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock
             # mount the box mounted shared folder to the container
             - $GOPATH/src:/go/src
+        environment:
+            GOOGLE_RECAPTCHA_DISABLED: "true"
