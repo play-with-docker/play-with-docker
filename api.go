@@ -5,24 +5,20 @@ import (
 	"net/http"
 	"os"
 
+	"flag"
+	"strconv"
+
 	"github.com/franela/play-with-docker/handlers"
 	"github.com/franela/play-with-docker/services"
 	"github.com/franela/play-with-docker/templates"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
-	"flag"
-	"strconv"
 )
 
 func main() {
 	var portNumber int
 	flag.IntVar(&portNumber, "port", 3000, "Give a TCP port to run the application")
 	flag.Parse()
-
-	welcome, tmplErr := templates.GetWelcomeTemplate()
-	if tmplErr != nil {
-		log.Fatal(tmplErr)
-	}
 
 	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
 
@@ -79,7 +75,7 @@ func main() {
 	n := negroni.Classic()
 	n.UseHandler(r)
 
-	log.Println("Listening on port "+ strconv.Itoa(portNumber))
+	log.Println("Listening on port " + strconv.Itoa(portNumber))
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(portNumber), n))
 
 }
