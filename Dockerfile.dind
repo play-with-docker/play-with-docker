@@ -23,7 +23,7 @@ RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/mo
 
 # Install a nice vimrc file and prompt (by soulshake)
 COPY ["docker-prompt","/usr/local/bin/"]
-COPY [".vimrc",".bashrc", "./root/"]
+COPY [".vimrc",".bashrc", ".inputrc", "./root/"]
 
 # Move to our home
 WORKDIR /root
