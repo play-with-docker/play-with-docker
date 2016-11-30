@@ -5,7 +5,7 @@
 
     // Automatically redirects user to a new session when bypassing captcha.
     // Controller keeps code/logic separate from the HTML
-    app.controller("BypassController", ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
+    app.controller("BypassController", ['$scope', '$log', '$http', '$location', '$timeout', function($scope, $log, $http, $location, $timeout) {
         setTimeout(function() {
             var el = document.querySelector("#submit");
             el.click();
