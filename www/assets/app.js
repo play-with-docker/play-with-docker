@@ -3,6 +3,14 @@
 
 	var app = angular.module('DockerPlay', ['ngMaterial']);
 
+    // Automatically redirects user to a new session when bypassing captcha.
+    // Controller keeps code/logic separate from the HTML
+    app.controller("BypassController", ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
+        setTimeout(function() {
+            var el = document.querySelector("#submit");
+            el.click();
+        }, 500);
+    }]);
 
 	app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
 		$scope.sessionId = window.location.pathname.replace('/p/', '');

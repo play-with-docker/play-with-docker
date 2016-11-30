@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -91,18 +92,35 @@ func CloseSession(s *Session) error {
 	return nil
 }
 
+// Todo: this handles minimum viable product and removes hard-coding of hours value :)
+// For future enhance to return time.Duration and parse a string / flag.
+func getExpiryHours() int {
+	hours := 4
+	override := os.Getenv("EXPIRY")
+	if len(override) > 0 {
+		value, err := strconv.Atoi(override)
+		if err == nil {
+			hours = value
+		}
+	}
+	return hours
+}
+
 func NewSession() (*Session, error) {
+	hours := getExpiryHours()
+	duration := time.Duration(hours) * time.Hour
+
 	s := &Session{}
 	s.Id = uuid.NewV4().String()
 	s.Instances = map[string]*Instance{}
 	s.CreatedAt = time.Now()
-	s.ExpiresAt = s.CreatedAt.Add(4 * time.Hour)
+	s.ExpiresAt = s.CreatedAt.Add(duration)
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
 	sessions[s.Id] = s
 
 	// Schedule cleanup of the session
-	CloseSessionAfter(s, 4*time.Hour)
+	CloseSessionAfter(s, duration)
 
 	if err := CreateNetwork(s.Id); err != nil {
 		log.Println("ERROR NETWORKING")
