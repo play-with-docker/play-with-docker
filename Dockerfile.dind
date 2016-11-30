@@ -2,7 +2,7 @@ FROM docker:1.13.0-rc2-dind
 
 ENV DOCKER_STORAGE_DRIVER=overlay2
 
-RUN apk add --no-cache git tmux py-pip apache2-utils vim build-base gettext-dev curl
+RUN apk add --no-cache git tmux py-pip apache2-utils vim build-base gettext-dev curl bash
 
 # Install Compose and Machine
 RUN pip install docker-compose==1.9.0
@@ -21,8 +21,9 @@ RUN mkdir -p /opt && cd /opt && \
 # (note: we can't just symlink to /bin/true because it might be busybox)
 RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/modprobe
 
-# Install a nice vimrc file
-COPY vimrc /root/.vimrc
+# Install a nice vimrc file and prompt (by soulshake)
+COPY ["docker-prompt","/usr/local/bin/"]
+COPY [".vimrc",".bashrc", ".inputrc", "./root/"]
 
 # Move to our home
 WORKDIR /root
@@ -32,5 +33,5 @@ CMD cat /etc/hosts >/etc/hosts.bak && \
     sed 's/^::1.*//' /etc/hosts.bak > /etc/hosts && \
     dockerd -g /graph --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 \
             --storage-driver=$DOCKER_STORAGE_DRIVER &>/docker.log & \
-    while true ; do /bin/sh ; done
+    while true ; do /bin/bash ; done
 # ... and then put a shell in the foreground, restarting it if it exits
