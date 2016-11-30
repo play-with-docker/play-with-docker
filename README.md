@@ -21,6 +21,11 @@ just run `docker swarm init`.
 It's also necessary to manually load the IPVS kernel module because as swarms are created in `dind`, 
 the daemon won't load it automatically. Run the following command for that purpose: `sudo lsmod xt_ipvs`
 
+If you are developing, there is a `Makefile` file with 2 targets that can set the whole environment for you (using docker-machine and virtual box).
+Just run once `make create`, which will create the docker-machine environment.
+Additionally, every time you want to start you environment run `make start`.
+And to start the application on a container on the docker machine host, run: `eval $(docker-machine env pwd) && docker-compose up`
+
 
 ## Installation
 
@@ -40,5 +45,12 @@ Notes:
 
 * There is a hard-coded limit to 5 Docker playgrounds per session. After 1 hour sessions are deleted.
 * If you want to override the DIND version or image then set the environmental variable i.e.
-  `DIND_IMAGE=docker:dind`
+  `DIND_IMAGE=franela/docker<version>-rc:dind`. Take into account that you can't use standard `dind` images, only [franela](https://hub.docker.com/r/franela/) ones work.
+
+
+## FAQ
+
+### How can I connect to a published port from the outside world?
+
+We're planning to setup a reverse proxy that handles redirection automatically, in the meantime you can use [ngrok](https://ngrok.com) within PWD running `docker run --name supergrok -d jpetazzo/supergrok` then `docker logs --follow supergrok` , it will give you a ngrok URL, now you can go to that URL and add the IP+port that you want to connect to… e.g. if your PWD instance is 10.0.42.3, you can go to http://xxxxxx.ngrok.io/10.0.42.3:8000 (where the xxxxxx is given to you in the supergrok logs).
 

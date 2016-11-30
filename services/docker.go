@@ -1,11 +1,16 @@
 package services
 
 import (
+	"fmt"
+	"io"
 	"log"
-	"strings"
+	"net"
+	"net/http"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
@@ -28,8 +33,30 @@ func init() {
 
 }
 
+func GetContainerStats(id string) (io.ReadCloser, error) {
+	stats, err := c.ContainerStats(context.Background(), id, true)
+
+	return stats.Body, err
+}
+
 func GetContainerInfo(id string) (types.ContainerJSON, error) {
 	return c.ContainerInspect(context.Background(), id)
+}
+
+func GetDaemonInfo(host string) (types.Info, error) {
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   1 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext}
+	cli := &http.Client{
+		Transport: transport,
+	}
+	c, err := client.NewClient(host, client.DefaultVersion, cli, nil)
+	if err != nil {
+		return types.Info{}, err
+	}
+	return c.Info(context.Background())
 }
 
 func CreateNetwork(name string) error {
@@ -38,6 +65,17 @@ func CreateNetwork(name string) error {
 
 	if err != nil {
 		log.Printf("Starting session err [%s]\n", err)
+
+		return err
+	}
+
+	return nil
+}
+func ConnectNetwork(containerId, networkId string) error {
+	err := c.NetworkConnect(context.Background(), networkId, containerId, &network.EndpointSettings{})
+
+	if err != nil {
+		log.Printf("Connection container to network err [%s]\n", err)
 
 		return err
 	}
@@ -55,20 +93,10 @@ func DeleteNetwork(id string) error {
 	return nil
 }
 
-func CreateExecConnection(id string, ctx context.Context) (string, error) {
-	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true, Cmd: []string{"sh"}}
-	resp, err := c.ContainerExecCreate(ctx, id, conf)
-	if err != nil {
-		return "", err
-	}
+func CreateAttachConnection(id string, ctx context.Context) (*types.HijackedResponse, error) {
 
-	return resp.ID, nil
-}
-
-func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedResponse, error) {
-	conf := types.ExecConfig{Tty: true, AttachStdin: true, AttachStderr: true, AttachStdout: true}
-	conn, err := c.ContainerExecAttach(ctx, execId, conf)
-
+	conf := types.ContainerAttachOptions{true, true, true, true, "ctrl-x,ctrl-x", true}
+	conn, err := c.ContainerAttach(ctx, id, conf)
 	if err != nil {
 		return nil, err
 	}
@@ -76,20 +104,41 @@ func AttachExecConnection(execId string, ctx context.Context) (*types.HijackedRe
 	return &conn, nil
 }
 
-func ResizeExecConnection(execId string, ctx context.Context, cols, rows uint) error {
-	return c.ContainerExecResize(ctx, execId, types.ResizeOptions{Height: rows, Width: cols})
+func ResizeConnection(name string, cols, rows uint) error {
+	return c.ContainerResize(context.Background(), name, types.ResizeOptions{Height: rows, Width: cols})
 }
 
-func CreateInstance(net string, dindImage string) (*Instance, error) {
+func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 
-	h := &container.HostConfig{NetworkMode: container.NetworkMode(net), Privileged: true}
-	h.Resources.PidsLimit = int64(150)
-	h.Resources.Memory = 512 * Megabyte
+	h := &container.HostConfig{NetworkMode: container.NetworkMode(session.Id), Privileged: true}
+	h.Resources.PidsLimit = int64(500)
+	h.Resources.Memory = 4092 * Megabyte
 	t := true
 	h.Resources.OomKillDisable = &t
 
-	conf := &container.Config{Image: dindImage, Tty: true}
-	container, err := c.ContainerCreate(context.Background(), conf, h, nil, "")
+	var nodeName string
+	var containerName string
+	for i := 1; ; i++ {
+		nodeName = fmt.Sprintf("node%d", i)
+		containerName = fmt.Sprintf("%s_%s", session.Id[:8], nodeName)
+		exists := false
+		for _, instance := range session.Instances {
+			if instance.Name == containerName {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			break
+		}
+	}
+	conf := &container.Config{Hostname: nodeName, Image: dindImage, Tty: true, OpenStdin: true, AttachStdin: true, AttachStdout: true, AttachStderr: true}
+	networkConf := &network.NetworkingConfig{
+		map[string]*network.EndpointSettings{
+			session.Id: &network.EndpointSettings{Aliases: []string{nodeName}},
+		},
+	}
+	container, err := c.ContainerCreate(context.Background(), conf, h, networkConf, containerName)
 
 	if err != nil {
 		return nil, err
@@ -105,7 +154,7 @@ func CreateInstance(net string, dindImage string) (*Instance, error) {
 		return nil, err
 	}
 
-	return &Instance{Name: strings.Replace(cinfo.Name, "/", "", 1), Hostname: cinfo.Config.Hostname, IP: cinfo.NetworkSettings.Networks[net].IPAddress}, nil
+	return &Instance{Name: containerName, Hostname: cinfo.Config.Hostname, IP: cinfo.NetworkSettings.Networks[session.Id].IPAddress}, nil
 }
 
 func DeleteContainer(id string) error {

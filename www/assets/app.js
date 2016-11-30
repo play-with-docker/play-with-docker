@@ -3,12 +3,15 @@
 
 	var app = angular.module('DockerPlay', ['ngMaterial']);
 
+
 	app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
 		$scope.sessionId = window.location.pathname.replace('/p/', '');
 		$scope.instances = [];
         $scope.idx = {};
 		$scope.selectedInstance = null;
         $scope.isAlive = true;
+        $scope.ttl = '--:--:--';
+        $scope.connected = true;
 
       angular.element($window).bind('resize', function(){
         if ($scope.selectedInstance) {
@@ -44,6 +47,7 @@
                 $scope.idx[i.name] = i;
             } else {
                 $scope.idx[i.name].ip = i.ip;
+                $scope.idx[i.name].hostname = i.hostname;
             }
 
             return $scope.idx[i.name];
@@ -68,6 +72,13 @@
 				method: 'GET',
 				url: '/sessions/' + $scope.sessionId,
 			}).then(function(response) {
+                if (response.data.created_at) {
+                    $scope.expiresAt = moment(response.data.expires_at);
+                    setInterval(function() {
+                        $scope.ttl = moment.utc($scope.expiresAt.diff(moment())).format('HH:mm:ss');
+                        $scope.$apply();
+                    }, 1000);
+                }
                 var socket = io({path: '/sessions/' + sessionId + '/ws'});
 
                 socket.on('terminal out', function(name, data) {
@@ -86,7 +97,7 @@
                 });
 
                 socket.on('session end', function() {
-					$scope.showAlert('Session timedout!', 'Your session has expire and all your instances has been deleted.', '#sessionEnd')
+					$scope.showAlert('Session timed out!', 'Your session has expired and all of your instances have been deleted.', '#sessionEnd')
                     $scope.isAlive = false;
                 });
 
@@ -113,6 +124,20 @@
                     $scope.instances.forEach(function(instance) {
                         instance.term.resize(cols, rows);
                     });
+                });
+
+                socket.on('connect_error', function() {
+                    $scope.connected = false;
+                });
+                socket.on('connect', function() {
+                    $scope.connected = true;
+                });
+
+                socket.on('instance stats', function(name, mem, cpu, isManager) {
+                    $scope.idx[name].mem = mem;
+                    $scope.idx[name].cpu = cpu;
+                    $scope.idx[name].isManager = isManager;
+                    $scope.$apply();
                 });
 
                 $scope.socket = socket;
@@ -187,9 +212,11 @@
           });
 
           term.open(terminalContainer);
-          term.fit();
 
-          $scope.resize(term.proposeGeometry());
+          // Set geometry during the next tick, to avoid race conditions.
+          setTimeout(function() {
+              $scope.resize(term.proposeGeometry());
+          }, 4);
 
           term.on('data', function(d) {
             $scope.socket.emit('terminal in', instance.name, d);
@@ -206,5 +233,9 @@
             cb();
           }
         }
-	}]);
+	}])
+
+  .config(['$mdIconProvider', function($mdIconProvider) {
+      $mdIconProvider.defaultIconSet('../assets/social-icons.svg', 24);
+  }]);
 })();

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css?family=Rationale');
+
 .selected button {
 	background-color: rgba(158,158,158,0.2);
 }
@@ -17,4 +19,41 @@ md-card-content.terminal {
 
 .terminal .xterm-rows {
     background-color: #000;
+}
+
+.clock {
+    font-family: 'Rationale', sans-serif;
+    font-size: 3.0em;
+    color: #1da4eb;
+    text-align: center;
+}
+
+.welcome {
+    background-color: #e7e7e7;
+}
+
+.welcome > div {
+    text-align: center;
+}
+
+.welcome > div > img {
+    max-width: 100%;
+}
+
+.g-recaptcha div {
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: auto;
+    margin-top: 50px;
+}
+
+.disconnected {
+    background-color: #FDF4B6;
+}
+md-input-container {
+    margin-bottom: 0;
+}
+md-input-container .md-errors-spacer {
+    height: 0;
+    min-height: 0;
 }

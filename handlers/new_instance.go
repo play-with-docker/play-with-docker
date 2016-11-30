@@ -25,6 +25,8 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	i, err := services.NewInstance(s)
 	if err != nil {
 		log.Println(err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
 		//TODO: Set a status error
 	} else {
 		json.NewEncoder(rw).Encode(i)

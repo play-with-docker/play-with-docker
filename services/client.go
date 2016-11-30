@@ -12,7 +12,8 @@ type ViewPort struct {
 }
 
 type Client struct {
-	SO       socketio.Socket
+	Id       string
+	so       socketio.Socket
 	ViewPort ViewPort
 }
 
@@ -24,7 +25,7 @@ func (c *Client) ResizeViewPort(cols, rows uint) {
 func NewClient(so socketio.Socket, session *Session) *Client {
 	so.Join(session.Id)
 
-	c := &Client{SO: so}
+	c := &Client{so: so, Id: so.Id()}
 
 	so.On("session close", func() {
 		CloseSession(session)
@@ -33,8 +34,8 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 	so.On("terminal in", func(name, data string) {
 		// User wrote something on the terminal. Need to write it to the instance terminal
 		instance := GetInstance(session, name)
-		if instance != nil && len(data) > 0 {
-			instance.Conn.Conn.Write([]byte(data))
+		if instance != nil && instance.conn != nil && len(data) > 0 {
+			instance.conn.Conn.Write([]byte(data))
 		}
 	})
 
@@ -53,13 +54,13 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 	})
 	so.On("disconnection", func() {
 		// Client has disconnected. Remove from session and recheck terminal sizes.
-		for i, cl := range session.Clients {
-			if cl.SO.Id() == c.SO.Id() {
-				session.Clients = append(session.Clients[:i], session.Clients[i+1:]...)
+		for i, cl := range session.clients {
+			if cl.Id == c.Id {
+				session.clients = append(session.clients[:i], session.clients[i+1:]...)
 				break
 			}
 		}
-		if len(session.Clients) > 0 {
+		if len(session.clients) > 0 {
 			vp := session.GetSmallestViewPort()
 			// Resize all terminals in the session
 			wsServer.BroadcastTo(session.Id, "viewport resize", vp.Cols, vp.Rows)
