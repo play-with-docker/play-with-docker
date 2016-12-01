@@ -2,8 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -12,20 +10,23 @@ import (
 	"golang.org/x/text/encoding"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/swarm"
-	units "github.com/docker/go-units"
+	"github.com/docker/docker/client"
 )
 
 var rw sync.Mutex
 
 type Instance struct {
-	session     *Session                `json:"-"`
-	Name        string                  `json:"name"`
-	Hostname    string                  `json:"hostname"`
-	IP          string                  `json:"ip"`
-	conn        *types.HijackedResponse `json:"-"`
-	ctx         context.Context         `json:"-"`
-	statsReader io.ReadCloser           `json:"-"`
+	session      *Session                `json:"-"`
+	Name         string                  `json:"name"`
+	Hostname     string                  `json:"hostname"`
+	IP           string                  `json:"ip"`
+	conn         *types.HijackedResponse `json:"-"`
+	ctx          context.Context         `json:"-"`
+	statsReader  io.ReadCloser           `json:"-"`
+	dockerClient *client.Client          `json:"-"`
+	IsManager    *bool                   `json:"is_manager"`
+	Mem          string                  `json:"mem"`
+	Cpu          string                  `json:"cpu"`
 }
 
 func (i *Instance) IsConnected() bool {
@@ -75,9 +76,6 @@ func NewInstance(session *Session) (*Instance, error) {
 
 	wsServer.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP, instance.Hostname)
 
-	// Start collecting stats
-	go instance.CollectStats()
-
 	return instance, nil
 }
 
@@ -88,75 +86,6 @@ type sessionWriter struct {
 func (s *sessionWriter) Write(p []byte) (n int, err error) {
 	wsServer.BroadcastTo(s.instance.session.Id, "terminal out", s.instance.Name, string(p))
 	return len(p), nil
-}
-
-func (o *Instance) CollectStats() {
-
-	reader, err := GetContainerStats(o.Name)
-	if err != nil {
-		log.Println("Error while trying to collect instance stats", err)
-		return
-	}
-	o.statsReader = reader
-	dec := json.NewDecoder(o.statsReader)
-	var (
-		mem          = 0.0
-		memLimit     = 0.0
-		memPercent   = 0.0
-		v            *types.StatsJSON
-		memFormatted = ""
-
-		cpuPercent     = 0.0
-		previousCPU    uint64
-		previousSystem uint64
-		cpuFormatted   = ""
-	)
-	for {
-		e := dec.Decode(&v)
-		if e != nil {
-			break
-		}
-
-		var isManager *bool
-		if info, err := GetDaemonInfo(fmt.Sprintf("http://%s:2375", o.IP)); err == nil {
-			if info.Swarm.LocalNodeState != swarm.LocalNodeStateInactive && info.Swarm.LocalNodeState != swarm.LocalNodeStateLocked {
-				isManager = &info.Swarm.ControlAvailable
-			}
-		}
-
-		// Memory
-		if v.MemoryStats.Limit != 0 {
-			memPercent = float64(v.MemoryStats.Usage) / float64(v.MemoryStats.Limit) * 100.0
-		}
-		mem = float64(v.MemoryStats.Usage)
-		memLimit = float64(v.MemoryStats.Limit)
-
-		memFormatted = fmt.Sprintf("%.2f%% (%s / %s)", memPercent, units.BytesSize(mem), units.BytesSize(memLimit))
-
-		// cpu
-		previousCPU = v.PreCPUStats.CPUUsage.TotalUsage
-		previousSystem = v.PreCPUStats.SystemUsage
-		cpuPercent = calculateCPUPercentUnix(previousCPU, previousSystem, v)
-		cpuFormatted = fmt.Sprintf("%.2f%%", cpuPercent)
-
-		wsServer.BroadcastTo(o.session.Id, "instance stats", o.Name, memFormatted, cpuFormatted, isManager)
-	}
-
-}
-
-func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *types.StatsJSON) float64 {
-	var (
-		cpuPercent = 0.0
-		// calculate the change for the cpu usage of the container in between readings
-		cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage) - float64(previousCPU)
-		// calculate the change for the entire system between readings
-		systemDelta = float64(v.CPUStats.SystemUsage) - float64(previousSystem)
-	)
-
-	if systemDelta > 0.0 && cpuDelta > 0.0 {
-		cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
-	}
-	return cpuPercent
 }
 
 func (i *Instance) ResizeTerminal(cols, rows uint) error {
