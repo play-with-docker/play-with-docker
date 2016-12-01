@@ -19,7 +19,7 @@ The docker daemon needs to run in swarm mode because PWD uses overlay attachable
 just run `docker swarm init`.
 
 It's also necessary to manually load the IPVS kernel module because as swarms are created in `dind`, 
-the daemon won't load it automatically. Run the following command for that purpose: `sudo lsmod xt_ipvs`
+the daemon won't load it automatically. Run the following command for that purpose: `sudo modprobe xt_ipvs`
 
 If you are developing, there is a `Makefile` file with 2 targets that can set the whole environment for you (using docker-machine and virtual box).
 Just run once `make create`, which will create the docker-machine environment.
