@@ -41,6 +41,9 @@ func GetContainerInfo(id string) (types.ContainerJSON, error) {
 }
 
 func GetDaemonInfo(i *Instance) (types.Info, error) {
+	if i.dockerClient == nil {
+		return types.Info{}, fmt.Errorf("Docker client for DinD (%s) is not ready", i.IP)
+	}
 	return i.dockerClient.Info(context.Background())
 }
 

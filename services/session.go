@@ -89,7 +89,7 @@ func (s *Session) SchedulePeriodicTasks() {
 					for _, t := range periodicTasks {
 						t.Run(i)
 					}
-					wg.Done()
+					defer wg.Done()
 				}()
 			}
 			wg.Wait()
