@@ -29,21 +29,19 @@ And to start the application on a container on the docker machine host, run: `ev
 
 ## Installation
 
-Start the Docker daemon on your machine and run `docker pull docker:1.12.2-rc2-dind`. 
+Start the Docker daemon on your machine and run `docker pull franela/dind`. 
 
 1) Install go 1.7.1 with `brew` on Mac or through a package manager.
 
-2) `go get`
+2) `go get -v -d -t ./...`
 
-3) `go build`
-
-4) Run the binary produced as `play-with-docker`
+3) Start PWD as a container with docker-compose up.
 
 5) Point to http://localhost:3000/ and click "New Instance"
 
 Notes:
 
-* There is a hard-coded limit to 5 Docker playgrounds per session. After 1 hour sessions are deleted.
+* There is a hard-coded limit to 5 Docker playgrounds per session. After 4 hours sessions are deleted.
 * If you want to override the DIND version or image then set the environmental variable i.e.
   `DIND_IMAGE=franela/docker<version>-rc:dind`. Take into account that you can't use standard `dind` images, only [franela](https://hub.docker.com/r/franela/) ones work.
 
