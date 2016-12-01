@@ -20,7 +20,7 @@ type collectStatsTask struct {
 	previousSystem uint64
 }
 
-func (c *collectStatsTask) Run(i *Instance) {
+func (c collectStatsTask) Run(i *Instance) {
 	reader, err := GetContainerStats(i.Name)
 	if err != nil {
 		log.Println("Error while trying to collect instance stats", err)
