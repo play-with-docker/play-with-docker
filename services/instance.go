@@ -27,6 +27,7 @@ type Instance struct {
 	IsManager    *bool                   `json:"is_manager"`
 	Mem          string                  `json:"mem"`
 	Cpu          string                  `json:"cpu"`
+	Ports        []uint16                `json:"ports"`
 }
 
 func (i *Instance) IsConnected() bool {

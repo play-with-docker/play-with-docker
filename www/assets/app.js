@@ -141,10 +141,11 @@
                     $scope.connected = true;
                 });
 
-                socket.on('instance stats', function(name, mem, cpu, isManager) {
+                socket.on('instance stats', function(name, mem, cpu, isManager, ports) {
                     $scope.idx[name].mem = mem;
                     $scope.idx[name].cpu = cpu;
                     $scope.idx[name].isManager = isManager;
+                    $scope.idx[name].ports = ports;
                     $scope.$apply();
                 });
 
@@ -166,6 +167,12 @@
 				}
 			});
 		}
+
+        $scope.getProxyUrl = function(instance, port) {
+            var url = window.location.protocol + '//ip' + instance.ip.replace(/\./g, '_') + '-' + port + '.' + window.location.host;
+
+            return url;
+        }
 
         $scope.showInstance = function(instance) {
             $scope.selectedInstance = instance;
