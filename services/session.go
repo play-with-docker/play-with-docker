@@ -86,10 +86,10 @@ func (s *Session) SchedulePeriodicTasks() {
 					}
 				}
 				go func() {
+					defer wg.Done()
 					for _, t := range periodicTasks {
 						t.Run(i)
 					}
-					defer wg.Done()
 				}()
 			}
 			wg.Wait()
