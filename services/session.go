@@ -2,13 +2,17 @@ package services
 
 import (
 	"encoding/gob"
+	"fmt"
 	"log"
 	"math"
+	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/docker/docker/client"
 	"github.com/googollee/go-socket.io"
 	"github.com/twinj/uuid"
 )
@@ -22,6 +26,8 @@ type Session struct {
 	clients   []*Client            `json:"-"`
 	CreatedAt time.Time            `json:"created_at"`
 	ExpiresAt time.Time            `json:"expires_at"`
+	scheduled bool                 `json:"-"`
+	ticker    *time.Ticker         `json:"-"`
 }
 
 func (s *Session) Lock() {
@@ -48,6 +54,49 @@ func (s *Session) AddNewClient(c *Client) {
 	s.clients = append(s.clients, c)
 }
 
+func (s *Session) SchedulePeriodicTasks() {
+	if s.scheduled {
+		return
+	}
+
+	go func() {
+		s.scheduled = true
+
+		s.ticker = time.NewTicker(1 * time.Second)
+		for range s.ticker.C {
+			var wg = sync.WaitGroup{}
+			wg.Add(len(s.Instances))
+			for _, i := range s.Instances {
+				if i.dockerClient == nil {
+					// Need to create client to the DinD docker daemon
+
+					transport := &http.Transport{
+						DialContext: (&net.Dialer{
+							Timeout:   1 * time.Second,
+							KeepAlive: 30 * time.Second,
+						}).DialContext}
+					cli := &http.Client{
+						Transport: transport,
+					}
+					c, err := client.NewClient(fmt.Sprintf("http://%s:2375", i.IP), client.DefaultVersion, cli, nil)
+					if err != nil {
+						log.Println("Could not connect to DinD docker daemon", err)
+					} else {
+						i.dockerClient = c
+					}
+				}
+				go func() {
+					defer wg.Done()
+					for _, t := range periodicTasks {
+						t.Run(i)
+					}
+				}()
+			}
+			wg.Wait()
+		}
+	}()
+}
+
 var sessions map[string]*Session
 
 func init() {
@@ -72,6 +121,8 @@ func CloseSessionAfter(s *Session, d time.Duration) {
 func CloseSession(s *Session) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
+
+	s.ticker.Stop()
 	wsServer.BroadcastTo(s.Id, "session end")
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	for _, i := range s.Instances {
@@ -88,6 +139,11 @@ func CloseSession(s *Session) error {
 		return err
 	}
 	delete(sessions, s.Id)
+
+	// We store sessions as soon as we delete one
+	if err := saveSessionsToDisk(); err != nil {
+		return err
+	}
 	log.Printf("Cleaned up session [%s]\n", s.Id)
 	return nil
 }
@@ -135,6 +191,9 @@ func NewSession() (*Session, error) {
 	}
 	log.Printf("Connected pwd to network [%s]\n", s.Id)
 
+	// Schedule peridic tasks execution
+	s.SchedulePeriodicTasks()
+
 	// We store sessions as soon as we create one so we don't delete new sessions on an api restart
 	if err := saveSessionsToDisk(); err != nil {
 		return nil, err
@@ -175,8 +234,11 @@ func LoadSessionsFromDisk() error {
 			for _, i := range s.Instances {
 				// wire the session back to the instance
 				i.session = s
-				go i.CollectStats()
+
 			}
+
+			// Schedule peridic tasks execution
+			s.SchedulePeriodicTasks()
 		}
 	}
 	file.Close()

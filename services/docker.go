@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
-	"net/http"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -34,7 +31,7 @@ func init() {
 }
 
 func GetContainerStats(id string) (io.ReadCloser, error) {
-	stats, err := c.ContainerStats(context.Background(), id, true)
+	stats, err := c.ContainerStats(context.Background(), id, false)
 
 	return stats.Body, err
 }
@@ -43,20 +40,11 @@ func GetContainerInfo(id string) (types.ContainerJSON, error) {
 	return c.ContainerInspect(context.Background(), id)
 }
 
-func GetDaemonInfo(host string) (types.Info, error) {
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   1 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext}
-	cli := &http.Client{
-		Transport: transport,
+func GetDaemonInfo(i *Instance) (types.Info, error) {
+	if i.dockerClient == nil {
+		return types.Info{}, fmt.Errorf("Docker client for DinD (%s) is not ready", i.IP)
 	}
-	c, err := client.NewClient(host, client.DefaultVersion, cli, nil)
-	if err != nil {
-		return types.Info{}, err
-	}
-	return c.Info(context.Background())
+	return i.dockerClient.Info(context.Background())
 }
 
 func CreateNetwork(name string) error {
