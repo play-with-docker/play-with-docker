@@ -66,7 +66,8 @@ func (s *Session) SchedulePeriodicTasks() {
 		for range s.ticker.C {
 			var wg = sync.WaitGroup{}
 			wg.Add(len(s.Instances))
-			for _, i := range s.Instances {
+			for _, ins := range s.Instances {
+				var i *Instance = ins
 				if i.dockerClient == nil {
 					// Need to create client to the DinD docker daemon
 

@@ -13,7 +13,6 @@ type collectStatsTask struct {
 	mem        float64
 	memLimit   float64
 	memPercent float64
-	v          *types.StatsJSON
 
 	cpuPercent     float64
 	previousCPU    uint64
@@ -27,24 +26,25 @@ func (c collectStatsTask) Run(i *Instance) {
 		return
 	}
 	dec := json.NewDecoder(reader)
-	e := dec.Decode(&c.v)
+	var v *types.StatsJSON
+	e := dec.Decode(&v)
 	if e != nil {
 		log.Println("Error while trying to collect instance stats", e)
 		return
 	}
 	// Memory
-	if c.v.MemoryStats.Limit != 0 {
-		c.memPercent = float64(c.v.MemoryStats.Usage) / float64(c.v.MemoryStats.Limit) * 100.0
+	if v.MemoryStats.Limit != 0 {
+		c.memPercent = float64(v.MemoryStats.Usage) / float64(v.MemoryStats.Limit) * 100.0
 	}
-	c.mem = float64(c.v.MemoryStats.Usage)
-	c.memLimit = float64(c.v.MemoryStats.Limit)
+	c.mem = float64(v.MemoryStats.Usage)
+	c.memLimit = float64(v.MemoryStats.Limit)
 
 	i.Mem = fmt.Sprintf("%.2f%% (%s / %s)", c.memPercent, units.BytesSize(c.mem), units.BytesSize(c.memLimit))
 
 	// cpu
-	c.previousCPU = c.v.PreCPUStats.CPUUsage.TotalUsage
-	c.previousSystem = c.v.PreCPUStats.SystemUsage
-	c.cpuPercent = calculateCPUPercentUnix(c.previousCPU, c.previousSystem, c.v)
+	c.previousCPU = v.PreCPUStats.CPUUsage.TotalUsage
+	c.previousSystem = v.PreCPUStats.SystemUsage
+	c.cpuPercent = calculateCPUPercentUnix(c.previousCPU, c.previousSystem, v)
 	i.Cpu = fmt.Sprintf("%.2f%%", c.cpuPercent)
 }
 
