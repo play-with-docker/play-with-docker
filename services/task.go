@@ -7,5 +7,5 @@ type periodicTask interface {
 var periodicTasks []periodicTask
 
 func init() {
-	periodicTasks = append(periodicTasks, &collectStatsTask{}, &checkSwarmStatusTask{}, &checkUsedPortsTask{}, &broadcastInfoTask{})
+	periodicTasks = append(periodicTasks, &collectStatsTask{}, &checkSwarmStatusTask{}, &checkUsedPortsTask{}, &checkSwarmUsedPortsTask{})
 }

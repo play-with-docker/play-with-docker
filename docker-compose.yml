@@ -6,7 +6,7 @@ services:
         # use the latest golang image
         image: golang
         # go to the right place and starts the app
-        command: /bin/sh -c 'cd /go/src/github.com/franela/play-with-docker; go run -race api.go'
+        command: /bin/sh -c 'cd /go/src/github.com/franela/play-with-docker; go run api.go'
         ports:
             # app exposes port 3000
             - "3000:3000"

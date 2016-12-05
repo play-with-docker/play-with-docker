@@ -1,6 +1,10 @@
 package services
 
-import "github.com/docker/docker/api/types/swarm"
+import (
+	"log"
+
+	"github.com/docker/docker/api/types/swarm"
+)
 
 type checkSwarmStatusTask struct {
 }
@@ -12,6 +16,8 @@ func (c checkSwarmStatusTask) Run(i *Instance) {
 		} else {
 			i.IsManager = nil
 		}
+	} else {
+		log.Println(err)
 	}
 
 }

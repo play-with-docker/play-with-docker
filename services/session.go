@@ -94,6 +94,12 @@ func (s *Session) SchedulePeriodicTasks() {
 				}()
 			}
 			wg.Wait()
+			// broadcast all information
+			for _, ins := range s.Instances {
+				ins.Ports = ins.tempPorts
+				ins.tempPorts = []uint16{}
+				wsServer.BroadcastTo(ins.session.Id, "instance stats", ins.Name, ins.Mem, ins.Cpu, ins.IsManager, ins.Ports)
+			}
 		}
 	}()
 }
@@ -123,7 +129,9 @@ func CloseSession(s *Session) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	s.ticker.Stop()
+	if s.ticker != nil {
+		s.ticker.Stop()
+	}
 	wsServer.BroadcastTo(s.Id, "session end")
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	for _, i := range s.Instances {
@@ -237,6 +245,13 @@ func LoadSessionsFromDisk() error {
 				i.session = s
 
 			}
+
+			// Connect PWD daemon to the new network
+			if err := ConnectNetwork("pwd", s.Id); err != nil {
+				log.Println("ERROR NETWORKING")
+				return err
+			}
+			log.Printf("Connected pwd to network [%s]\n", s.Id)
 
 			// Schedule peridic tasks execution
 			s.SchedulePeriodicTasks()

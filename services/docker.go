@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -46,6 +47,55 @@ func GetDaemonInfo(i *Instance) (types.Info, error) {
 	}
 	return i.dockerClient.Info(context.Background())
 }
+
+func SetInstanceSwarmPorts(i *Instance) error {
+	if i.dockerClient == nil {
+		return fmt.Errorf("Docker client for DinD (%s) is not ready", i.IP)
+	}
+
+	hostnamesIdx := map[string]*Instance{}
+	for _, ins := range i.session.Instances {
+		hostnamesIdx[ins.Hostname] = ins
+	}
+
+	nodesIdx := map[string]*Instance{}
+	nodes, nodesErr := i.dockerClient.NodeList(context.Background(), types.NodeListOptions{})
+	if nodesErr != nil {
+		return nodesErr
+	}
+	for _, n := range nodes {
+		nodesIdx[n.ID] = hostnamesIdx[n.Description.Hostname]
+	}
+
+	tasks, err := i.dockerClient.TaskList(context.Background(), types.TaskListOptions{})
+	if err != nil {
+		return err
+	}
+	services := map[string][]uint16{}
+	for _, t := range tasks {
+		services[t.ServiceID] = []uint16{}
+	}
+	for serviceID, _ := range services {
+		s, _, err := i.dockerClient.ServiceInspectWithRaw(context.Background(), serviceID)
+		if err != nil {
+			return err
+		}
+		for _, p := range s.Endpoint.Ports {
+			services[serviceID] = append(services[serviceID], uint16(p.PublishedPort))
+		}
+	}
+	for _, t := range tasks {
+		for _, n := range nodes {
+			ins := nodesIdx[n.ID]
+			for _, p := range services[t.ServiceID] {
+				ins.setUsedPort(p)
+			}
+		}
+	}
+
+	return nil
+}
+
 func GetUsedPorts(i *Instance) ([]uint16, error) {
 	if i.dockerClient == nil {
 		return nil, fmt.Errorf("Docker client for DinD (%s) is not ready", i.IP)
@@ -84,7 +134,7 @@ func CreateNetwork(name string) error {
 func ConnectNetwork(containerId, networkId string) error {
 	err := c.NetworkConnect(context.Background(), networkId, containerId, &network.EndpointSettings{})
 
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "already exists") {
 		log.Printf("Connection container to network err [%s]\n", err)
 
 		return err
