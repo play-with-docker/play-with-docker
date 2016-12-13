@@ -28,6 +28,19 @@ type Instance struct {
 	Mem          string                  `json:"mem"`
 	Cpu          string                  `json:"cpu"`
 	Ports        []uint16                `json:"ports"`
+	tempPorts    []uint16                `json:"-"`
+}
+
+func (i *Instance) setUsedPort(port uint16) {
+	rw.Lock()
+	defer rw.Unlock()
+
+	for _, p := range i.tempPorts {
+		if p == port {
+			return
+		}
+	}
+	i.tempPorts = append(i.tempPorts, port)
 }
 
 func (i *Instance) IsConnected() bool {

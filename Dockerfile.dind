@@ -1,6 +1,8 @@
 FROM docker:1.13.0-rc2-dind
 
-ENV DOCKER_STORAGE_DRIVER=overlay2
+ARG docker_storage_driver=overlay2
+
+ENV DOCKER_STORAGE_DRIVER=${docker-storage-driver}
 
 RUN apk add --no-cache git tmux py-pip apache2-utils vim build-base gettext-dev curl bash
 
