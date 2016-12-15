@@ -4,7 +4,19 @@ import (
 	"log"
 
 	"github.com/googollee/go-socket.io"
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+var (
+	clientsCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "clients",
+		Help: "Clients",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(clientsCounter)
+}
 
 type ViewPort struct {
 	Rows uint
@@ -68,7 +80,9 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 				instance.ResizeTerminal(vp.Cols, vp.Rows)
 			}
 		}
+		clientsCounter.Add(-1)
 	})
 
+	clientsCounter.Add(1)
 	return c
 }

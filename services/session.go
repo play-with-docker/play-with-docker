@@ -14,8 +14,20 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/googollee/go-socket.io"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/twinj/uuid"
 )
+
+var (
+	sessionsCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "sessions",
+		Help: "Sessions",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(sessionsCounter)
+}
 
 var wsServer *socketio.Server
 
@@ -153,6 +165,7 @@ func CloseSession(s *Session) error {
 	if err := saveSessionsToDisk(); err != nil {
 		return err
 	}
+	sessionsCounter.Add(-1)
 	log.Printf("Cleaned up session [%s]\n", s.Id)
 	return nil
 }
@@ -207,6 +220,8 @@ func NewSession() (*Session, error) {
 	if err := saveSessionsToDisk(); err != nil {
 		return nil, err
 	}
+
+	sessionsCounter.Add(1)
 	return s, nil
 }
 

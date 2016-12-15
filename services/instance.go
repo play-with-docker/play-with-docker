@@ -11,9 +11,17 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var rw sync.Mutex
+
+var (
+	instancesCounter = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "instances",
+		Help: "Instances",
+	})
+)
 
 type Instance struct {
 	session      *Session                `json:"-"`
@@ -90,6 +98,8 @@ func NewInstance(session *Session) (*Instance, error) {
 
 	wsServer.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP, instance.Hostname)
 
+	instancesCounter.Add(1)
+
 	return instance, nil
 }
 
@@ -141,6 +151,8 @@ func DeleteInstance(session *Session, instance *Instance) error {
 	err := DeleteContainer(instance.Name)
 
 	wsServer.BroadcastTo(session.Id, "delete instance", instance.Name)
+
+	instancesCounter.Add(-1)
 
 	return err
 }
