@@ -64,6 +64,11 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 			}
 		}
 	})
+
+	so.On("connection", func() {
+		clientsCounter.Add(1)
+	})
+
 	so.On("disconnection", func() {
 		// Client has disconnected. Remove from session and recheck terminal sizes.
 		for i, cl := range session.clients {
@@ -82,7 +87,5 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 		}
 		clientsCounter.Add(-1)
 	})
-
-	clientsCounter.Add(1)
 	return c
 }

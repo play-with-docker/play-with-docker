@@ -251,6 +251,7 @@ func LoadSessionsFromDisk() error {
 
 		// schedule session expiration
 		for _, s := range sessions {
+			sessionsCount.Add(1)
 			timeLeft := s.ExpiresAt.Sub(time.Now())
 			CloseSessionAfter(s, timeLeft)
 
@@ -258,7 +259,7 @@ func LoadSessionsFromDisk() error {
 			for _, i := range s.Instances {
 				// wire the session back to the instance
 				i.session = s
-
+				instancesCount.Add(1)
 			}
 
 			// Connect PWD daemon to the new network
