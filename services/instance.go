@@ -11,9 +11,21 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var rw sync.Mutex
+
+var (
+	instancesGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "instances",
+		Help: "Instances",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(instancesGauge)
+}
 
 type Instance struct {
 	session      *Session                `json:"-"`
@@ -90,6 +102,8 @@ func NewInstance(session *Session) (*Instance, error) {
 
 	wsServer.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP, instance.Hostname)
 
+	instancesGauge.Inc()
+
 	return instance, nil
 }
 
@@ -141,6 +155,8 @@ func DeleteInstance(session *Session, instance *Instance) error {
 	err := DeleteContainer(instance.Name)
 
 	wsServer.BroadcastTo(session.Id, "delete instance", instance.Name)
+
+	instancesGauge.Dec()
 
 	return err
 }

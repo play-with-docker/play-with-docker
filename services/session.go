@@ -14,8 +14,20 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/googollee/go-socket.io"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/twinj/uuid"
 )
+
+var (
+	sessionsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "sessions",
+		Help: "Sessions",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(sessionsGauge)
+}
 
 var wsServer *socketio.Server
 
@@ -129,10 +141,15 @@ func CloseSession(s *Session) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
+	sessionsGauge.Dec()
 	if s.ticker != nil {
 		s.ticker.Stop()
 	}
 	wsServer.BroadcastTo(s.Id, "session end")
+	for _, c := range s.clients {
+		c.so.Emit("disconnect")
+		clientsGauge.Dec()
+	}
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	for _, i := range s.Instances {
 		if i.conn != nil {
@@ -207,6 +224,8 @@ func NewSession() (*Session, error) {
 	if err := saveSessionsToDisk(); err != nil {
 		return nil, err
 	}
+
+	sessionsGauge.Inc()
 	return s, nil
 }
 
@@ -236,6 +255,7 @@ func LoadSessionsFromDisk() error {
 
 		// schedule session expiration
 		for _, s := range sessions {
+			sessionsGauge.Inc()
 			timeLeft := s.ExpiresAt.Sub(time.Now())
 			CloseSessionAfter(s, timeLeft)
 
@@ -243,7 +263,7 @@ func LoadSessionsFromDisk() error {
 			for _, i := range s.Instances {
 				// wire the session back to the instance
 				i.session = s
-
+				instancesGauge.Inc()
 			}
 
 			// Connect PWD daemon to the new network

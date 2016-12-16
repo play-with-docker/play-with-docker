@@ -4,7 +4,19 @@ import (
 	"log"
 
 	"github.com/googollee/go-socket.io"
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+var (
+	clientsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "clients",
+		Help: "Clients",
+	})
+)
+
+func init() {
+	prometheus.MustRegister(clientsGauge)
+}
 
 type ViewPort struct {
 	Rows uint
@@ -23,6 +35,7 @@ func (c *Client) ResizeViewPort(cols, rows uint) {
 }
 
 func NewClient(so socketio.Socket, session *Session) *Client {
+	clientsGauge.Inc()
 	so.Join(session.Id)
 
 	c := &Client{so: so, Id: so.Id()}
@@ -52,7 +65,9 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 			}
 		}
 	})
+
 	so.On("disconnection", func() {
+		clientsGauge.Dec()
 		// Client has disconnected. Remove from session and recheck terminal sizes.
 		for i, cl := range session.clients {
 			if cl.Id == c.Id {
@@ -69,6 +84,5 @@ func NewClient(so socketio.Socket, session *Session) *Client {
 			}
 		}
 	})
-
 	return c
 }

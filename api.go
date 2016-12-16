@@ -12,6 +12,7 @@ import (
 	"github.com/franela/play-with-docker/services"
 	"github.com/franela/play-with-docker/templates"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
 )
 
@@ -71,6 +72,7 @@ func main() {
 	}))
 
 	r.Handle("/sessions/{sessionId}/ws/", server)
+	r.Handle("/metrics", promhttp.Handler())
 
 	n := negroni.Classic()
 	n.UseHandler(r)
