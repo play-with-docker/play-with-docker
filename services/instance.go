@@ -17,11 +17,15 @@ import (
 var rw sync.Mutex
 
 var (
-	instancesCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	instancesGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "instances",
 		Help: "Instances",
 	})
 )
+
+func init() {
+	prometheus.MustRegister(instancesGauge)
+}
 
 type Instance struct {
 	session      *Session                `json:"-"`
@@ -98,7 +102,7 @@ func NewInstance(session *Session) (*Instance, error) {
 
 	wsServer.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP, instance.Hostname)
 
-	instancesCounter.Add(1)
+	instancesGauge.Inc()
 
 	return instance, nil
 }
@@ -152,7 +156,7 @@ func DeleteInstance(session *Session, instance *Instance) error {
 
 	wsServer.BroadcastTo(session.Id, "delete instance", instance.Name)
 
-	instancesCounter.Add(-1)
+	instancesGauge.Dec()
 
 	return err
 }

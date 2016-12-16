@@ -19,14 +19,14 @@ import (
 )
 
 var (
-	sessionsCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	sessionsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "sessions",
 		Help: "Sessions",
 	})
 )
 
 func init() {
-	prometheus.MustRegister(sessionsCounter)
+	prometheus.MustRegister(sessionsGauge)
 }
 
 var wsServer *socketio.Server
@@ -141,10 +141,15 @@ func CloseSession(s *Session) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
+	sessionsGauge.Dec()
 	if s.ticker != nil {
 		s.ticker.Stop()
 	}
 	wsServer.BroadcastTo(s.Id, "session end")
+	for _, c := range s.clients {
+		c.so.Emit("disconnect")
+		clientsGauge.Dec()
+	}
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	for _, i := range s.Instances {
 		if i.conn != nil {
@@ -165,7 +170,6 @@ func CloseSession(s *Session) error {
 	if err := saveSessionsToDisk(); err != nil {
 		return err
 	}
-	sessionsCounter.Add(-1)
 	log.Printf("Cleaned up session [%s]\n", s.Id)
 	return nil
 }
@@ -221,7 +225,7 @@ func NewSession() (*Session, error) {
 		return nil, err
 	}
 
-	sessionsCounter.Add(1)
+	sessionsGauge.Inc()
 	return s, nil
 }
 
@@ -251,7 +255,7 @@ func LoadSessionsFromDisk() error {
 
 		// schedule session expiration
 		for _, s := range sessions {
-			sessionsCount.Add(1)
+			sessionsGauge.Inc()
 			timeLeft := s.ExpiresAt.Sub(time.Now())
 			CloseSessionAfter(s, timeLeft)
 
@@ -259,7 +263,7 @@ func LoadSessionsFromDisk() error {
 			for _, i := range s.Instances {
 				// wire the session back to the instance
 				i.session = s
-				instancesCount.Add(1)
+				instancesGauge.Inc()
 			}
 
 			// Connect PWD daemon to the new network
