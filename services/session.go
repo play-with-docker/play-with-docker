@@ -8,12 +8,15 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/docker/docker/client"
+	"github.com/docker/machine/libmachine/auth"
+	"github.com/docker/machine/libmachine/cert"
 	"github.com/googollee/go-socket.io"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/twinj/uuid"
@@ -43,14 +46,15 @@ func init() {
 var wsServer *socketio.Server
 
 type Session struct {
-	rw        sync.Mutex
-	Id        string               `json:"id"`
-	Instances map[string]*Instance `json:"instances"`
-	clients   []*Client            `json:"-"`
-	CreatedAt time.Time            `json:"created_at"`
-	ExpiresAt time.Time            `json:"expires_at"`
-	scheduled bool                 `json:"-"`
-	ticker    *time.Ticker         `json:"-"`
+	rw          sync.Mutex
+	Id          string               `json:"id"`
+	Instances   map[string]*Instance `json:"instances"`
+	clients     []*Client            `json:"-"`
+	CreatedAt   time.Time            `json:"created_at"`
+	ExpiresAt   time.Time            `json:"expires_at"`
+	AuthOptions *auth.Options        `json:"-"`
+	scheduled   bool                 `json:"-"`
+	ticker      *time.Ticker         `json:"-"`
 }
 
 func (s *Session) Lock() {
@@ -216,16 +220,61 @@ func getExpiryHours() int {
 	return hours
 }
 
+func generateCerts(s *Session) error {
+	certsDir := fmt.Sprintf("./pwd/%s", s.Id)
+	if err := os.Mkdir(certsDir, 0700); err != nil {
+		return err
+	}
+	s.AuthOptions = &auth.Options{
+		CertDir:          certsDir,
+		CaCertPath:       filepath.Join(certsDir, "ca.pem"),
+		CaPrivateKeyPath: filepath.Join(certsDir, "ca-key.pem"),
+		ClientCertPath:   filepath.Join(certsDir, "cert.pem"),
+		ClientKeyPath:    filepath.Join(certsDir, "key.pem"),
+		ServerCertPath:   filepath.Join(certsDir, "server.pem"),
+		ServerKeyPath:    filepath.Join(certsDir, "server-key.pem"),
+	}
+
+	// Generate client cert
+	if err := cert.BootstrapCertificates(s.AuthOptions); err != nil {
+		log.Println("Error bootstrapping client certificates")
+		return err
+	}
+
+	hosts := []string{"play-with-docker.com", "localhost"}
+	// Generate server cert
+	err := cert.GenerateCert(&cert.Options{
+		Hosts:       hosts,
+		CertFile:    s.AuthOptions.ServerCertPath,
+		KeyFile:     s.AuthOptions.ServerKeyPath,
+		CAFile:      s.AuthOptions.CaCertPath,
+		CAKeyFile:   s.AuthOptions.CaPrivateKeyPath,
+		Org:         s.Id + ".play-with-docker.com",
+		Bits:        2048,
+		SwarmMaster: false,
+	})
+
+	if err != nil {
+		return fmt.Errorf("error generating server cert: %s", err)
+	}
+	return nil
+}
+
 func NewSession() (*Session, error) {
 	hours := getExpiryHours()
 	duration := time.Duration(hours) * time.Hour
 
 	s := &Session{}
+
 	s.Id = uuid.NewV4().String()
 	s.Instances = map[string]*Instance{}
 	s.CreatedAt = time.Now()
 	s.ExpiresAt = s.CreatedAt.Add(duration)
 	log.Printf("NewSession id=[%s]\n", s.Id)
+
+	if err := generateCerts(s); err != nil {
+		return nil, err
+	}
 
 	sessions[s.Id] = s
 

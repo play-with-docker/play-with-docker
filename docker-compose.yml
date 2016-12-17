@@ -15,5 +15,6 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock
             # mount the box mounted shared folder to the container
             - $GOPATH/src:/go/src
+            - /tmp/pwd:/go/src/github.com/franela/play-with-docker/pwd
         environment:
             GOOGLE_RECAPTCHA_DISABLED: "true"
