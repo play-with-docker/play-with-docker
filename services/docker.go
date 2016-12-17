@@ -142,6 +142,17 @@ func ConnectNetwork(containerId, networkId string) error {
 
 	return nil
 }
+func DisconnectNetwork(containerId, networkId string) error {
+	err := c.NetworkDisconnect(context.Background(), networkId, containerId, true)
+
+	if err != nil {
+		log.Printf("Disconnection of container from network err [%s]\n", err)
+
+		return err
+	}
+
+	return nil
+}
 
 func DeleteNetwork(id string) error {
 	err := c.NetworkRemove(context.Background(), id)

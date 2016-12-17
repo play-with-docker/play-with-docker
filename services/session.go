@@ -23,10 +23,20 @@ var (
 		Name: "sessions",
 		Help: "Sessions",
 	})
+	clientsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "clients",
+		Help: "Clients",
+	})
+	instancesGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "instances",
+		Help: "Instances",
+	})
 )
 
 func init() {
 	prometheus.MustRegister(sessionsGauge)
+	prometheus.MustRegister(clientsGauge)
+	prometheus.MustRegister(instancesGauge)
 }
 
 var wsServer *socketio.Server
@@ -64,6 +74,7 @@ func (s *Session) GetSmallestViewPort() ViewPort {
 
 func (s *Session) AddNewClient(c *Client) {
 	s.clients = append(s.clients, c)
+	setGauges()
 }
 
 func (s *Session) SchedulePeriodicTasks() {
@@ -141,14 +152,12 @@ func CloseSession(s *Session) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	sessionsGauge.Dec()
 	if s.ticker != nil {
 		s.ticker.Stop()
 	}
 	wsServer.BroadcastTo(s.Id, "session end")
 	for _, c := range s.clients {
 		c.so.Emit("disconnect")
-		clientsGauge.Dec()
 	}
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	for _, i := range s.Instances {
@@ -160,6 +169,12 @@ func CloseSession(s *Session) error {
 			return err
 		}
 	}
+	// Disconnect PWD daemon from the network
+	if err := DisconnectNetwork("pwd", s.Id); err != nil {
+		log.Println("ERROR NETWORKING")
+		return err
+	}
+	log.Printf("Connected pwd to network [%s]\n", s.Id)
 	if err := DeleteNetwork(s.Id); err != nil {
 		log.Println(err)
 		return err
@@ -170,6 +185,7 @@ func CloseSession(s *Session) error {
 	if err := saveSessionsToDisk(); err != nil {
 		return err
 	}
+	setGauges()
 	log.Printf("Cleaned up session [%s]\n", s.Id)
 	return nil
 }
@@ -225,7 +241,7 @@ func NewSession() (*Session, error) {
 		return nil, err
 	}
 
-	sessionsGauge.Inc()
+	setGauges()
 	return s, nil
 }
 
@@ -243,6 +259,20 @@ func GetSession(sessionId string) *Session {
 	return s
 }
 
+func setGauges() {
+	var ins float64
+	var cli float64
+
+	for _, s := range sessions {
+		ins += float64(len(s.Instances))
+		cli += float64(len(s.clients))
+	}
+
+	clientsGauge.Set(cli)
+	instancesGauge.Set(ins)
+	sessionsGauge.Set(float64(len(sessions)))
+}
+
 func LoadSessionsFromDisk() error {
 	file, err := os.Open("./pwd/sessions.gob")
 	if err == nil {
@@ -255,7 +285,6 @@ func LoadSessionsFromDisk() error {
 
 		// schedule session expiration
 		for _, s := range sessions {
-			sessionsGauge.Inc()
 			timeLeft := s.ExpiresAt.Sub(time.Now())
 			CloseSessionAfter(s, timeLeft)
 
@@ -263,7 +292,6 @@ func LoadSessionsFromDisk() error {
 			for _, i := range s.Instances {
 				// wire the session back to the instance
 				i.session = s
-				instancesGauge.Inc()
 			}
 
 			// Connect PWD daemon to the new network
@@ -278,6 +306,7 @@ func LoadSessionsFromDisk() error {
 		}
 	}
 	file.Close()
+	setGauges()
 	return err
 }
 
