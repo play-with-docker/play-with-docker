@@ -1,7 +1,7 @@
 package services
 
 type periodicTask interface {
-	Run(i *Instance)
+	Run(i *Instance) error
 }
 
 var periodicTasks []periodicTask

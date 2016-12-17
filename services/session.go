@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -112,7 +113,16 @@ func (s *Session) SchedulePeriodicTasks() {
 				go func() {
 					defer wg.Done()
 					for _, t := range periodicTasks {
-						t.Run(i)
+						err := t.Run(i)
+						if err != nil {
+							if strings.Contains(err.Error(), "No such container") {
+								log.Printf("Container for instance [%s] doesn't exist any more. Deleting from session.\n", i.IP)
+								DeleteInstance(i.session, i)
+							} else {
+								log.Println(err)
+							}
+							break
+						}
 					}
 				}()
 			}
@@ -161,23 +171,25 @@ func CloseSession(s *Session) error {
 	}
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	for _, i := range s.Instances {
-		if i.conn != nil {
-			i.conn.Close()
-		}
-		if err := DeleteContainer(i.Name); err != nil {
+		err := DeleteInstance(s, i)
+		if err != nil {
 			log.Println(err)
 			return err
 		}
 	}
 	// Disconnect PWD daemon from the network
 	if err := DisconnectNetwork("pwd", s.Id); err != nil {
-		log.Println("ERROR NETWORKING")
-		return err
+		if !strings.Contains(err.Error(), "is not connected to the network") {
+			log.Println("ERROR NETWORKING")
+			return err
+		}
 	}
-	log.Printf("Connected pwd to network [%s]\n", s.Id)
+	log.Printf("Disconnected pwd from network [%s]\n", s.Id)
 	if err := DeleteNetwork(s.Id); err != nil {
-		log.Println(err)
-		return err
+		if !strings.Contains(err.Error(), "not found") {
+			log.Println(err)
+			return err
+		}
 	}
 	delete(sessions, s.Id)
 
@@ -296,13 +308,19 @@ func LoadSessionsFromDisk() error {
 
 			// Connect PWD daemon to the new network
 			if err := ConnectNetwork("pwd", s.Id); err != nil {
-				log.Println("ERROR NETWORKING")
-				return err
-			}
-			log.Printf("Connected pwd to network [%s]\n", s.Id)
+				if strings.Contains(err.Error(), "Could not attach to network") {
+					log.Printf("Network for session [%s] doesn't exist. Removing all instances and session.", s.Id)
+					CloseSession(s)
+				} else {
+					log.Println("ERROR NETWORKING", err)
+					return err
+				}
+			} else {
+				log.Printf("Connected pwd to network [%s]\n", s.Id)
 
-			// Schedule peridic tasks execution
-			s.SchedulePeriodicTasks()
+				// Schedule peridic tasks execution
+				s.SchedulePeriodicTasks()
+			}
 		}
 	}
 	file.Close()

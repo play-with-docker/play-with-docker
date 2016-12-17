@@ -19,18 +19,18 @@ type collectStatsTask struct {
 	previousSystem uint64
 }
 
-func (c collectStatsTask) Run(i *Instance) {
+func (c collectStatsTask) Run(i *Instance) error {
 	reader, err := GetContainerStats(i.Name)
 	if err != nil {
 		log.Println("Error while trying to collect instance stats", err)
-		return
+		return err
 	}
 	dec := json.NewDecoder(reader)
 	var v *types.StatsJSON
 	e := dec.Decode(&v)
 	if e != nil {
 		log.Println("Error while trying to collect instance stats", e)
-		return
+		return err
 	}
 	// Memory
 	if v.MemoryStats.Limit != 0 {
@@ -46,6 +46,8 @@ func (c collectStatsTask) Run(i *Instance) {
 	c.previousSystem = v.PreCPUStats.SystemUsage
 	c.cpuPercent = calculateCPUPercentUnix(c.previousCPU, c.previousSystem, v)
 	i.Cpu = fmt.Sprintf("%.2f%%", c.cpuPercent)
+
+	return nil
 }
 
 func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *types.StatsJSON) float64 {
