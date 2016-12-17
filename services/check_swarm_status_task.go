@@ -9,7 +9,7 @@ import (
 type checkSwarmStatusTask struct {
 }
 
-func (c checkSwarmStatusTask) Run(i *Instance) {
+func (c checkSwarmStatusTask) Run(i *Instance) error {
 	if info, err := GetDaemonInfo(i); err == nil {
 		if info.Swarm.LocalNodeState != swarm.LocalNodeStateInactive && info.Swarm.LocalNodeState != swarm.LocalNodeStateLocked {
 			i.IsManager = &info.Swarm.ControlAvailable
@@ -18,6 +18,7 @@ func (c checkSwarmStatusTask) Run(i *Instance) {
 		}
 	} else {
 		log.Println(err)
+		return err
 	}
-
+	return nil
 }

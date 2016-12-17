@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"sync"
 
 	"golang.org/x/text/encoding"
@@ -22,7 +23,6 @@ type Instance struct {
 	IP           string                  `json:"ip"`
 	conn         *types.HijackedResponse `json:"-"`
 	ctx          context.Context         `json:"-"`
-	statsReader  io.ReadCloser           `json:"-"`
 	dockerClient *client.Client          `json:"-"`
 	IsManager    *bool                   `json:"is_manager"`
 	Mem          string                  `json:"mem"`
@@ -129,22 +129,25 @@ func (i *Instance) Attach() {
 	}
 }
 func GetInstance(session *Session, name string) *Instance {
-	//TODO: Use redis
 	return session.Instances[name]
 }
 func DeleteInstance(session *Session, instance *Instance) error {
-	// stop collecting stats
-	if instance.statsReader != nil {
-		instance.statsReader.Close()
+	if instance.conn != nil {
+		instance.conn.Close()
 	}
-
-	//TODO: Use redis
-	delete(session.Instances, instance.Name)
 	err := DeleteContainer(instance.Name)
+	if !strings.Contains(err.Error(), "No such container") {
+		log.Println(err)
+		return err
+	}
 
 	wsServer.BroadcastTo(session.Id, "delete instance", instance.Name)
 
+	delete(session.Instances, instance.Name)
+	if err := saveSessionsToDisk(); err != nil {
+		return err
+	}
 	setGauges()
 
-	return err
+	return nil
 }
