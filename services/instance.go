@@ -136,7 +136,7 @@ func DeleteInstance(session *Session, instance *Instance) error {
 		instance.conn.Close()
 	}
 	err := DeleteContainer(instance.Name)
-	if !strings.Contains(err.Error(), "No such container") {
+	if err != nil && !strings.Contains(err.Error(), "No such container") {
 		log.Println(err)
 		return err
 	}
