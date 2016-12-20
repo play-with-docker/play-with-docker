@@ -241,7 +241,7 @@ func generateCerts(s *Session) error {
 		return err
 	}
 
-	hosts := []string{"play-with-docker.com", "localhost"}
+	hosts := []string{"*.play-with-docker.com", "*.localhost"}
 	// Generate server cert
 	err := cert.GenerateCert(&cert.Options{
 		Hosts:       hosts,
