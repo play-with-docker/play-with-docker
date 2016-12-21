@@ -166,7 +166,7 @@ func DeleteNetwork(id string) error {
 
 func CreateAttachConnection(id string, ctx context.Context) (*types.HijackedResponse, error) {
 
-	conf := types.ContainerAttachOptions{true, true, true, true, "ctrl-x,ctrl-x", true}
+	conf := types.ContainerAttachOptions{true, true, true, true, "ctrl-^,ctrl-^", true}
 	conn, err := c.ContainerAttach(ctx, id, conf)
 	if err != nil {
 		return nil, err
