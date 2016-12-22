@@ -1,8 +1,4 @@
-FROM docker:1.13.0-rc3-dind
-
-ARG docker_storage_driver=overlay2
-
-ENV DOCKER_STORAGE_DRIVER=${docker-storage-driver}
+FROM docker:1.13.0-rc4-dind
 
 RUN apk add --no-cache git tmux py-pip apache2-utils vim build-base gettext-dev curl bash
 
@@ -26,6 +22,10 @@ RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/mo
 # Install a nice vimrc file and prompt (by soulshake)
 COPY ["docker-prompt","/usr/local/bin/"]
 COPY [".vimrc",".bashrc", ".inputrc", "./root/"]
+
+ARG docker_storage_driver=overlay2
+
+ENV DOCKER_STORAGE_DRIVER=$docker_storage_driver
 
 # Move to our home
 WORKDIR /root
