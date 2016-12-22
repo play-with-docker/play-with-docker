@@ -10,6 +10,7 @@ services:
         ports:
             # app exposes port 3000
             - "3000:3000"
+            - "3001:3001"
         volumes:
             # since this app creates networks and launches containers, we need to talk to docker daemon
             - /var/run/docker.sock:/var/run/docker.sock
