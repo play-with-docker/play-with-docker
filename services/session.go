@@ -272,9 +272,9 @@ func NewSession() (*Session, error) {
 	s.ExpiresAt = s.CreatedAt.Add(duration)
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
-	if err := generateCerts(s); err != nil {
-		return nil, err
-	}
+	//if err := generateCerts(s); err != nil {
+	//return nil, err
+	//}
 
 	sessions[s.Id] = s
 
