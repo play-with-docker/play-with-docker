@@ -86,7 +86,10 @@ func main() {
 		log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(portNumber), n))
 	}()
 
+	ssl := mux.NewRouter()
+	sslProxyHandler := handlers.NewSSLDaemonHandler()
+	ssl.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
 	log.Println("Listening TLS on port " + strconv.Itoa(sslPortNumber))
-	log.Fatal(http.ListenAndServeTLS("0.0.0.0:"+strconv.Itoa(sslPortNumber), cert, key, n))
+	log.Fatal(http.ListenAndServeTLS("0.0.0.0:"+strconv.Itoa(sslPortNumber), cert, key, ssl))
 
 }
