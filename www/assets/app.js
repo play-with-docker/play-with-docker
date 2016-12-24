@@ -226,6 +226,14 @@
             cursorBlink: false
           });
 
+          term.attachCustomKeydownHandler(function (e) {
+            // Ctrl + Alt + C
+            if (e.ctrlKey && e.altKey && (e.keyCode == 67)) {
+              document.execCommand('copy');
+              return false;
+            }
+          });
+
           term.open(terminalContainer);
 
           // Set geometry during the next tick, to avoid race conditions.
