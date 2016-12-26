@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/tls"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -48,7 +50,7 @@ func main() {
 	r.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
 	r.HandleFunc("/sessions/{sessionId}/instances", handlers.NewInstance).Methods("POST")
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", handlers.DeleteInstance).Methods("DELETE")
-	r.HandleFunc("/keys", handlers.GetKeys)
+	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/keys", handlers.SetKeys).Methods("POST")
 
 	h := func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./www/index.html")
@@ -90,6 +92,15 @@ func main() {
 	sslProxyHandler := handlers.NewSSLDaemonHandler()
 	ssl.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
 	log.Println("Listening TLS on port " + strconv.Itoa(sslPortNumber))
-	log.Fatal(http.ListenAndServeTLS("0.0.0.0:"+strconv.Itoa(sslPortNumber), cert, key, ssl))
 
+	s := &http.Server{Addr: "0.0.0.0:" + strconv.Itoa(sslPortNumber), Handler: ssl}
+	s.TLSConfig = &tls.Config{}
+	s.TLSConfig.GetCertificate = func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		i := services.FindInstance(clientHello.ServerName)
+		if i != nil && i.Cert != nil {
+			return i.Cert, nil
+		}
+		return nil, fmt.Errorf("Instance %s doesn't exist or doesn't have a certificate", clientHello.ServerName)
+	}
+	log.Fatal(s.ListenAndServeTLS("", ""))
 }

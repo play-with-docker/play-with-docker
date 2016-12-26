@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"log"
 	"os"
@@ -29,6 +30,9 @@ type Instance struct {
 	Cpu          string                  `json:"cpu"`
 	Ports        []uint16                `json:"ports"`
 	tempPorts    []uint16                `json:"-"`
+	ServerCert   []byte                  `json:"server_cert"`
+	ServerKey    []byte                  `json:"server_key"`
+	Cert         *tls.Certificate        `json:"-"`
 }
 
 func (i *Instance) setUsedPort(port uint16) {
@@ -131,6 +135,17 @@ func (i *Instance) Attach() {
 func GetInstance(session *Session, name string) *Instance {
 	return session.Instances[name]
 }
+
+func FindInstance(name string) *Instance {
+	for _, s := range sessions {
+		i := GetInstance(s, name)
+		if i != nil {
+			return i
+		}
+	}
+	return nil
+}
+
 func DeleteInstance(session *Session, instance *Instance) error {
 	if instance.conn != nil {
 		instance.conn.Close()
