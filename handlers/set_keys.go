@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -34,4 +35,13 @@ func SetKeys(rw http.ResponseWriter, req *http.Request) {
 
 	i.ServerCert = c.ServerCert
 	i.ServerKey = c.ServerKey
+
+	cert, err := tls.X509KeyPair(i.ServerCert, i.ServerKey)
+	if err != nil {
+		log.Println(err)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	i.Cert = &cert
 }
