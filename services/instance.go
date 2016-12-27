@@ -32,7 +32,7 @@ type Instance struct {
 	tempPorts    []uint16                `json:"-"`
 	ServerCert   []byte                  `json:"server_cert"`
 	ServerKey    []byte                  `json:"server_key"`
-	Cert         *tls.Certificate        `json:"-"`
+	cert         *tls.Certificate        `json:"-"`
 }
 
 func (i *Instance) setUsedPort(port uint16) {
@@ -45,6 +45,25 @@ func (i *Instance) setUsedPort(port uint16) {
 		}
 	}
 	i.tempPorts = append(i.tempPorts, port)
+}
+
+func (i *Instance) SetCertificate(cert, key []byte) (*tls.Certificate, error) {
+	i.ServerCert = cert
+	i.ServerKey = key
+	c, e := tls.X509KeyPair(i.ServerCert, i.ServerKey)
+	if e != nil {
+		return nil, e
+	}
+	i.cert = &c
+
+	// We store sessions as soon as we set instance keys
+	if err := saveSessionsToDisk(); err != nil {
+		return nil, err
+	}
+	return i.cert, nil
+}
+func (i *Instance) GetCertificate() *tls.Certificate {
+	return i.cert
 }
 
 func (i *Instance) IsConnected() bool {
@@ -136,11 +155,12 @@ func GetInstance(session *Session, name string) *Instance {
 	return session.Instances[name]
 }
 
-func FindInstance(name string) *Instance {
+func FindInstanceByIP(ip string) *Instance {
 	for _, s := range sessions {
-		i := GetInstance(s, name)
-		if i != nil {
-			return i
+		for _, i := range s.Instances {
+			if i.IP == ip {
+				return i
+			}
 		}
 	}
 	return nil

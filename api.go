@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"flag"
 	"strconv"
@@ -96,11 +97,18 @@ func main() {
 	s := &http.Server{Addr: "0.0.0.0:" + strconv.Itoa(sslPortNumber), Handler: ssl}
 	s.TLSConfig = &tls.Config{}
 	s.TLSConfig.GetCertificate = func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-		i := services.FindInstance(clientHello.ServerName)
-		if i != nil && i.Cert != nil {
-			return i.Cert, nil
+
+		chunks := strings.Split(clientHello.ServerName, ".")
+		chunks = strings.Split(chunks[0], "-")
+		ip := strings.Replace(strings.TrimPrefix(chunks[0], "ip"), "_", ".", -1)
+		i := services.FindInstanceByIP(ip)
+		if i == nil {
+			return nil, fmt.Errorf("Instance %s doesn't exist", clientHello.ServerName)
 		}
-		return nil, fmt.Errorf("Instance %s doesn't exist or doesn't have a certificate", clientHello.ServerName)
+		if i.GetCertificate() == nil {
+			return nil, fmt.Errorf("Instance %s doesn't have a certificate", clientHello.ServerName)
+		}
+		return i.GetCertificate(), nil
 	}
 	log.Fatal(s.ListenAndServeTLS("", ""))
 }

@@ -304,6 +304,14 @@ func LoadSessionsFromDisk() error {
 			for _, i := range s.Instances {
 				// wire the session back to the instance
 				i.session = s
+
+				if i.ServerCert != nil && i.ServerKey != nil {
+					_, err := i.SetCertificate(i.ServerCert, i.ServerKey)
+					if err != nil {
+						log.Println(err)
+						return err
+					}
+				}
 			}
 
 			// Connect PWD daemon to the new network
