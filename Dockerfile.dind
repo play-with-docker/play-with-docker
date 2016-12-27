@@ -33,7 +33,7 @@ WORKDIR /root
 # Remove IPv6 alias for localhost and start docker in the background ...
 CMD cat /etc/hosts >/etc/hosts.bak && \
     sed 's/^::1.*//' /etc/hosts.bak > /etc/hosts && \
-    dockerd -g /graph --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 \
+    dockerd --experimental -g /graph --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 \
             --storage-driver=$DOCKER_STORAGE_DRIVER &>/docker.log & \
     while true ; do /bin/bash ; done
 # ... and then put a shell in the foreground, restarting it if it exits
