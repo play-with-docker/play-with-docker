@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -181,6 +182,10 @@ func ResizeConnection(name string, cols, rows uint) error {
 
 func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 	h := &container.HostConfig{NetworkMode: container.NetworkMode(session.Id), Privileged: true}
+
+	if os.Getenv("APPARMOR_PROFILE") != "" {
+		h.SecurityOpt = []string{fmt.Sprintf("apparmor=%s", os.Getenv("APPARMOR_PROFILE"))}
+	}
 	h.Resources.PidsLimit = int64(500)
 	h.Resources.Memory = 4092 * Megabyte
 	t := true
