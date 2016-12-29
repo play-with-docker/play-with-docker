@@ -88,8 +88,10 @@ func SetInstanceSwarmPorts(i *Instance) error {
 	for _, t := range tasks {
 		for _, n := range nodes {
 			ins := nodesIdx[n.ID]
-			for _, p := range services[t.ServiceID] {
-				ins.setUsedPort(p)
+			if ins != nil {
+				for _, p := range services[t.ServiceID] {
+					ins.setUsedPort(p)
+				}
 			}
 		}
 	}
