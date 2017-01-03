@@ -4,21 +4,9 @@
 	background-color: rgba(158,158,158,0.2);
 }
 
-md-card-content.terminal {
-    background-color: rgb(113, 113, 113);
-    padding: 0;
-}
-
-.terminal {
-    background-color: rgb(113, 113, 113);
-}
-
-.terminal .xterm-viewport {
-    background-color: rgb(113, 113, 113);
-}
-
-.terminal .xterm-rows {
+md-card-content.terminal-container {
     background-color: #000;
+    padding: 0;
 }
 
 .clock {
