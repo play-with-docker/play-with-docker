@@ -157,9 +157,10 @@
                     $scope.instances.push(instance);
                     $scope.idx[instance.name] = instance;
                 }
-                if ($scope.instances.length) {
-                    $scope.showInstance($scope.instances[0]);
-                }
+
+                // If instance is passed in URL, select it
+                let inst = $scope.idx[$location.hash()];
+                if (inst) $scope.showInstance(inst);
             }, function(response) {
                 if (response.status == 404) {
                     document.write('session not found');
@@ -176,6 +177,7 @@
 
         $scope.showInstance = function(instance) {
             $scope.selectedInstance = instance;
+            $location.hash(instance.name);
             if (!instance.creatingTerminal) {
                 if (!instance.term) {
                     $timeout(function() {
@@ -257,8 +259,8 @@
             }
         }
     }])
-
-        .config(['$mdIconProvider', function($mdIconProvider) {
-            $mdIconProvider.defaultIconSet('../assets/social-icons.svg', 24);
-        }]);
+    .config(['$mdIconProvider', '$locationProvider', function($mdIconProvider, $locationProvider) {
+        $locationProvider.html5Mode({enabled: true, requireBase: false});
+        $mdIconProvider.defaultIconSet('../assets/social-icons.svg', 24);
+    }]);
 })();
