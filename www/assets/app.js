@@ -1,7 +1,7 @@
-(function () {
-	'use strict';
+(function() {
+    'use strict';
 
-	var app = angular.module('DockerPlay', ['ngMaterial']);
+    var app = angular.module('DockerPlay', ['ngMaterial']);
 
     // Automatically redirects user to a new session when bypassing captcha.
     // Controller keeps code/logic separate from the HTML
@@ -12,42 +12,42 @@
         }, 500);
     }]);
 
-	app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
-		$scope.sessionId = window.location.pathname.replace('/p/', '');
-		$scope.instances = [];
+    app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
+        $scope.sessionId = window.location.pathname.replace('/p/', '');
+        $scope.instances = [];
         $scope.idx = {};
-		$scope.selectedInstance = null;
+        $scope.selectedInstance = null;
         $scope.isAlive = true;
         $scope.ttl = '--:--:--';
         $scope.connected = true;
 
-      angular.element($window).bind('resize', function(){
-        if ($scope.selectedInstance) {
-            $scope.resize($scope.selectedInstance.term.proposeGeometry());
+        angular.element($window).bind('resize', function() {
+            if ($scope.selectedInstance) {
+                $scope.resize($scope.selectedInstance.term.proposeGeometry());
+            }
+        });
+
+
+        $scope.showAlert = function(title, content, parent) {
+            $mdDialog.show(
+                $mdDialog.alert()
+                    .parent(angular.element(document.querySelector(parent || '#popupContainer')))
+                    .clickOutsideToClose(true)
+                    .title(title)
+                    .textContent(content)
+                    .ok('Got it!')
+            );
         }
-      });
 
+        $scope.resize = function(geometry) {
+            $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
+        }
 
-      $scope.showAlert = function(title, content, parent) {
-        $mdDialog.show(
-           $mdDialog.alert()
-          .parent(angular.element(document.querySelector(parent || '#popupContainer')))
-          .clickOutsideToClose(true)
-          .title(title)
-          .textContent(content)
-          .ok('Got it!')
-        );
-	  }
+        $scope.closeSession = function() {
+            $scope.socket.emit('session close');
+        }
 
-      $scope.resize = function(geometry) {
-        $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
-      }
-
-      $scope.closeSession = function() {
-        $scope.socket.emit('session close');
-      }
-
-      $scope.upsertInstance = function(info) {
+        $scope.upsertInstance = function(info) {
             var i = info;
             if (!$scope.idx[i.name]) {
                 $scope.instances.push(i);
@@ -59,27 +59,27 @@
             }
 
             return $scope.idx[i.name];
-      }
+        }
 
-		$scope.newInstance = function() {
-			$http({
-				method: 'POST',
-				url: '/sessions/' + $scope.sessionId + '/instances',
-			}).then(function(response) {
+        $scope.newInstance = function() {
+            $http({
+                method: 'POST',
+                url: '/sessions/' + $scope.sessionId + '/instances',
+            }).then(function(response) {
                 var i = $scope.upsertInstance(response.data);
                 $scope.showInstance(i);
-			}, function(response) {
+            }, function(response) {
                 if (response.status == 409) {
-                  $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
+                    $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
                 }
-			});
-		}
+            });
+        }
 
-		$scope.getSession = function(sessionId) {
-			$http({
-				method: 'GET',
-				url: '/sessions/' + $scope.sessionId,
-			}).then(function(response) {
+        $scope.getSession = function(sessionId) {
+            $http({
+                method: 'GET',
+                url: '/sessions/' + $scope.sessionId,
+            }).then(function(response) {
                 if (response.data.created_at) {
                     $scope.expiresAt = moment(response.data.expires_at);
                     setInterval(function() {
@@ -87,14 +87,14 @@
                         $scope.$apply();
                     }, 1000);
                 }
-                var socket = io({path: '/sessions/' + sessionId + '/ws'});
+                var socket = io({ path: '/sessions/' + sessionId + '/ws' });
 
                 socket.on('terminal out', function(name, data) {
                     var instance = $scope.idx[name];
 
                     if (!instance) {
                         // instance is new and was created from another client, we should add it
-                        $scope.upsertInstance({name: name});
+                        $scope.upsertInstance({ name: name });
                         instance = $scope.idx[name];
                     }
                     if (!instance.term) {
@@ -105,7 +105,7 @@
                 });
 
                 socket.on('session end', function() {
-					$scope.showAlert('Session timed out!', 'Your session has expired and all of your instances have been deleted.', '#sessionEnd')
+                    $scope.showAlert('Session timed out!', 'Your session has expired and all of your instances have been deleted.', '#sessionEnd')
                     $scope.isAlive = false;
                 });
 
@@ -113,7 +113,7 @@
                 });
 
                 socket.on('new instance', function(name, ip, hostname) {
-                    $scope.upsertInstance({name: name, ip: ip, hostname: hostname});
+                    $scope.upsertInstance({ name: name, ip: ip, hostname: hostname });
                     $scope.$apply(function() {
                         if ($scope.instances.length == 1) {
                             $scope.showInstance($scope.instances[0]);
@@ -151,22 +151,22 @@
 
                 $scope.socket = socket;
 
-				var i = response.data;
-				for (var k in i.instances) {
-					var instance = i.instances[k];
-					$scope.instances.push(instance);
+                var i = response.data;
+                for (var k in i.instances) {
+                    var instance = i.instances[k];
+                    $scope.instances.push(instance);
                     $scope.idx[instance.name] = instance;
-				}
-				if ($scope.instances.length) {
+                }
+                if ($scope.instances.length) {
                     $scope.showInstance($scope.instances[0]);
-				}
-			}, function(response) {
-				if (response.status == 404) {
-				  document.write('session not found');
-				  return
-				}
-			});
-		}
+                }
+            }, function(response) {
+                if (response.status == 404) {
+                    document.write('session not found');
+                    return
+                }
+            });
+        }
 
         $scope.getProxyUrl = function(instance, port) {
             var url = window.location.protocol + '//ip' + instance.ip.replace(/\./g, '_') + '-' + port + '.' + window.location.host;
@@ -202,63 +202,63 @@
             }
         }
 
-		$scope.deleteInstance = function(instance) {
-			$http({
-				method: 'DELETE',
-				url: '/sessions/' + $scope.sessionId + '/instances/' + instance.name,
-			}).then(function(response) {
+        $scope.deleteInstance = function(instance) {
+            $http({
+                method: 'DELETE',
+                url: '/sessions/' + $scope.sessionId + '/instances/' + instance.name,
+            }).then(function(response) {
                 $scope.removeInstance(instance.name);
-			}, function(response) {
-				console.log('error', response);
-			});
-		}
+            }, function(response) {
+                console.log('error', response);
+            });
+        }
 
-		$scope.getSession($scope.sessionId);
+        $scope.getSession($scope.sessionId);
 
         function createTerminal(instance, cb) {
-          if (instance.term) {
-              return instance.term;
-          }
-
-          var terminalContainer = document.getElementById('terminal-'+ instance.name);
-
-          var term = new Terminal({
-            cursorBlink: false
-          });
-
-          term.attachCustomKeydownHandler(function (e) {
-            // Ctrl + Alt + C
-            if (e.ctrlKey && e.altKey && (e.keyCode == 67)) {
-              document.execCommand('copy');
-              return false;
+            if (instance.term) {
+                return instance.term;
             }
-          });
 
-          term.open(terminalContainer);
+            var terminalContainer = document.getElementById('terminal-' + instance.name);
 
-          // Set geometry during the next tick, to avoid race conditions.
-          setTimeout(function() {
-              $scope.resize(term.proposeGeometry());
-          }, 4);
+            var term = new Terminal({
+                cursorBlink: false
+            });
 
-          term.on('data', function(d) {
-            $scope.socket.emit('terminal in', instance.name, d);
-          });
+            term.attachCustomKeydownHandler(function(e) {
+                // Ctrl + Alt + C
+                if (e.ctrlKey && e.altKey && (e.keyCode == 67)) {
+                    document.execCommand('copy');
+                    return false;
+                }
+            });
 
-          instance.term = term;
+            term.open(terminalContainer);
 
-          if (instance.buffer) {
-              term.write(instance.buffer);
-              instance.buffer = '';
-          }
+            // Set geometry during the next tick, to avoid race conditions.
+            setTimeout(function() {
+                $scope.resize(term.proposeGeometry());
+            }, 4);
 
-          if (cb) {
-            cb();
-          }
+            term.on('data', function(d) {
+                $scope.socket.emit('terminal in', instance.name, d);
+            });
+
+            instance.term = term;
+
+            if (instance.buffer) {
+                term.write(instance.buffer);
+                instance.buffer = '';
+            }
+
+            if (cb) {
+                cb();
+            }
         }
-	}])
+    }])
 
-  .config(['$mdIconProvider', function($mdIconProvider) {
-      $mdIconProvider.defaultIconSet('../assets/social-icons.svg', 24);
-  }]);
+        .config(['$mdIconProvider', function($mdIconProvider) {
+            $mdIconProvider.defaultIconSet('../assets/social-icons.svg', 24);
+        }]);
 })();
