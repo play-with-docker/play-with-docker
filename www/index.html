@@ -47,7 +47,7 @@
                   <h1 class="md-toolbar-tools">Instances</h1>
                 </md-toolbar>
                 <md-content layout-padding>
-                  <md-button ng-click="newInstance()" class="md-primary">+ Add new instance</md-button>
+                  <md-button ng-click="newInstance()" ng-disabled="isInstanceBeingCreated" class="md-primary">{{newInstanceBtnText}}</md-button>
               <md-list>
                 <md-list-item ng-switch on="instance.isManager" class="md-3-line" ng-repeat="instance in instances" ng-click="showInstance(instance)" ng-class="instance.name == selectedInstance.name ? 'selected' : false">
                     <md-icon ng-switch-when="true" style="color: blue" md-svg-icon="person"></md-icon>
@@ -96,7 +96,7 @@
                           <md-card-title-text>
                       </md-card-title>
                       <md-card-actions>
-                          <md-button class="md-warn md-raised" ng-click="deleteInstance(instance)">Delete</md-button>
+                          <md-button class="md-warn md-raised" ng-click="deleteInstance(instance)" ng-disabled="isInstanceBeingDeleted">{{deleteInstanceBtnText}}</md-button>
                           </md-card-actions>
                   </md-card>
                   <md-card flex md-theme="default" md-theme-watch >
