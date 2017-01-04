@@ -20,6 +20,10 @@
         $scope.isAlive = true;
         $scope.ttl = '--:--:--';
         $scope.connected = true;
+        $scope.isInstanceBeingCreated = false;
+        $scope.newInstanceBtnText = '+ Add new instance';
+        $scope.deleteInstanceBtnText = 'Delete';
+        $scope.isInstanceBeingDeleted = false;
 
         angular.element($window).bind('resize', function() {
             if ($scope.selectedInstance) {
@@ -62,6 +66,7 @@
         }
 
         $scope.newInstance = function() {
+            updateNewInstanceBtnState(true);
             $http({
                 method: 'POST',
                 url: '/sessions/' + $scope.sessionId + '/instances',
@@ -72,6 +77,8 @@
                 if (response.status == 409) {
                     $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
                 }
+            }).finally(function() {
+                updateNewInstanceBtnState(false);
             });
         }
 
@@ -203,6 +210,7 @@
         }
 
         $scope.deleteInstance = function(instance) {
+            updateDeleteInstanceBtnState(true);
             $http({
                 method: 'DELETE',
                 url: '/sessions/' + $scope.sessionId + '/instances/' + instance.name,
@@ -210,6 +218,8 @@
                 $scope.removeInstance(instance.name);
             }, function(response) {
                 console.log('error', response);
+            }).finally(function() {
+                updateDeleteInstanceBtnState(false);
             });
         }
 
@@ -254,6 +264,26 @@
 
             if (cb) {
                 cb();
+            }
+        }
+
+        function updateNewInstanceBtnState(isInstanceBeingCreated) {
+            if (isInstanceBeingCreated === true) {
+                $scope.newInstanceBtnText = '+ Creating...';
+                $scope.isInstanceBeingCreated = true;
+            } else {
+                $scope.newInstanceBtnText = '+ Add new instance';
+                $scope.isInstanceBeingCreated = false;
+            }
+        }
+
+        function updateDeleteInstanceBtnState(isInstanceBeingDeleted) {
+            if (isInstanceBeingDeleted === true) {
+                $scope.deleteInstanceBtnText = 'Deleting...';
+                $scope.isInstanceBeingDeleted = true;
+            } else {
+                $scope.deleteInstanceBtnText = 'Delete';
+                $scope.isInstanceBeingDeleted = false;
             }
         }
     }])
