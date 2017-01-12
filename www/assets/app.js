@@ -44,7 +44,9 @@
         }
 
         $scope.resize = function(geometry) {
-            $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
+            if (geometry.cols && geometry.rows) {
+              $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
+            }
         }
 
         $scope.closeSession = function() {
@@ -54,12 +56,10 @@
         $scope.upsertInstance = function(info) {
             var i = info;
             if (!$scope.idx[i.name]) {
-                $scope.instances.push(i);
                 i.buffer = '';
                 $scope.idx[i.name] = i;
             } else {
-                $scope.idx[i.name].ip = i.ip;
-                $scope.idx[i.name].hostname = i.hostname;
+                Object.assign($scope.idx[i.name], i);
             }
 
             return $scope.idx[i.name];
@@ -67,18 +67,19 @@
 
         $scope.newInstance = function() {
             updateNewInstanceBtnState(true);
-            $http({
-                method: 'POST',
-                url: '/sessions/' + $scope.sessionId + '/instances',
-            }).then(function(response) {
-                var i = $scope.upsertInstance(response.data);
-                $scope.showInstance(i);
-            }, function(response) {
-                if (response.status == 409) {
-                    $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
-                }
-            }).finally(function() {
-                updateNewInstanceBtnState(false);
+
+            //Push the instance before the request so DOM renders terminal target
+            var inst = {};
+            $scope.instances.push(inst);
+            pwd.createInstance(function(err, instance) {
+              if (err && err.max) {
+                $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
+              } else {
+                Object.assign(inst, instance);
+                var i = $scope.upsertInstance(instance);
+                $scope.showInstance(inst);
+              }
+              updateNewInstanceBtnState(false);
             });
         }
 
@@ -94,20 +95,17 @@
                         $scope.$apply();
                     }, 1000);
                 }
-                var socket = io({ path: '/sessions/' + sessionId + '/ws' });
+
+                pwd.init(sessionId);
+                var socket = pwd.socket;
 
                 socket.on('terminal out', function(name, data) {
                     var instance = $scope.idx[name];
 
                     if (!instance) {
-                        // instance is new and was created from another client, we should add it
+                         //instance is new and was created from another client, we should add it
                         $scope.upsertInstance({ name: name });
                         instance = $scope.idx[name];
-                    }
-                    if (!instance.term) {
-                        instance.buffer += data;
-                    } else {
-                        instance.term.write(data);
                     }
                 });
 
@@ -116,11 +114,12 @@
                     $scope.isAlive = false;
                 });
 
-                socket.on('viewport', function(rows, cols) {
-                });
-
                 socket.on('new instance', function(name, ip, hostname) {
-                    $scope.upsertInstance({ name: name, ip: ip, hostname: hostname });
+                    if (!$scope.isInstanceBeingCreated && !$scope.idx[name]) {
+                      var i = { name: name, ip: ip, hostname: hostname };
+                      $scope.instances.push(i);
+                      $scope.upsertInstance(i);
+                    }
                     $scope.$apply(function() {
                         if ($scope.instances.length == 1) {
                             $scope.showInstance($scope.instances[0]);
@@ -135,9 +134,10 @@
 
                 socket.on('viewport resize', function(cols, rows) {
                     // viewport has changed, we need to resize all terminals
-
                     $scope.instances.forEach(function(instance) {
-                        instance.term.resize(cols, rows);
+                        if (instance.term) {
+                          instance.term.resize(cols, rows);
+                        }
                     });
                 });
 
@@ -181,19 +181,16 @@
 
             return url;
         }
-
         $scope.showInstance = function(instance) {
             $scope.selectedInstance = instance;
             $location.hash(instance.name);
-            if (!instance.creatingTerminal) {
-                if (!instance.term) {
-                    $timeout(function() {
-                        createTerminal(instance);
-                        instance.term.focus();
-                    }, 0, false);
-                    return
-                }
-            }
+              if (!instance.term) {
+                  $timeout(function() {
+                      createTerminal(instance);
+                      instance.term.focus();
+                  }, 0, false);
+                  return
+              }
             $timeout(function() {
                 instance.term.focus();
             }, 0, false);
@@ -232,13 +229,12 @@
                 return instance.term;
             }
 
-            var terminalContainer = document.getElementById('terminal-' + instance.name);
+            var terms = pwd.createTerminal('#terminal-' + ($scope.instances.indexOf(instance)), instance.name);
 
-            var term = new Terminal({
-                cursorBlink: false
-            });
+            //PWD displays one term per instance;
+            instance.term = terms[0];
 
-            term.attachCustomKeydownHandler(function(e) {
+            instance.term.attachCustomKeydownHandler(function(e) {
                 // Ctrl + Alt + C
                 if (e.ctrlKey && e.altKey && (e.keyCode == 67)) {
                     document.execCommand('copy');
@@ -246,27 +242,17 @@
                 }
             });
 
-            term.open(terminalContainer);
 
             // Set geometry during the next tick, to avoid race conditions.
             setTimeout(function() {
-                $scope.resize(term.proposeGeometry());
+                $scope.resize(instance.term.proposeGeometry());
             }, 4);
 
-            term.on('data', function(d) {
-                $scope.socket.emit('terminal in', instance.name, d);
-            });
-
-            instance.term = term;
-
             if (instance.buffer) {
-                term.write(instance.buffer);
+                instance.term.write(instance.buffer);
                 instance.buffer = '';
             }
 
-            if (cb) {
-                cb();
-            }
         }
 
         function updateNewInstanceBtnState(isInstanceBeingCreated) {

@@ -100,7 +100,7 @@
                           </md-card-actions>
                   </md-card>
                   <md-card flex md-theme="default" md-theme-watch >
-                      <md-card-content flex id="terminal-{{instance.name}}" class="terminal-container">
+                      <md-card-content flex id="terminal-{{$index}}" class="terminal-container">
                       </md-card-content>
                   </md-card>
               </md-content>
@@ -119,6 +119,7 @@
         <script src="/assets/xterm-addons/fit.js"></script>
         <script src="/assets/attach.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.16.0/moment.min.js"></script>
+        <script src="/sdk.js"></script>
         <script type="text/javascript" charset="utf-8">
             window.onbeforeunload = function (e) {
                 e = e || window.event;
