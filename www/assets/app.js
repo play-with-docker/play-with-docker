@@ -56,7 +56,6 @@
         $scope.upsertInstance = function(info) {
             var i = info;
             if (!$scope.idx[i.name]) {
-                i.buffer = '';
                 $scope.idx[i.name] = i;
             } else {
                 Object.assign($scope.idx[i.name], i);
@@ -76,7 +75,7 @@
                 $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
               } else {
                 Object.assign(inst, instance);
-                $scope.upsertInstance(instance);
+                $scope.upsertInstance(inst);
               }
               updateNewInstanceBtnState(false);
             });
@@ -101,7 +100,7 @@
                 socket.on('terminal out', function(name, data) {
                     var instance = $scope.idx[name];
 
-                    if (!instance) {
+                    if (!instance && !$scope.isInstanceBeingCreated) {
                          //instance is new and was created from another client, we should add it
                         $scope.upsertInstance({ name: name });
                         instance = $scope.idx[name];
@@ -250,10 +249,6 @@
                 $scope.resize(instance.term.proposeGeometry());
             }, 4);
 
-            if (instance.buffer) {
-                instance.term.write(instance.buffer);
-                instance.buffer = '';
-            }
 
         }
 
