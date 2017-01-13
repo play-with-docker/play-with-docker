@@ -87,7 +87,7 @@ func main() {
 		}
 	}).Methods("GET")
 
-	r.HandleFunc("/", handlers.NewSession).Methods("POST")
+	r.Handle("/", c.Handler(http.HandlerFunc(handlers.NewSession))).Methods("POST")
 
 	n := negroni.Classic()
 	n.UseHandler(r)
