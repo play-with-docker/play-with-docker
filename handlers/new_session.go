@@ -22,7 +22,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		//TODO: Return some error code
 	} else {
 		// If request is not a form, return sessionId in the body
-		if req.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		if req.Header.Get("X-Requested-With") == "XMLHttpRequest" {
 			rw.Write([]byte(s.Id))
 			return
 		}
