@@ -94,7 +94,7 @@
                     }, 1000);
                 }
 
-                pwd.init(sessionId);
+                pwd.init(sessionId, {baseUrl: window.location.origin});
                 var socket = pwd.socket;
 
                 socket.on('terminal out', function(name, data) {

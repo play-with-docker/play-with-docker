@@ -12,7 +12,7 @@
       var self = this;
       opts = opts || {};
       this.sessionId = sessionId;
-      this.baseUrl = opts.baseUrl || window.location.origin;
+      this.baseUrl = opts.baseUrl || 'http://play-with-docker.com';
       this.socket = io(this.baseUrl, {path: '/sessions/' + sessionId + '/ws' });
       this.socket.on('terminal out', function(name ,data) {
         var instance = self.instances[name];
