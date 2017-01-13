@@ -16,6 +16,7 @@ import (
 	"github.com/franela/play-with-docker/templates"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/cors"
 	"github.com/urfave/negroni"
 )
 
@@ -40,6 +41,10 @@ func main() {
 	}
 
 	r := mux.NewRouter()
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowCredentials: true,
+	})
 
 	// Reverse proxy (needs to be the first route, to make sure it is the first thing we check)
 	proxyHandler := handlers.NewMultipleHostReverseProxy()
@@ -49,7 +54,7 @@ func main() {
 	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).Handler(proxyHandler)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	r.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
-	r.HandleFunc("/sessions/{sessionId}/instances", handlers.NewInstance).Methods("POST")
+	r.Handle("/sessions/{sessionId}/instances", c.Handler(http.HandlerFunc(handlers.NewInstance))).Methods("POST")
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", handlers.DeleteInstance).Methods("DELETE")
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/keys", handlers.SetKeys).Methods("POST")
 
@@ -62,8 +67,11 @@ func main() {
 	r.HandleFunc("/robots.txt", func(rw http.ResponseWriter, r *http.Request) {
 		http.ServeFile(rw, r, "www/robots.txt")
 	})
+	r.HandleFunc("/sdk.js", func(rw http.ResponseWriter, r *http.Request) {
+		http.ServeFile(rw, r, "www/sdk.js")
+	})
 
-	r.Handle("/sessions/{sessionId}/ws/", server)
+	r.Handle("/sessions/{sessionId}/ws/", c.Handler(server))
 	r.Handle("/metrics", promhttp.Handler())
 
 	// Generic routes
@@ -79,7 +87,7 @@ func main() {
 		}
 	}).Methods("GET")
 
-	r.HandleFunc("/", handlers.NewSession).Methods("POST")
+	r.Handle("/", c.Handler(http.HandlerFunc(handlers.NewSession))).Methods("POST")
 
 	n := negroni.Classic()
 	n.UseHandler(r)
