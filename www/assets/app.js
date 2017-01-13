@@ -76,8 +76,7 @@
                 $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
               } else {
                 Object.assign(inst, instance);
-                var i = $scope.upsertInstance(instance);
-                $scope.showInstance(inst);
+                $scope.upsertInstance(instance);
               }
               updateNewInstanceBtnState(false);
             });
@@ -129,6 +128,8 @@
 
                 socket.on('delete instance', function(name) {
                     $scope.removeInstance(name);
+                    // We have to do this manually bc PWD SDK shouldn't support it
+                    delete pwd.instances[name]
                     $scope.$apply();
                 });
 
@@ -182,18 +183,19 @@
             return url;
         }
         $scope.showInstance = function(instance) {
-            $scope.selectedInstance = instance;
-            $location.hash(instance.name);
-              if (!instance.term) {
-                  $timeout(function() {
-                      createTerminal(instance);
-                      instance.term.focus();
-                  }, 0, false);
-                  return
-              }
-            $timeout(function() {
-                instance.term.focus();
-            }, 0, false);
+          $scope.selectedInstance = instance;
+          $location.hash(instance.name);
+            if (!instance.term) {
+                $timeout(function() {
+                    createTerminal(instance);
+                    instance.term.focus();
+                }, 0, false);
+                return
+            } else {
+              $timeout(function() {
+                  instance.term.focus();
+              }, 0, false);
+            }
         }
 
         $scope.removeInstance = function(name) {
@@ -244,7 +246,7 @@
 
 
             // Set geometry during the next tick, to avoid race conditions.
-            setTimeout(function() {
+            $timeout(function() {
                 $scope.resize(instance.term.proposeGeometry());
             }, 4);
 

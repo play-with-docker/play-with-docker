@@ -3,6 +3,7 @@
     // declare
     var pwd = function () {
         this.instances = {};
+        this.instanceBuffer = {};
         return;
     };
 
@@ -17,6 +18,10 @@
         var instance = self.instances[name];
         if (instance && instance.terms) {
           instance.terms.forEach(function(term) {term.write(data)});
+        } else {
+          //Buffer the data if term is not ready
+          if (self.instanceBuffer[name] == undefined) self.instanceBuffer[name] = '';;;;
+          self.instanceBuffer[name] += data;
         }
       });
     };
@@ -66,6 +71,16 @@
             self.socket.emit('terminal in', i.name, this.innerText);
           };
         });
+
+
+        if (self.instanceBuffer[name]) {
+          //Flush buffer and clear it
+          i.terms.forEach(function(term){
+            term.write(self.instanceBuffer[name]);
+          });
+          self.instanceBuffer[name] = '';
+        }
+
         return i.terms;
     }
 
@@ -81,6 +96,7 @@
           }
 
           self.createTerminal(selector, instance.name);
+
 
           !callback || callback(undefined, instance);
 
