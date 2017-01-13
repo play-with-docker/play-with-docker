@@ -14,9 +14,9 @@ import (
 	"github.com/franela/play-with-docker/handlers"
 	"github.com/franela/play-with-docker/services"
 	"github.com/franela/play-with-docker/templates"
+	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/cors"
 	"github.com/urfave/negroni"
 )
 
@@ -41,10 +41,6 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowCredentials: true,
-	})
 
 	// Reverse proxy (needs to be the first route, to make sure it is the first thing we check)
 	proxyHandler := handlers.NewMultipleHostReverseProxy()
@@ -54,7 +50,7 @@ func main() {
 	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).Handler(proxyHandler)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	r.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
-	r.Handle("/sessions/{sessionId}/instances", c.Handler(http.HandlerFunc(handlers.NewInstance))).Methods("POST")
+	r.Handle("/sessions/{sessionId}/instances", http.HandlerFunc(handlers.NewInstance)).Methods("POST")
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", handlers.DeleteInstance).Methods("DELETE")
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/keys", handlers.SetKeys).Methods("POST")
 
@@ -71,7 +67,7 @@ func main() {
 		http.ServeFile(rw, r, "www/sdk.js")
 	})
 
-	r.Handle("/sessions/{sessionId}/ws/", c.Handler(server))
+	r.Handle("/sessions/{sessionId}/ws/", server)
 	r.Handle("/metrics", promhttp.Handler())
 
 	// Generic routes
@@ -87,14 +83,14 @@ func main() {
 		}
 	}).Methods("GET")
 
-	r.Handle("/", c.Handler(http.HandlerFunc(handlers.NewSession))).Methods("POST")
+	r.HandleFunc("/", handlers.NewSession).Methods("POST")
 
 	n := negroni.Classic()
 	n.UseHandler(r)
 
 	go func() {
 		log.Println("Listening on port " + strconv.Itoa(portNumber))
-		log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(portNumber), n))
+		log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(portNumber), gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with"}), gh.AllowedOrigins([]string{"*"}))(n)))
 	}()
 
 	ssl := mux.NewRouter()
