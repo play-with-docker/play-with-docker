@@ -1,5 +1,18 @@
 (function (window) {
 
+  'use strict';
+
+     function injectScript(src, cb) {
+       var sj = document.createElement('script');
+       sj.type = 'text/javascript';
+       sj.async = true;
+       sj.src = src;
+       sj.addEventListener ? sj.addEventListener('load', cb, false) : sj.attachEvent('onload', cb);
+       var s = document.getElementsByTagName('script')[0];
+       s.parentNode.insertBefore(sj, s);
+     }
+
+
     // declare
     var pwd = function () {
         this.instances = {};
@@ -7,12 +20,60 @@
         return;
     };
 
+    var verifyCallback = function(response) {
+      var self = this;
+      var data = encodeURIComponent('g-recaptcha-response') + '=' + encodeURIComponent(response);
+      postRequest(this.baseUrl + '/', {headers:{'Content-type':'application/x-www-form-urlencoded'}}, data, function(resp) {
+
+        //TODO handle errors
+        if (resp.status == 200) {
+          self.init(resp.responseText, self.opts);
+          self.selectors.forEach(function(sel){
+            self.terminal(sel, function(){
+              //Remove captchas after initializing terminals;
+              var captcha = document.querySelectorAll(sel + ' .captcha');
+              captcha.forEach(function(el){
+                el.parentNode.removeChild(el);
+              });
+
+            });
+          });
+        };
+      });
+    };
+
+    // register recaptcha onload callback
+    window.onloadCallback = function() {
+      window.pwd.selectors.forEach(function(sel) {
+        var els = document.querySelectorAll(sel);
+        els.forEach(function(el) {
+          var captcha = document.createElement('div');
+          captcha.className = 'captcha';
+          el.appendChild(captcha);
+          window.grecaptcha.render(captcha, {'sitekey': '6Ld8pREUAAAAAOkrGItiEeczO9Tfi99sIHoMvFA_', 'callback': verifyCallback.bind(window.pwd)});
+        });
+      });
+
+    };
+
+    pwd.prototype.newSession = function(selectors, opts) {
+      this.opts = opts || {};
+      this.baseUrl = this.opts.baseUrl || 'http://play-with-docker.com';
+      selectors = selectors || [];
+      if (selectors.length > 0) {
+        this.selectors = selectors;
+        injectScript('https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit');
+      } else {
+        console.warn('No DOM elements found for selectors', selectors);
+      }
+    };
+
     // your sdk init function
     pwd.prototype.init = function (sessionId, opts) {
       var self = this;
       opts = opts || {};
-      this.sessionId = sessionId;
       this.baseUrl = opts.baseUrl || 'http://play-with-docker.com';
+      this.sessionId = sessionId;
       this.socket = io(this.baseUrl, {path: '/sessions/' + sessionId + '/ws' });
       this.socket.on('terminal out', function(name ,data) {
         var instance = self.instances[name];
@@ -26,26 +87,41 @@
       });
     };
 
+    // I know, opts and data can be ommited. I'm not a JS developer =(
+    // Data needs to be sent encoded appropriately
+    function postRequest(url,opts, data, callback) {
+      var request = new XMLHttpRequest();
+      request.open('POST', url, true);
+
+      if (opts && opts.headers) {
+        for (var key in opts.headers) {
+          request.setRequestHeader(key, opts.headers[key]);
+        }
+      }
+      request.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
+      request.onload = function() {
+        callback(request);
+      };
+      request.send(data);
+    };
+
     pwd.prototype.createInstance = function(callback) {
       var self = this;
       //TODO handle http connection errors
-      var request = new XMLHttpRequest();
-      request.open('POST', self.baseUrl + '/sessions/' + this.sessionId + '/instances' , true);
-      request.onload = function() {
-        if (request.status == 200) {
-          var i = JSON.parse(request.responseText);
+      postRequest(self.baseUrl + '/sessions/' + this.sessionId + '/instances', undefined, undefined, function(response) {
+        if (response.status == 200) {
+          var i = JSON.parse(response.responseText);
           i.terms = [];
           self.instances[i.name] = i;
           callback(undefined, i);
-        } else if (request.status == 409) {
+        } else if (response.status == 409) {
           var err = new Error();
           err.max = true;
           callback(err);
         } else {
           callback(new Error());
         }
-      };
-      request.send();
+      });
     }
 
     pwd.prototype.createTerminal = function(selector, name) {
