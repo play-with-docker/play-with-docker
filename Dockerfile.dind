@@ -1,4 +1,4 @@
-FROM docker:1.13.0-rc5-dind
+FROM docker:1.13.0-rc6-dind
 
 RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash
 
