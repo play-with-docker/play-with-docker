@@ -25,12 +25,6 @@
         $scope.deleteInstanceBtnText = 'Delete';
         $scope.isInstanceBeingDeleted = false;
 
-        angular.element($window).bind('resize', function() {
-            if ($scope.selectedInstance) {
-                $scope.resize($scope.selectedInstance.term.proposeGeometry());
-            }
-        });
-
 
         $scope.showAlert = function(title, content, parent) {
             $mdDialog.show(
@@ -43,11 +37,6 @@
             );
         }
 
-        $scope.resize = function(geometry) {
-            if (geometry.cols && geometry.rows) {
-              $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
-            }
-        }
 
         $scope.closeSession = function() {
             $scope.socket.emit('session close');
@@ -132,14 +121,6 @@
                     $scope.$apply();
                 });
 
-                socket.on('viewport resize', function(cols, rows) {
-                    // viewport has changed, we need to resize all terminals
-                    $scope.instances.forEach(function(instance) {
-                        if (instance.term) {
-                          instance.term.resize(cols, rows);
-                        }
-                    });
-                });
 
                 socket.on('connect_error', function() {
                     $scope.connected = false;
@@ -242,12 +223,6 @@
                     return false;
                 }
             });
-
-
-            // Set geometry during the next tick, to avoid race conditions.
-            $timeout(function() {
-                $scope.resize(instance.term.proposeGeometry());
-            }, 4);
 
 
         }

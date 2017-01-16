@@ -85,6 +85,26 @@
           self.instanceBuffer[name] += data;
         }
       });
+
+      // Resize all terminals
+      this.socket.on('viewport resize', function(cols, rows) {
+        // Resize all terminals
+        for (var name in self.instances) {
+          self.instances[name].terms.forEach(function(term){
+            term.resize(cols,rows);
+          });
+        };
+      });
+
+      // Handle window resizing
+      window.onresize = function() {
+        var name = Object.keys(self.instances)[0]
+        if (name) {
+          var size = self.instances[name].terms[0].proposeGeometry();
+          self.socket.emit('viewport resize', size.cols, size.rows);
+        }
+      };
+
     };
 
     // I know, opts and data can be ommited. I'm not a JS developer =(
@@ -127,10 +147,14 @@
     pwd.prototype.createTerminal = function(selector, name) {
         var self = this;
         var i = this.instances[name];
+        // Create terminal might be called independently
+        // That's why we need to lazy-load the term in memory if it doesn't exist
         if (!i) {
           i = {name: name, terms: []};
           this.instances[name] = i;
         }
+
+
         var elements = document.querySelectorAll(selector);
         elements.forEach(function(el) {
           var term = new Terminal({cursorBlink: false});
@@ -138,9 +162,14 @@
           term.on('data', function(d) {
             self.socket.emit('terminal in', i.name, d);
           });
+          var size = term.proposeGeometry();
+          self.socket.emit('viewport resize', size.cols, size.rows);
           i.terms.push(term);
         });
 
+
+
+        // Attach block actions
         var actions = document.querySelectorAll('[for="'+selector+'"]');
         actions.forEach(function(actionEl) {
           actionEl.onclick = function() {
