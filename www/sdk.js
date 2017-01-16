@@ -174,7 +174,7 @@
 
 
         // Attach block actions
-        var actions = document.querySelectorAll('[for="'+selector+'"]');
+        var actions = document.querySelectorAll('code[class*="'+selector+'"]');
         actions.forEach(function(actionEl) {
           actionEl.onclick = function() {
             self.socket.emit('terminal in', i.name, this.innerText);
