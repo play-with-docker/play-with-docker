@@ -98,13 +98,17 @@
 
       // Handle window resizing
       window.onresize = function() {
-        var name = Object.keys(self.instances)[0]
-        if (name) {
-          var size = self.instances[name].terms[0].proposeGeometry();
-          self.socket.emit('viewport resize', size.cols, size.rows);
-        }
+        self.resize();
       };
+    };
 
+
+    pwd.prototype.resize = function() {
+      var name = Object.keys(this.instances)[0]
+      if (name) {
+        var size = this.instances[name].terms[0].proposeGeometry();
+        this.socket.emit('viewport resize', size.cols, size.rows);
+      }
     };
 
     // I know, opts and data can be ommited. I'm not a JS developer =(
