@@ -143,15 +143,6 @@ func init() {
 	sessions = make(map[string]*Session)
 }
 
-func CreateWSServer() *socketio.Server {
-	server, err := socketio.NewServer(nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	wsServer = server
-	return server
-}
-
 func CloseSessionAfter(s *Session, d time.Duration) {
 	time.AfterFunc(d, func() {
 		CloseSession(s)

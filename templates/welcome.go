@@ -2,13 +2,14 @@ package templates
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 
 	"github.com/franela/play-with-docker/services"
 )
 
-func GetWelcomeTemplate() ([]byte, error) {
-	welcomeTemplate, tplErr := template.New("welcome").ParseFiles("www/welcome.html")
+func GetWelcomeTemplate(rootPath string) ([]byte, error) {
+	welcomeTemplate, tplErr := template.New("welcome").ParseFiles(fmt.Sprintf("%s/www/welcome.html", rootPath))
 	if tplErr != nil {
 		return nil, tplErr
 	}
