@@ -6,11 +6,24 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 )
 
 func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
+	var transport http.RoundTripper = &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 0,
+		}).DialContext,
+		DisableKeepAlives:     true,
+		MaxIdleConns:          1,
+		IdleConnTimeout:       100 * time.Millisecond,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 	director := func(req *http.Request) {
 		v := mux.Vars(req)
 		node := v["node"]
@@ -35,7 +48,7 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 		req.URL.Host = fmt.Sprintf("%s:%s", node, port)
 	}
 
-	return &httputil.ReverseProxy{Director: director}
+	return &httputil.ReverseProxy{Director: director, Transport: transport}
 }
 
 func NewSSLDaemonHandler() *httputil.ReverseProxy {
