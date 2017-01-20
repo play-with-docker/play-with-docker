@@ -25,12 +25,6 @@
         $scope.deleteInstanceBtnText = 'Delete';
         $scope.isInstanceBeingDeleted = false;
 
-        angular.element($window).bind('resize', function() {
-            if ($scope.selectedInstance) {
-                $scope.resize($scope.selectedInstance.term.proposeGeometry());
-            }
-        });
-
 
         $scope.showAlert = function(title, content, parent) {
             $mdDialog.show(
@@ -43,9 +37,6 @@
             );
         }
 
-        $scope.resize = function(geometry) {
-            $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
-        }
 
         $scope.closeSession = function() {
             $scope.socket.emit('session close');
@@ -54,12 +45,9 @@
         $scope.upsertInstance = function(info) {
             var i = info;
             if (!$scope.idx[i.name]) {
-                $scope.instances.push(i);
-                i.buffer = '';
                 $scope.idx[i.name] = i;
             } else {
-                $scope.idx[i.name].ip = i.ip;
-                $scope.idx[i.name].hostname = i.hostname;
+                Object.assign($scope.idx[i.name], i);
             }
 
             return $scope.idx[i.name];
@@ -67,18 +55,18 @@
 
         $scope.newInstance = function() {
             updateNewInstanceBtnState(true);
-            $http({
-                method: 'POST',
-                url: '/sessions/' + $scope.sessionId + '/instances',
-            }).then(function(response) {
-                var i = $scope.upsertInstance(response.data);
-                $scope.showInstance(i);
-            }, function(response) {
-                if (response.status == 409) {
-                    $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
-                }
-            }).finally(function() {
-                updateNewInstanceBtnState(false);
+
+            //Push the instance before the request so DOM renders terminal target
+            var inst = {};
+            $scope.instances.push(inst);
+            pwd.createInstance(function(err, instance) {
+              if (err && err.max) {
+                $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
+              } else {
+                Object.assign(inst, instance);
+                $scope.upsertInstance(inst);
+              }
+              updateNewInstanceBtnState(false);
             });
         }
 
@@ -94,20 +82,17 @@
                         $scope.$apply();
                     }, 1000);
                 }
-                var socket = io({ path: '/sessions/' + sessionId + '/ws' });
+
+                pwd.init(sessionId, {baseUrl: window.location.origin});
+                var socket = pwd.socket;
 
                 socket.on('terminal out', function(name, data) {
                     var instance = $scope.idx[name];
 
-                    if (!instance) {
-                        // instance is new and was created from another client, we should add it
+                    if (!instance && !$scope.isInstanceBeingCreated) {
+                         //instance is new and was created from another client, we should add it
                         $scope.upsertInstance({ name: name });
                         instance = $scope.idx[name];
-                    }
-                    if (!instance.term) {
-                        instance.buffer += data;
-                    } else {
-                        instance.term.write(data);
                     }
                 });
 
@@ -116,11 +101,12 @@
                     $scope.isAlive = false;
                 });
 
-                socket.on('viewport', function(rows, cols) {
-                });
-
                 socket.on('new instance', function(name, ip, hostname) {
-                    $scope.upsertInstance({ name: name, ip: ip, hostname: hostname });
+                    if (!$scope.isInstanceBeingCreated && !$scope.idx[name]) {
+                      var i = { name: name, ip: ip, hostname: hostname };
+                      $scope.instances.push(i);
+                      $scope.upsertInstance(i);
+                    }
                     $scope.$apply(function() {
                         if ($scope.instances.length == 1) {
                             $scope.showInstance($scope.instances[0]);
@@ -130,16 +116,11 @@
 
                 socket.on('delete instance', function(name) {
                     $scope.removeInstance(name);
+                    // We have to do this manually bc PWD SDK shouldn't support it
+                    delete pwd.instances[name]
                     $scope.$apply();
                 });
 
-                socket.on('viewport resize', function(cols, rows) {
-                    // viewport has changed, we need to resize all terminals
-
-                    $scope.instances.forEach(function(instance) {
-                        instance.term.resize(cols, rows);
-                    });
-                });
 
                 socket.on('connect_error', function() {
                     $scope.connected = false;
@@ -181,22 +162,20 @@
 
             return url;
         }
-
         $scope.showInstance = function(instance) {
-            $scope.selectedInstance = instance;
-            $location.hash(instance.name);
-            if (!instance.creatingTerminal) {
-                if (!instance.term) {
-                    $timeout(function() {
-                        createTerminal(instance);
-                        instance.term.focus();
-                    }, 0, false);
-                    return
-                }
+          $scope.selectedInstance = instance;
+          $location.hash(instance.name);
+            if (!instance.term) {
+                $timeout(function() {
+                    createTerminal(instance);
+                    instance.term.focus();
+                }, 0, false);
+                return
+            } else {
+              $timeout(function() {
+                  instance.term.focus();
+              }, 0, false);
             }
-            $timeout(function() {
-                instance.term.focus();
-            }, 0, false);
         }
 
         $scope.removeInstance = function(name) {
@@ -232,13 +211,12 @@
                 return instance.term;
             }
 
-            var terminalContainer = document.getElementById('terminal-' + instance.name);
+            var terms = pwd.createTerminal('#terminal-' + ($scope.instances.indexOf(instance)), instance.name);
 
-            var term = new Terminal({
-                cursorBlink: false
-            });
+            //PWD displays one term per instance;
+            instance.term = terms[0];
 
-            term.attachCustomKeydownHandler(function(e) {
+            instance.term.attachCustomKeydownHandler(function(e) {
                 // Ctrl + Alt + C
                 if (e.ctrlKey && e.altKey && (e.keyCode == 67)) {
                     document.execCommand('copy');
@@ -246,27 +224,7 @@
                 }
             });
 
-            term.open(terminalContainer);
 
-            // Set geometry during the next tick, to avoid race conditions.
-            setTimeout(function() {
-                $scope.resize(term.proposeGeometry());
-            }, 4);
-
-            term.on('data', function(d) {
-                $scope.socket.emit('terminal in', instance.name, d);
-            });
-
-            instance.term = term;
-
-            if (instance.buffer) {
-                term.write(instance.buffer);
-                instance.buffer = '';
-            }
-
-            if (cb) {
-                cb();
-            }
         }
 
         function updateNewInstanceBtnState(isInstanceBeingCreated) {
