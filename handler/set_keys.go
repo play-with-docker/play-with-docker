@@ -12,7 +12,7 @@ import (
 func (h *handlers) setKeys(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
-	//instanceName := vars["instanceName"]
+	instanceName := vars["instanceName"]
 
 	type certs struct {
 		ServerCert []byte `json:"server_cert"`
@@ -27,15 +27,17 @@ func (h *handlers) setKeys(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Printf("%#v", c)
 	if len(c.ServerCert) == 0 || len(c.ServerKey) == 0 {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	_, err := h.core.GetSession(sessionId)
+	err := h.core.SetInstanceCertificate(sessionId, instanceName, c.ServerCert, c.ServerKey)
 	if err != nil {
 		if core.SessionNotFound(err) {
+			rw.WriteHeader(http.StatusNotFound)
+			return
+		} else if core.InstanceNotFound(err) {
 			rw.WriteHeader(http.StatusNotFound)
 			return
 		} else {
@@ -44,18 +46,4 @@ func (h *handlers) setKeys(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	/*
-		s.Lock()
-		defer s.Unlock()
-		i := services.GetInstance(s, instanceName)
-
-		_, err := i.SetCertificate(c.ServerCert, c.ServerKey)
-
-		if err != nil {
-			log.Println(err)
-			rw.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		log.Printf("Set keys for instance %s\n", instanceName)
-	*/
 }
