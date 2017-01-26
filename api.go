@@ -90,7 +90,7 @@ func main() {
 
 	go func() {
 		log.Println("Listening on port " + strconv.Itoa(portNumber))
-		log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(portNumber), gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with"}), gh.AllowedOrigins([]string{"*"}))(n)))
+		log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(portNumber), gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))(n)))
 	}()
 
 	ssl := mux.NewRouter()
