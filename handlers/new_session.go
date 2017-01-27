@@ -9,14 +9,19 @@ import (
 )
 
 func NewSession(rw http.ResponseWriter, req *http.Request) {
-	if !services.IsHuman(req) {
+	req.ParseForm()
+	challenge := req.Form.Get("g-recaptcha-response")
+	if !services.IsHuman(challenge) {
 		// User it not a human
 		rw.WriteHeader(http.StatusConflict)
 		rw.Write([]byte("Only humans are allowed!"))
 		return
 	}
 
-	s, err := services.NewSession()
+	reqDur := req.Form.Get("session-duration")
+
+	duration := services.GetDuration(reqDur)
+	s, err := services.NewSession(duration)
 	if err != nil {
 		log.Println(err)
 		//TODO: Return some error code
