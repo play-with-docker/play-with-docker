@@ -27,9 +27,10 @@ func NewConfig() config {
 	return config{RootPath: ".", BypassCaptcha: false}
 }
 
-func NewSSL() (http.Handler, error) {
+func NewSSL(c core.Core) (http.Handler, error) {
+	h := &handlers{core: c, recaptcha: nil}
 	ssl := mux.NewRouter()
-	sslProxyHandler := NewSSLDaemonHandler()
+	sslProxyHandler := h.newSSLDaemonHandler()
 	ssl.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
 
 	return ssl, nil
@@ -48,7 +49,7 @@ func New(conf config, c core.Core, recap recaptcha.Recaptcha) (http.Handler, err
 	wsServer.On("error", h.wsError)
 
 	// Reverse proxy (needs to be the first route, to make sure it is the first thing we check)
-	proxyHandler := NewMultipleHostReverseProxy()
+	proxyHandler := h.newMultipleHostReverseProxy()
 
 	// Specific routes
 	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).Handler(proxyHandler)

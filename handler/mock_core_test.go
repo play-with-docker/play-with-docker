@@ -1,6 +1,10 @@
 package handler
 
-import "github.com/franela/play-with-docker/core"
+import (
+	"net/http"
+
+	"github.com/franela/play-with-docker/core"
+)
 
 type mockCore struct {
 	deleteInstance         func(sessionId, instanceName string) error
@@ -9,6 +13,7 @@ type mockCore struct {
 	newInstance            func(session *core.Session) (*core.Instance, error)
 	newSession             func() (*core.Session, error)
 	setInstanceCertificate func(sessionId, instanceName string, cert, key []byte) error
+	proxiedRequest         *http.Request
 }
 
 func (m *mockCore) DeleteInstance(sessionId, instanceName string) error {
@@ -33,4 +38,16 @@ func (m *mockCore) NewSession() (*core.Session, error) {
 
 func (m *mockCore) SetInstanceCertificate(sessionId, instanceName string, cert, key []byte) error {
 	return m.setInstanceCertificate(sessionId, instanceName, cert, key)
+}
+
+func (m *mockCore) NewHTTPDirector() func(*http.Request) {
+	return func(r *http.Request) {
+		m.proxiedRequest = r
+	}
+}
+
+func (m *mockCore) NewDockerDaemonDirector() func(*http.Request) {
+	return func(r *http.Request) {
+		m.proxiedRequest = r
+	}
 }

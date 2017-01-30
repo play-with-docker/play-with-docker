@@ -1,5 +1,7 @@
 package core
 
+import "net/http"
+
 type Core interface {
 	DeleteInstance(sessionId, instanceName string) error
 	GetSession(sessionId string) (*Session, error)
@@ -7,6 +9,8 @@ type Core interface {
 	NewInstance(session *Session) (*Instance, error)
 	NewSession() (*Session, error)
 	SetInstanceCertificate(sessionId, instanceName string, cert, key []byte) error
+	NewHTTPDirector() func(*http.Request)
+	NewDockerDaemonDirector() func(*http.Request)
 }
 
 func New() Core {
