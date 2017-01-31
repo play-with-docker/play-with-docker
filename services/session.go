@@ -211,6 +211,12 @@ func GetDuration(reqDur string) time.Duration {
 		return defaultDuration
 
 	}
+
+	envDur := os.Getenv("EXPIRY")
+	if dur, err := time.ParseDuration(envDur); err == nil {
+		return dur
+	}
+
 	return defaultDuration
 }
 

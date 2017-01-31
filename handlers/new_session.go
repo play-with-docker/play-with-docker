@@ -10,8 +10,7 @@ import (
 
 func NewSession(rw http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
-	challenge := req.Form.Get("g-recaptcha-response")
-	if !services.IsHuman(challenge) {
+	if !services.IsHuman(req) {
 		// User it not a human
 		rw.WriteHeader(http.StatusConflict)
 		rw.Write([]byte("Only humans are allowed!"))
