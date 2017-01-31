@@ -35,7 +35,6 @@ func IsHuman(req *http.Request) bool {
 	if os.Getenv("GOOGLE_RECAPTCHA_DISABLED") != "" {
 		return true
 	}
-	req.ParseForm()
 	challenge := req.Form.Get("g-recaptcha-response")
 
 	// Of X-Forwarded-For exists, it means we are behind a loadbalancer and we should use the real IP address of the user

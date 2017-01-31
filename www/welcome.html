@@ -13,6 +13,7 @@
             <h2>Before starting we need to verify you are a human</h2>
             <form id="welcomeForm" method="POST" action="/">
                 <div class="g-recaptcha" data-callback="iAmHuman" data-sitekey="{{.}}"></div>
+                <input type="hidden" name="session-duration" value="1h"/>
             </form>
             <img src="/assets/large_h.png" />
         </div>

@@ -7,8 +7,7 @@
     // Controller keeps code/logic separate from the HTML
     app.controller("BypassController", ['$scope', '$log', '$http', '$location', '$timeout', function($scope, $log, $http, $location, $timeout) {
         setTimeout(function() {
-            var el = document.querySelector("#submit");
-            el.click();
+            document.getElementById("welcomeFormBypass").submit();
         }, 500);
     }]);
 

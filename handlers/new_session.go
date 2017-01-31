@@ -9,6 +9,7 @@ import (
 )
 
 func NewSession(rw http.ResponseWriter, req *http.Request) {
+	req.ParseForm()
 	if !services.IsHuman(req) {
 		// User it not a human
 		rw.WriteHeader(http.StatusConflict)
@@ -16,7 +17,10 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	s, err := services.NewSession()
+	reqDur := req.Form.Get("session-duration")
+
+	duration := services.GetDuration(reqDur)
+	s, err := services.NewSession(duration)
 	if err != nil {
 		log.Println(err)
 		//TODO: Return some error code

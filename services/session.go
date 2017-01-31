@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -202,24 +201,26 @@ func CloseSession(s *Session) error {
 	return nil
 }
 
-// Todo: this handles minimum viable product and removes hard-coding of hours value :)
-// For future enhance to return time.Duration and parse a string / flag.
-func getExpiryHours() int {
-	hours := 4
-	override := os.Getenv("EXPIRY")
-	if len(override) > 0 {
-		value, err := strconv.Atoi(override)
-		if err == nil {
-			hours = value
+var defaultDuration = 4 * time.Hour
+
+func GetDuration(reqDur string) time.Duration {
+	if reqDur != "" {
+		if dur, err := time.ParseDuration(reqDur); err == nil {
+			return dur
 		}
+		return defaultDuration
+
 	}
-	return hours
+
+	envDur := os.Getenv("EXPIRY")
+	if dur, err := time.ParseDuration(envDur); err == nil {
+		return dur
+	}
+
+	return defaultDuration
 }
 
-func NewSession() (*Session, error) {
-	hours := getExpiryHours()
-	duration := time.Duration(hours) * time.Hour
-
+func NewSession(duration time.Duration) (*Session, error) {
 	s := &Session{}
 	s.Id = uuid.NewV4().String()
 	s.Instances = map[string]*Instance{}
