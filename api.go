@@ -50,6 +50,7 @@ func main() {
 	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).Handler(proxyHandler)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	r.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
+	r.HandleFunc("/sessions/{sessionId}", handlers.DeleteSession).Methods("DELETE")
 	r.Handle("/sessions/{sessionId}/instances", http.HandlerFunc(handlers.NewInstance)).Methods("POST")
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", handlers.DeleteInstance).Methods("DELETE")
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/keys", handlers.SetKeys).Methods("POST")
