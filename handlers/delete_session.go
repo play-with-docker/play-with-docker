@@ -27,5 +27,5 @@ func DeleteSession(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	
-	json.NewEncoder(rw).Encode(session)
+	rw.WriteHeader(http.StatusNoContent)
 }
