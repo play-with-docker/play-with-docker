@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -188,7 +189,14 @@ func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 	if os.Getenv("APPARMOR_PROFILE") != "" {
 		h.SecurityOpt = []string{fmt.Sprintf("apparmor=%s", os.Getenv("APPARMOR_PROFILE"))}
 	}
-	h.Resources.PidsLimit = int64(500)
+
+	var pidsLimit = int64(1000)
+	if envLimit := os.Getenv("MAX_PROCESSES"); envLimit != "" {
+		if i, err := strconv.Atoi(envLimit); err != nil {
+			pidsLimit = int64(i)
+		}
+	}
+	h.Resources.PidsLimit = pidsLimit
 	h.Resources.Memory = 4092 * Megabyte
 	t := true
 	h.Resources.OomKillDisable = &t
