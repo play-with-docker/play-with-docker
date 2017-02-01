@@ -192,7 +192,7 @@ func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 
 	var pidsLimit = int64(1000)
 	if envLimit := os.Getenv("MAX_PROCESSES"); envLimit != "" {
-		if i, err := strconv.Atoi(envLimit); err != nil {
+		if i, err := strconv.Atoi(envLimit); err == nil {
 			pidsLimit = int64(i)
 		}
 	}
