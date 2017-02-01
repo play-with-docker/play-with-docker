@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -23,6 +24,7 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 		IdleConnTimeout:       100 * time.Millisecond,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 	}
 	director := func(req *http.Request) {
 		v := mux.Vars(req)
@@ -42,8 +44,13 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 			}
 		}
 
-		// Only proxy http for now
-		req.URL.Scheme = "http"
+		if port == "443" {
+			// Only proxy http for now
+			req.URL.Scheme = "https"
+		} else {
+			// Only proxy http for now
+			req.URL.Scheme = "http"
+		}
 
 		req.URL.Host = fmt.Sprintf("%s:%s", node, port)
 	}
