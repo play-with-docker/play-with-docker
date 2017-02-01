@@ -12,7 +12,6 @@ import (
 func DeleteSession(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
-	log.Println(sessionId)
 
 	session := services.GetSession(sessionId)
 
@@ -23,6 +22,7 @@ func DeleteSession(rw http.ResponseWriter, req *http.Request) {
 
 	err := services.CloseSession(session)
 	if err != nil {
+		log.Println(err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
