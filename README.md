@@ -9,14 +9,14 @@ A live version is available at: http://play-with-docker.com/
 
 ## Requirements
 
-Docker 1.13+ is required. You can use docker-machine with the following command:
+Docker 1.13+ is required. If you're running an older version or you just want to run PWD in a VM you can use docker-machine with the following command:
 
 ```
-docker-machine create -d virtualbox --virtualbox-boot2docker-url https://github.com/boot2docker/boot2docker/releases/download/v1.13.0-rc1/boot2docker.iso <name>
+docker-machine create -d virtualbox <name>
 ```
 
 The docker daemon needs to run in swarm mode because PWD uses overlay attachable networks. For that
-just run `docker swarm init`.
+just run  `docker swarm init` in the destination daemon.
 
 It's also necessary to manually load the IPVS kernel module because as swarms are created in `dind`, 
 the daemon won't load it automatically. Run the following command for that purpose: `sudo modprobe xt_ipvs`
@@ -27,7 +27,7 @@ Additionally, every time you want to start you environment run `make start`.
 And to start the application on a container on the docker machine host, run: `eval $(docker-machine env pwd) && docker-compose up`
 
 
-## Installation
+## Development
 
 Start the Docker daemon on your machine and run `docker pull franela/dind`. 
 
