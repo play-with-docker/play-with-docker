@@ -45,3 +45,7 @@ md-input-container .md-errors-spacer {
     height: 0;
     min-height: 0;
 }
+
+.stats {
+    min-height: 230px;
+}
