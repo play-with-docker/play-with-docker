@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/franela/play-with-docker/config"
 	"github.com/gorilla/mux"
 )
 
@@ -30,9 +31,15 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 		v := mux.Vars(req)
 		node := v["node"]
 		port := v["port"]
-		if port == "" {
+		hostPort := strings.Split(req.Host, ":")
+
+		// give priority to the URL host port
+		if len(hostPort) > 1 && hostPort[1] != config.PortNumber {
+			port = hostPort[1]
+		} else if port == "" {
 			port = "80"
 		}
+
 		if strings.HasPrefix(node, "ip") {
 			// Node is actually an ip, need to convert underscores by dots.
 			ip := strings.Replace(strings.TrimPrefix(node, "ip"), "_", ".", -1)

@@ -205,11 +205,10 @@ var defaultDuration = 4 * time.Hour
 
 func GetDuration(reqDur string) time.Duration {
 	if reqDur != "" {
-		if dur, err := time.ParseDuration(reqDur); err == nil {
+		if dur, err := time.ParseDuration(reqDur); err == nil && dur <= defaultDuration {
 			return dur
 		}
 		return defaultDuration
-
 	}
 
 	envDur := os.Getenv("EXPIRY")

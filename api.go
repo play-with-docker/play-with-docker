@@ -8,9 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"flag"
-	"strconv"
-
+	"github.com/franela/play-with-docker/config"
 	"github.com/franela/play-with-docker/handlers"
 	"github.com/franela/play-with-docker/services"
 	"github.com/franela/play-with-docker/templates"
@@ -21,13 +19,8 @@ import (
 )
 
 func main() {
-	var sslPortNumber, portNumber int
-	var key, cert string
-	flag.IntVar(&portNumber, "port", 3000, "Give a TCP port to run the application")
-	flag.IntVar(&sslPortNumber, "sslPort", 3001, "Give a SSL TCP port")
-	flag.StringVar(&key, "key", "./pwd/server-key.pem", "Server key for SSL")
-	flag.StringVar(&cert, "cert", "./pwd/server.pem", "Give a SSL cert")
-	flag.Parse()
+
+	config.ParseFlags()
 
 	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
 
@@ -89,16 +82,16 @@ func main() {
 	n.UseHandler(r)
 
 	go func() {
-		log.Println("Listening on port " + strconv.Itoa(portNumber))
-		log.Fatal(http.ListenAndServe("0.0.0.0:"+strconv.Itoa(portNumber), gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))(n)))
+		log.Println("Listening on port " + config.PortNumber)
+		log.Fatal(http.ListenAndServe("0.0.0.0:"+config.PortNumber, gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))(n)))
 	}()
 
 	ssl := mux.NewRouter()
 	sslProxyHandler := handlers.NewSSLDaemonHandler()
 	ssl.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
-	log.Println("Listening TLS on port " + strconv.Itoa(sslPortNumber))
+	log.Println("Listening TLS on port " + config.SSLPortNumber)
 
-	s := &http.Server{Addr: "0.0.0.0:" + strconv.Itoa(sslPortNumber), Handler: ssl}
+	s := &http.Server{Addr: "0.0.0.0:" + config.SSLPortNumber, Handler: ssl}
 	s.TLSConfig = &tls.Config{}
 	s.TLSConfig.GetCertificate = func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 
