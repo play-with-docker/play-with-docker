@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
+	"github.com/yhat/wsutil"
 )
 
 func main() {
@@ -37,10 +38,19 @@ func main() {
 
 	// Reverse proxy (needs to be the first route, to make sure it is the first thing we check)
 	proxyHandler := handlers.NewMultipleHostReverseProxy()
+	websocketProxyHandler := handlers.NewMultipleHostWebsocketReverseProxy()
+
+	proxyMultiplexer := func(rw http.ResponseWriter, r *http.Request) {
+		if wsutil.IsWebSocketRequest(r) {
+			websocketProxyHandler.ServeHTTP(rw, r)
+		} else {
+			proxyHandler.ServeHTTP(rw, r)
+		}
+	}
 
 	// Specific routes
-	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).Handler(proxyHandler)
-	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).Handler(proxyHandler)
+	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
+	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	r.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
 	r.Handle("/sessions/{sessionId}/instances", http.HandlerFunc(handlers.NewInstance)).Methods("POST")
