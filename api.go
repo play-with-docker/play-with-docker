@@ -149,7 +149,6 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		m.Answer = append(m.Answer, a)
 		w.WriteMsg(m)
-		log.Println(m)
 		return
 	} else {
 		// we have no information about this and we are not a recursive dns server, so we just fail so the client can fallback to the next dns server it has configured
