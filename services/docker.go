@@ -135,17 +135,33 @@ func CreateNetwork(name string) error {
 
 	return nil
 }
-func ConnectNetwork(containerId, networkId string) error {
-	err := c.NetworkConnect(context.Background(), networkId, containerId, &network.EndpointSettings{})
+func ConnectNetwork(containerId, networkId, ip string) (string, error) {
+	settings := &network.EndpointSettings{}
+	if ip != "" {
+		settings.IPAddress = ip
+	}
+	err := c.NetworkConnect(context.Background(), networkId, containerId, settings)
 
 	if err != nil && !strings.Contains(err.Error(), "already exists") {
 		log.Printf("Connection container to network err [%s]\n", err)
 
-		return err
+		return "", err
 	}
 
-	return nil
+	// Obtain the IP of the PWD container in this network
+	container, err := c.ContainerInspect(context.Background(), containerId)
+	if err != nil {
+		return "", err
+	}
+
+	n, found := container.NetworkSettings.Networks[networkId]
+	if !found {
+		return "", fmt.Errorf("Container [%s] connected to the network [%s] but couldn't obtain it's IP address", containerId, networkId)
+	}
+
+	return n.IPAddress, nil
 }
+
 func DisconnectNetwork(containerId, networkId string) error {
 	err := c.NetworkDisconnect(context.Background(), networkId, containerId, true)
 
