@@ -14,6 +14,7 @@ import (
 	"github.com/franela/play-with-docker/templates"
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/miekg/dns"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
 	"github.com/yhat/wsutil"
@@ -24,6 +25,16 @@ func main() {
 	config.ParseFlags()
 
 	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
+
+	// Start the DNS server
+	dnsServer := &dns.Server{Addr: ":53", Net: "udp"}
+	dns.HandleFunc(".", handleDnsRequest)
+	go func() {
+		err := dnsServer.ListenAndServe()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	server := services.CreateWSServer()
 	server.On("connection", handlers.WS)
@@ -118,4 +129,31 @@ func main() {
 		return i.GetCertificate(), nil
 	}
 	log.Fatal(s.ListenAndServeTLS("", ""))
+}
+
+func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
+	if len(r.Question) > 0 && strings.HasSuffix(r.Question[0].Name, ".play-with-docker.com.") && strings.HasPrefix(r.Question[0].Name, "ip") {
+		// this is something we know about and we should try to handle
+		question := r.Question[0].Name
+		domainChunks := strings.Split(question, ".")
+		tldChunks := strings.Split(strings.TrimPrefix(domainChunks[0], "ip"), "-")
+		ip := strings.Replace(tldChunks[0], "_", ".", -1)
+
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Authoritative = true
+		m.RecursionAvailable = true
+		a, err := dns.NewRR(fmt.Sprintf("%s 60 IN A %s", question, ip))
+		if err != nil {
+			log.Fatal(err)
+		}
+		m.Answer = append(m.Answer, a)
+		w.WriteMsg(m)
+		log.Println(m)
+		return
+	} else {
+		// we have no information about this and we are not a recursive dns server, so we just fail so the client can fallback to the next dns server it has configured
+		dns.HandleFailed(w, r)
+		return
+	}
 }
