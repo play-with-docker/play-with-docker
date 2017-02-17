@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/franela/play-with-docker/config"
@@ -14,6 +15,7 @@ import (
 	"github.com/franela/play-with-docker/templates"
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/miekg/dns"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
 	"github.com/yhat/wsutil"
@@ -24,6 +26,16 @@ func main() {
 	config.ParseFlags()
 
 	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
+
+	// Start the DNS server
+	dnsServer := &dns.Server{Addr: ":53", Net: "udp"}
+	dns.HandleFunc(".", handleDnsRequest)
+	go func() {
+		err := dnsServer.ListenAndServe()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	server := services.CreateWSServer()
 	server.On("connection", handlers.WS)
@@ -49,8 +61,8 @@ func main() {
 	}
 
 	// Specific routes
-	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
-	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
+	r.Host(`{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
+	r.Host(`{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	r.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
 	r.Handle("/sessions/{sessionId}/instances", http.HandlerFunc(handlers.NewInstance)).Methods("POST")
@@ -98,7 +110,7 @@ func main() {
 
 	ssl := mux.NewRouter()
 	sslProxyHandler := handlers.NewSSLDaemonHandler()
-	ssl.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
+	ssl.Host(`{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
 	log.Println("Listening TLS on port " + config.SSLPortNumber)
 
 	s := &http.Server{Addr: "0.0.0.0:" + config.SSLPortNumber, Handler: ssl}
@@ -107,7 +119,7 @@ func main() {
 
 		chunks := strings.Split(clientHello.ServerName, ".")
 		chunks = strings.Split(chunks[0], "-")
-		ip := strings.Replace(strings.TrimPrefix(chunks[0], "ip"), "_", ".", -1)
+		ip := strings.Replace(strings.TrimPrefix(chunks[0], "pwd"), "_", ".", -1)
 		i := services.FindInstanceByIP(ip)
 		if i == nil {
 			return nil, fmt.Errorf("Instance %s doesn't exist", clientHello.ServerName)
@@ -118,4 +130,32 @@ func main() {
 		return i.GetCertificate(), nil
 	}
 	log.Fatal(s.ListenAndServeTLS("", ""))
+}
+
+var dnsFilter = regexp.MustCompile(`pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}`)
+
+func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
+	if len(r.Question) > 0 && dnsFilter.MatchString(r.Question[0].Name) {
+		// this is something we know about and we should try to handle
+		question := r.Question[0].Name
+		domainChunks := strings.Split(question, ".")
+		tldChunks := strings.Split(strings.TrimPrefix(domainChunks[0], "pwd"), "-")
+		ip := strings.Replace(tldChunks[0], "_", ".", -1)
+
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Authoritative = true
+		m.RecursionAvailable = true
+		a, err := dns.NewRR(fmt.Sprintf("%s 60 IN A %s", question, ip))
+		if err != nil {
+			log.Fatal(err)
+		}
+		m.Answer = append(m.Answer, a)
+		w.WriteMsg(m)
+		return
+	} else {
+		// we have no information about this and we are not a recursive dns server, so we just fail so the client can fallback to the next dns server it has configured
+		dns.HandleFailed(w, r)
+		return
+	}
 }

@@ -40,9 +40,9 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 			port = "80"
 		}
 
-		if strings.HasPrefix(node, "ip") {
+		if strings.HasPrefix(node, "pwd") {
 			// Node is actually an ip, need to convert underscores by dots.
-			ip := strings.Replace(strings.TrimPrefix(node, "ip"), "_", ".", -1)
+			ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "_", ".", -1)
 
 			if net.ParseIP(ip) == nil {
 				// Not a valid IP, so treat this is a hostname.
@@ -69,9 +69,9 @@ func NewSSLDaemonHandler() *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		v := mux.Vars(req)
 		node := v["node"]
-		if strings.HasPrefix(node, "ip") {
+		if strings.HasPrefix(node, "pwd") {
 			// Node is actually an ip, need to convert underscores by dots.
-			ip := strings.Replace(strings.TrimPrefix(node, "ip"), "_", ".", -1)
+			ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "_", ".", -1)
 
 			if net.ParseIP(ip) == nil {
 				// Not a valid IP, so treat this is a hostname.

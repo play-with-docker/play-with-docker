@@ -42,14 +42,15 @@ func init() {
 var wsServer *socketio.Server
 
 type Session struct {
-	rw        sync.Mutex
-	Id        string               `json:"id"`
-	Instances map[string]*Instance `json:"instances"`
-	clients   []*Client            `json:"-"`
-	CreatedAt time.Time            `json:"created_at"`
-	ExpiresAt time.Time            `json:"expires_at"`
-	scheduled bool                 `json:"-"`
-	ticker    *time.Ticker         `json:"-"`
+	rw           sync.Mutex
+	Id           string               `json:"id"`
+	Instances    map[string]*Instance `json:"instances"`
+	clients      []*Client            `json:"-"`
+	CreatedAt    time.Time            `json:"created_at"`
+	ExpiresAt    time.Time            `json:"expires_at"`
+	scheduled    bool                 `json:"-"`
+	ticker       *time.Ticker         `json:"-"`
+	PwdIpAddress string               `json:"pwd_ip_address"`
 }
 
 func (s *Session) Lock() {
@@ -239,10 +240,12 @@ func NewSession(duration time.Duration) (*Session, error) {
 	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
 
 	// Connect PWD daemon to the new network
-	if err := ConnectNetwork("pwd", s.Id); err != nil {
+	ip, err := ConnectNetwork("pwd", s.Id, "")
+	if err != nil {
 		log.Println("ERROR NETWORKING")
 		return nil, err
 	}
+	s.PwdIpAddress = ip
 	log.Printf("Connected pwd to network [%s]\n", s.Id)
 
 	// Schedule peridic tasks execution
@@ -315,7 +318,10 @@ func LoadSessionsFromDisk() error {
 			}
 
 			// Connect PWD daemon to the new network
-			if err := ConnectNetwork("pwd", s.Id); err != nil {
+			if s.PwdIpAddress == "" {
+				log.Fatal("Cannot load stored sessions as they don't have the pwd ip address stored with them")
+			}
+			if _, err := ConnectNetwork("pwd", s.Id, s.PwdIpAddress); err != nil {
 				if strings.Contains(err.Error(), "Could not attach to network") {
 					log.Printf("Network for session [%s] doesn't exist. Removing all instances and session.", s.Id)
 					CloseSession(s)
