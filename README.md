@@ -37,7 +37,7 @@ Start the Docker daemon on your machine and run `docker pull franela/dind`.
 
 3) Start PWD as a container with docker-compose up.
 
-5) Point to http://localhost:3000/ and click "New Instance"
+5) Point to http://localhost and click "New Instance"
 
 Notes:
 
@@ -54,3 +54,7 @@ Notes:
 
 If you need to access your services from outside, use the following URL pattern `http://pwd<underscore_ip>-<port>.play-with-docker.com` (i.e: http://pwd10_2_135_3-80.play-with-docker.com/).
 
+### Why is PWD running in ports 80 and 443?, Can I change that?.
+
+No, it needs to run on those ports for DNS resolve to work. Ideas or suggestions about how to improve this
+are welcome

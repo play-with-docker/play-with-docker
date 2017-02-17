@@ -16,7 +16,7 @@ func NewMultipleHostWebsocketReverseProxy() *wsutil.ReverseProxy {
 	director := func(req *http.Request) {
 		v := mux.Vars(req)
 
-		node, port, host := getTargetInfo(v, req)
+		node, port := getTargetInfo(v, req)
 
 		if port == "443" {
 			// Only proxy http for now
@@ -25,7 +25,6 @@ func NewMultipleHostWebsocketReverseProxy() *wsutil.ReverseProxy {
 			// Only proxy http for now
 			req.URL.Scheme = "ws"
 		}
-		req.Host = host
 		req.URL.Host = fmt.Sprintf("%s:%s", node, port)
 	}
 
