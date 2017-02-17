@@ -13,6 +13,41 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func getTargetInfo(vars map[string]string, req *http.Request) (string, string, string) {
+	node := vars["node"]
+	port := vars["port"]
+	host := vars["host"]
+	hostPort := strings.Split(req.Host, ":")
+
+	// give priority to the URL host port
+	if len(hostPort) > 1 && hostPort[1] != config.PortNumber {
+		port = hostPort[1]
+	} else if port == "" {
+		port = "80"
+	}
+
+	if strings.HasPrefix(node, "pwd") {
+		// Node is actually an ip, need to convert underscores by dots.
+		ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "_", ".", -1)
+
+		if net.ParseIP(ip) == nil {
+			// Not a valid IP, so treat this is a hostname.
+		} else {
+			node = ip
+		}
+	}
+
+	if len(host) > 0 {
+		// Remove last "." from host
+		host = strings.TrimSuffix(host, ".")
+	} else {
+		host = req.Host
+	}
+
+	return node, port, host
+
+}
+
 func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 	var transport http.RoundTripper = &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -29,27 +64,7 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 	}
 	director := func(req *http.Request) {
 		v := mux.Vars(req)
-		node := v["node"]
-		port := v["port"]
-		hostPort := strings.Split(req.Host, ":")
-
-		// give priority to the URL host port
-		if len(hostPort) > 1 && hostPort[1] != config.PortNumber {
-			port = hostPort[1]
-		} else if port == "" {
-			port = "80"
-		}
-
-		if strings.HasPrefix(node, "pwd") {
-			// Node is actually an ip, need to convert underscores by dots.
-			ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "_", ".", -1)
-
-			if net.ParseIP(ip) == nil {
-				// Not a valid IP, so treat this is a hostname.
-			} else {
-				node = ip
-			}
-		}
+		node, port, host := getTargetInfo(v, req)
 
 		if port == "443" {
 			// Only proxy http for now
@@ -59,6 +74,7 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 			req.URL.Scheme = "http"
 		}
 
+		req.Host = host
 		req.URL.Host = fmt.Sprintf("%s:%s", node, port)
 	}
 
