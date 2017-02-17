@@ -233,7 +233,15 @@ func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 			break
 		}
 	}
-	conf := &container.Config{Hostname: nodeName, Image: dindImage, Tty: true, OpenStdin: true, AttachStdin: true, AttachStdout: true, AttachStderr: true}
+	conf := &container.Config{Hostname: nodeName,
+		Image:        dindImage,
+		Tty:          true,
+		OpenStdin:    true,
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Env:          []string{fmt.Sprintf("PWD_IP_ADDRESS=%s", session.PwdIpAddress)},
+	}
 	networkConf := &network.NetworkingConfig{
 		map[string]*network.EndpointSettings{
 			session.Id: &network.EndpointSettings{Aliases: []string{nodeName}},

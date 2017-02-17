@@ -2,8 +2,9 @@ FROM docker:1.13.1-dind
 
 RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash
 
+ENV COMPOSE_VERSION=1.11.1
 # Install Compose and Machine
-RUN pip install docker-compose==1.10.0-rc1
+RUN pip install docker-compose==${COMPOSE_VERSION}
 RUN curl -L https://github.com/docker/machine/releases/download/v0.9.0-rc1/docker-machine-Linux-x86_64 \
     -o /usr/bin/docker-machine && chmod +x /usr/bin/docker-machine
 
@@ -34,6 +35,6 @@ WORKDIR /root
 CMD cat /etc/hosts >/etc/hosts.bak && \
     sed 's/^::1.*//' /etc/hosts.bak > /etc/hosts && \
     dockerd --experimental -g /graph --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 \
-            --storage-driver=$DOCKER_STORAGE_DRIVER &>/docker.log & \
+            --storage-driver=$DOCKER_STORAGE_DRIVER --dns $PWD_IP_ADDRESS --dns 8.8.8.8 &>/docker.log & \
     while true ; do /bin/bash ; done
 # ... and then put a shell in the foreground, restarting it if it exits

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/franela/play-with-docker/config"
@@ -60,8 +61,8 @@ func main() {
 	}
 
 	// Specific routes
-	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
-	r.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
+	r.Host(`{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
+	r.Host(`{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	r.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
 	r.Handle("/sessions/{sessionId}/instances", http.HandlerFunc(handlers.NewInstance)).Methods("POST")
@@ -109,7 +110,7 @@ func main() {
 
 	ssl := mux.NewRouter()
 	sslProxyHandler := handlers.NewSSLDaemonHandler()
-	ssl.Host(`{node:ip[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
+	ssl.Host(`{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
 	log.Println("Listening TLS on port " + config.SSLPortNumber)
 
 	s := &http.Server{Addr: "0.0.0.0:" + config.SSLPortNumber, Handler: ssl}
@@ -118,7 +119,7 @@ func main() {
 
 		chunks := strings.Split(clientHello.ServerName, ".")
 		chunks = strings.Split(chunks[0], "-")
-		ip := strings.Replace(strings.TrimPrefix(chunks[0], "ip"), "_", ".", -1)
+		ip := strings.Replace(strings.TrimPrefix(chunks[0], "pwd"), "_", ".", -1)
 		i := services.FindInstanceByIP(ip)
 		if i == nil {
 			return nil, fmt.Errorf("Instance %s doesn't exist", clientHello.ServerName)
@@ -131,12 +132,14 @@ func main() {
 	log.Fatal(s.ListenAndServeTLS("", ""))
 }
 
+var dnsFilter = regexp.MustCompile(`pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}`)
+
 func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
-	if len(r.Question) > 0 && strings.HasSuffix(r.Question[0].Name, ".play-with-docker.com.") && strings.HasPrefix(r.Question[0].Name, "ip") {
+	if len(r.Question) > 0 && dnsFilter.MatchString(r.Question[0].Name) {
 		// this is something we know about and we should try to handle
 		question := r.Question[0].Name
 		domainChunks := strings.Split(question, ".")
-		tldChunks := strings.Split(strings.TrimPrefix(domainChunks[0], "ip"), "-")
+		tldChunks := strings.Split(strings.TrimPrefix(domainChunks[0], "pwd"), "-")
 		ip := strings.Replace(tldChunks[0], "_", ".", -1)
 
 		m := new(dns.Msg)

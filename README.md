@@ -52,5 +52,5 @@ Notes:
 
 ~~We're planning to setup a reverse proxy that handles redirection automatically, in the meantime you can use [ngrok](https://ngrok.com) within PWD running `docker run --name supergrok -d jpetazzo/supergrok` then `docker logs --follow supergrok` , it will give you a ngrok URL, now you can go to that URL and add the IP+port that you want to connect to… e.g. if your PWD instance is 10.0.42.3, you can go to http://xxxxxx.ngrok.io/10.0.42.3:8000 (where the xxxxxx is given to you in the supergrok logs).~~
 
-If you need to access your services from outside, use the following URL pattern `http://ip<underscore_ip>-<port>.play-with-docker.com` (i.e: http://ip10_2_135_3-80.play-with-docker.com/).
+If you need to access your services from outside, use the following URL pattern `http://pwd<underscore_ip>-<port>.play-with-docker.com` (i.e: http://pwd10_2_135_3-80.play-with-docker.com/).
 
