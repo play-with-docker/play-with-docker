@@ -47,6 +47,7 @@ func main() {
 	}
 
 	r := mux.NewRouter()
+	corsRouter := mux.NewRouter()
 
 	// Reverse proxy (needs to be the first route, to make sure it is the first thing we check)
 	proxyHandler := handlers.NewMultipleHostReverseProxy()
@@ -60,13 +61,15 @@ func main() {
 		}
 	}
 
+	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))
+
 	// Specific routes
 	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
 	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
-	r.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
-	r.Handle("/sessions/{sessionId}/instances", http.HandlerFunc(handlers.NewInstance)).Methods("POST")
-	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", handlers.DeleteInstance).Methods("DELETE")
+	corsRouter.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
+	corsRouter.HandleFunc("/sessions/{sessionId}/instances", handlers.NewInstance).Methods("POST")
+	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", handlers.DeleteInstance).Methods("DELETE")
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/keys", handlers.SetKeys).Methods("POST")
 
 	h := func(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +85,7 @@ func main() {
 		http.ServeFile(rw, r, "www/sdk.js")
 	})
 
-	r.Handle("/sessions/{sessionId}/ws/", server)
+	corsRouter.Handle("/sessions/{sessionId}/ws/", server)
 	r.Handle("/metrics", promhttp.Handler())
 
 	// Generic routes
@@ -98,14 +101,15 @@ func main() {
 		}
 	}).Methods("GET")
 
-	r.HandleFunc("/", handlers.NewSession).Methods("POST")
+	corsRouter.HandleFunc("/", handlers.NewSession).Methods("POST")
 
 	n := negroni.Classic()
+	r.PathPrefix("/").Handler(negroni.New(negroni.Wrap(corsHandler(corsRouter))))
 	n.UseHandler(r)
 
 	go func() {
 		log.Println("Listening on port " + config.PortNumber)
-		log.Fatal(http.ListenAndServe("0.0.0.0:"+config.PortNumber, gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))(n)))
+		log.Fatal(http.ListenAndServe("0.0.0.0:"+config.PortNumber, n))
 	}()
 
 	ssl := mux.NewRouter()
