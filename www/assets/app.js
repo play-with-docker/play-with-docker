@@ -245,6 +245,14 @@
                 }
             });
 
+            term.attachCustomKeydownHandler(function(e) {
+                // Cmd + K
+                if (e.metaKey && e.keyCode == 75) {
+                    term.clear();
+                    return false;
+                }
+            });
+
             term.open(terminalContainer);
 
             // Set geometry during the next tick, to avoid race conditions.
