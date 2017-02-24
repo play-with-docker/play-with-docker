@@ -28,10 +28,17 @@ func main() {
 	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
 
 	// Start the DNS server
-	dnsServer := &dns.Server{Addr: ":53", Net: "udp"}
 	dns.HandleFunc(".", handleDnsRequest)
+	udpDnsServer := &dns.Server{Addr: ":53", Net: "udp"}
 	go func() {
-		err := dnsServer.ListenAndServe()
+		err := udpDnsServer.ListenAndServe()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+	tcpDnsServer := &dns.Server{Addr: ":53", Net: "tcp"}
+	go func() {
+		err := tcpDnsServer.ListenAndServe()
 		if err != nil {
 			log.Fatal(err)
 		}
