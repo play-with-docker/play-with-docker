@@ -159,7 +159,8 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	} else {
 		// we have no information about this and we are not a recursive dns server, so we just fail so the client can fallback to the next dns server it has configured
-		dns.HandleFailed(w, r)
+		w.Close()
+		// dns.HandleFailed(w, r)
 		return
 	}
 }
