@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/docker/api"
 	"github.com/docker/docker/client"
 	"github.com/googollee/go-socket.io"
 	"github.com/prometheus/client_golang/prometheus"
@@ -103,7 +104,7 @@ func (s *Session) SchedulePeriodicTasks() {
 					cli := &http.Client{
 						Transport: transport,
 					}
-					c, err := client.NewClient(fmt.Sprintf("http://%s:2375", i.IP), client.DefaultVersion, cli, nil)
+					c, err := client.NewClient(fmt.Sprintf("http://%s:2375", i.IP), api.DefaultVersion, cli, nil)
 					if err != nil {
 						log.Println("Could not connect to DinD docker daemon", err)
 					} else {
