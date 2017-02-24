@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
@@ -165,9 +166,44 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 		w.WriteMsg(m)
 		return
 	} else {
-		// we have no information about this and we are not a recursive dns server, so we just fail so the client can fallback to the next dns server it has configured
-		w.Close()
-		// dns.HandleFailed(w, r)
-		return
+		if len(r.Question) > 0 {
+			question := r.Question[0].Name
+			ips, err := net.LookupIP(question)
+			if err != nil {
+				// we have no information about this and we are not a recursive dns server, so we just fail so the client can fallback to the next dns server it has configured
+				w.Close()
+				// dns.HandleFailed(w, r)
+				return
+			}
+			log.Printf("Not a PWD host. Looking up [%s] got [%s]\n", question, ips)
+			m := new(dns.Msg)
+			m.SetReply(r)
+			m.Authoritative = true
+			m.RecursionAvailable = true
+			for _, ip := range ips {
+				ipv4 := ip.To4()
+				if ipv4 == nil {
+					a, err := dns.NewRR(fmt.Sprintf("%s 60 IN AAAA %s", question, ip.String()))
+					if err != nil {
+						log.Fatal(err)
+					}
+					m.Answer = append(m.Answer, a)
+				} else {
+					a, err := dns.NewRR(fmt.Sprintf("%s 60 IN A %s", question, ipv4.String()))
+					if err != nil {
+						log.Fatal(err)
+					}
+					m.Answer = append(m.Answer, a)
+				}
+			}
+			w.WriteMsg(m)
+			return
+
+		} else {
+			// we have no information about this and we are not a recursive dns server, so we just fail so the client can fallback to the next dns server it has configured
+			w.Close()
+			// dns.HandleFailed(w, r)
+			return
+		}
 	}
 }
