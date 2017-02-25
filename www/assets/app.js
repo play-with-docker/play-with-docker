@@ -11,7 +11,7 @@
         }, 500);
     }]);
 
-    app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', function($scope, $log, $http, $location, $timeout, $mdDialog, $window) {
+    app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'KeyboardShortcutService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, KeyboardShortcutService) {
         $scope.sessionId = window.location.pathname.replace('/p/', '');
         $scope.instances = [];
         $scope.idx = {};
@@ -23,11 +23,17 @@
         $scope.newInstanceBtnText = '+ Add new instance';
         $scope.deleteInstanceBtnText = 'Delete';
         $scope.isInstanceBeingDeleted = false;
+        
+        var selectedKeyboardShortcuts = KeyboardShortcutService.getCurrentShortcuts();
 
         angular.element($window).bind('resize', function() {
             if ($scope.selectedInstance) {
                 $scope.resize($scope.selectedInstance.term.proposeGeometry());
             }
+        });
+
+        $scope.$on("settings:shortcutsSelected", function(e, preset) {
+            selectedKeyboardShortcuts = preset;
         });
 
 
@@ -245,6 +251,17 @@
                 }
             });
 
+            term.attachCustomKeydownHandler(function(e) {
+                if (selectedKeyboardShortcuts == null)
+                    return;
+                var presets = selectedKeyboardShortcuts.presets
+                    .filter(function(preset) { return preset.keyCode == e.keyCode })
+                    .filter(function(preset) { return (preset.metaKey == undefined && !e.metaKey) || preset.metaKey == e.metaKey })
+                    .filter(function(preset) { return (preset.ctrlKey == undefined && !e.ctrlKey) || preset.ctrlKey == e.ctrlKey })
+                    .filter(function(preset) { return (preset.altKey == undefined && !e.altKey) || preset.altKey == e.altKey })
+                    .forEach(function(preset) { preset.action({ terminal : term })});
+            });
+
             term.open(terminalContainer);
 
             // Set geometry during the next tick, to avoid race conditions.
@@ -291,5 +308,80 @@
     .config(['$mdIconProvider', '$locationProvider', function($mdIconProvider, $locationProvider) {
         $locationProvider.html5Mode({enabled: true, requireBase: false});
         $mdIconProvider.defaultIconSet('../assets/social-icons.svg', 24);
-    }]);
+    }])
+    .component('settingsIcon', {
+        template : "<md-button ng-click='$ctrl.onClick()'><md-icon class='material-icons'>settings</md-icon></md-button>",
+        controller : function($mdDialog) {
+            var $ctrl = this;
+            $ctrl.onClick = function() {
+                $mdDialog.show({
+                    controller : function() {},
+                    template : "<settings-dialog></settings-dialog>",
+                    parent: angular.element(document.body),
+                    clickOutsideToClose : true
+                })
+            }
+        }
+    })
+    .component("settingsDialog", {
+        templateUrl : "settings-modal.html",
+        controller : function($mdDialog, KeyboardShortcutService, $rootScope) {
+            var $ctrl = this;
+
+            $ctrl.$onInit = function() {
+                $ctrl.keyboardShortcutPresets = KeyboardShortcutService.getAvailablePresets();
+                $ctrl.selectedShortcutPreset = KeyboardShortcutService.getCurrentShortcuts();
+            };
+
+            $ctrl.currentShortcutConfig = function(value) {
+                if (value !== undefined) {
+                    value = JSON.parse(value);
+                    KeyboardShortcutService.setCurrentShortcuts(value);
+                    $ctrl.selectedShortcutPreset = angular.copy(KeyboardShortcutService.getCurrentShortcuts());
+                    $rootScope.$broadcast('settings:shortcutsSelected', $ctrl.selectedShortcutPreset);
+                }
+                return JSON.stringify(KeyboardShortcutService.getCurrentShortcuts());
+            }
+
+            $ctrl.close = function() {
+                $mdDialog.cancel();
+            }
+        }
+    })
+    .service("KeyboardShortcutService", function() {
+        return {
+            getAvailablePresets : getAvailablePresets,
+            getCurrentShortcuts : getCurrentShortcuts,
+            setCurrentShortcuts : setCurrentShortcuts
+        };
+
+        function getAvailablePresets() {
+            return [
+                { name : "None", presets : [] },
+                { 
+                    name : "Mac OSX",
+                    presets : [
+                        { description : "Clear terminal", command : "Cmd+K", metaKey : true, keyCode : 75, action : function(context) { context.terminal.clear(); }}
+                    ]
+                }
+            ]
+        }
+
+        function getCurrentShortcuts() {
+            var shortcuts = localStorage.getItem("shortcut-preset-name");
+            if (shortcuts == null)
+                return null;
+
+            var preset = getAvailablePresets()
+                .filter(function(preset) { return preset.name == shortcuts; });
+            if (preset.length == 0)
+                console.error("Unable to find preset with name '" + shortcuts + "'");
+            return preset[0];
+            return (shortcuts == null) ? null : JSON.parse(shortcuts);
+        }
+
+        function setCurrentShortcuts(config) {
+            localStorage.setItem("shortcut-preset-name", config.name);
+        }
+    });
 })();
