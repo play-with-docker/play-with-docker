@@ -369,8 +369,11 @@
 
         function getCurrentShortcuts() {
             var shortcuts = localStorage.getItem("shortcut-preset-name");
-            if (shortcuts == null)
-                return null;
+            if (shortcuts == null) {
+                shortcuts = getDefaultShortcutPrefixName();
+                if (shortcuts == null)
+                    return null;
+            }
 
             var preset = getAvailablePresets()
                 .filter(function(preset) { return preset.name == shortcuts; });
@@ -382,6 +385,12 @@
 
         function setCurrentShortcuts(config) {
             localStorage.setItem("shortcut-preset-name", config.name);
+        }
+
+        function getDefaultShortcutPrefixName() {
+            if (window.navigator.platform.toUpperCase().indexOf('MAC') >= 0)
+                return "Mac OSX";
+            return null;
         }
     });
 })();
