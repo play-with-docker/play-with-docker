@@ -1,6 +1,6 @@
 FROM docker:1.13.1-dind
 
-RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash
+RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash util-linux
 
 ENV COMPOSE_VERSION=1.11.1
 # Install Compose and Machine
@@ -22,7 +22,7 @@ RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/mo
 
 # Install a nice vimrc file and prompt (by soulshake)
 COPY ["docker-prompt","/usr/local/bin/"]
-COPY [".vimrc",".bashrc", ".inputrc", "./root/"]
+COPY [".vimrc",".bashrc", ".inputrc", ".gitconfig", "./root/"]
 
 ARG docker_storage_driver=overlay2
 
@@ -34,7 +34,8 @@ WORKDIR /root
 # Remove IPv6 alias for localhost and start docker in the background ...
 CMD cat /etc/hosts >/etc/hosts.bak && \
     sed 's/^::1.*//' /etc/hosts.bak > /etc/hosts && \
+    umount /var/lib/docker && \
     dockerd --experimental -g /graph --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 \
             --storage-driver=$DOCKER_STORAGE_DRIVER --dns $PWD_IP_ADDRESS --dns 8.8.8.8 &>/docker.log & \
-    while true ; do /bin/bash ; done
+    while true ; do script -q -c /bin/bash /dev/null ; done
 # ... and then put a shell in the foreground, restarting it if it exits
