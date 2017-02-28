@@ -2,7 +2,7 @@
 <html ng-app="DockerPlay" ng-controller="PlayController">
     <head>
         <title>Docker Playground</title>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic|Material+Icons" />
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
         <link rel="stylesheet" href="/assets/xterm.css" />
         <link rel="stylesheet" href="/assets/style.css" />
@@ -44,7 +44,10 @@
                 <md-toolbar class="md-theme-indigo">
                   <span class="clock">{{ttl}}</span>
                   <md-button class="md-warn md-raised" ng-click="closeSession()">Close session</md-button>
-                  <h1 class="md-toolbar-tools">Instances</h1>
+                  <div class="md-toolbar-tools">
+                    <h1 class="md-toolbar-tools">Instances</h1>
+                    <settings-icon></settings-icon>
+                  </div>
                 </md-toolbar>
                 <md-content layout-padding>
                   <md-button ng-click="newInstance()" ng-disabled="isInstanceBeingCreated" class="md-primary">{{newInstanceBtnText}}</md-button>
@@ -108,6 +111,54 @@
               </md-content>
             </section>
         </div>
+
+        <script type="text/ng-template" id="settings-modal.html">
+            <md-toolbar>
+                <div class="md-toolbar-tools">
+                    <h2>Settings</h2>
+                    <span flex></span>
+                    <md-button class="md-icon-button" ng-click="$ctrl.close()">
+                        <md-icon class="material-icon" aria-label="Close dialog">close</md-icon>
+                    </md-button>
+                </div>
+                </md-toolbar>
+
+                <md-dialog-content>
+                <div class="md-dialog-content" style="width:600px;">
+                    <div layout="row">
+                        <div flex="50">
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Keyboard Shortcut Preset</label>
+                                <md-select ng-model="$ctrl.currentShortcutConfig" ng-model-options="{getterSetter: true}" placeholder="Keyboard shortcut prefix">
+                                    <md-option ng-repeat="preset in $ctrl.keyboardShortcutPresets" value="{{preset}}">
+                                        {{preset.name}}
+                                    </md-option>
+                                </md-select>
+                            </md-input-container>
+                        </div>
+                        <div flex="10"></div>
+                        <div flex="40">
+                            <div ng-if="$ctrl.selectedShortcutPreset">
+                                Preset details:
+                                <ul>
+                                    <li ng-if="$ctrl.selectedShortcutPreset.presets.length == 0">No presets defined</li>
+                                    <li ng-repeat="preset in $ctrl.selectedShortcutPreset.presets">
+                                        <code>{{preset.command}}</code> - {{preset.description}}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </md-dialog-content>
+
+                <md-dialog-actions layout="row">
+                    <span flex></span>
+                    <md-button ng-click="$ctrl.close()">
+                        Close
+                    </md-button>
+                </md-dialog-actions>
+        </script>
 
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
