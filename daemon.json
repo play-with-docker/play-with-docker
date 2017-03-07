@@ -1,0 +1,8 @@
+{
+    "experimental": true,
+    "graph": "/graph",
+    "insecure-registries": ["127.0.0.1"],
+    "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"],
+    "storage-driver": "DOCKER_STORAGE_DRIVER",
+    "dns": ["PWD_IP_ADDRESS", "8.8.8.8"]
+}
