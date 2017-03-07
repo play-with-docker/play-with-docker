@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -100,7 +101,7 @@ func SetInstanceSwarmPorts(i *Instance) error {
 	return nil
 }
 
-func GetUsedPorts(i *Instance) ([]uint16, error) {
+func GetUsedPorts(i *Instance) ([]int, error) {
 	if i.dockerClient == nil {
 		return nil, fmt.Errorf("Docker client for DinD (%s) is not ready", i.IP)
 	}
@@ -110,15 +111,16 @@ func GetUsedPorts(i *Instance) ([]uint16, error) {
 		return nil, err
 	}
 
-	openPorts := []uint16{}
+	openPorts := sort.IntSlice{}
 	for _, c := range containers {
 		for _, p := range c.Ports {
 			// When port is not published on the host docker return public port as 0, so we need to avoid it
 			if p.PublicPort != 0 {
-				openPorts = append(openPorts, p.PublicPort)
+				openPorts = append(openPorts, int(p.PublicPort))
 			}
 		}
 	}
+	sort.Sort(openPorts)
 
 	return openPorts, nil
 }
