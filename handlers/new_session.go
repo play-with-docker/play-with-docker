@@ -31,6 +31,6 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 			rw.Write([]byte(s.Id))
 			return
 		}
-		http.Redirect(rw, req, fmt.Sprintf("http://%s.localhost/p/%s", config.PWDContainerName, s.Id), http.StatusFound)
+		http.Redirect(rw, req, fmt.Sprintf("http://%s.%s/p/%s", config.PWDCName, req.Host, s.Id), http.StatusFound)
 	}
 }
