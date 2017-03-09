@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/franela/play-with-docker/config"
 	"github.com/franela/play-with-docker/services"
 )
 
@@ -30,6 +31,6 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 			rw.Write([]byte(s.Id))
 			return
 		}
-		http.Redirect(rw, req, fmt.Sprintf("/p/%s", s.Id), http.StatusFound)
+		http.Redirect(rw, req, fmt.Sprintf("http://%s.localhost/p/%s", config.PWDContainerName, s.Id), http.StatusFound)
 	}
 }
