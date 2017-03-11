@@ -168,6 +168,23 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 	} else {
 		if len(r.Question) > 0 {
 			question := r.Question[0].Name
+
+			if question == "localhost." {
+				log.Printf("Not a PWD host. Asked for [localhost.] returning automatically [127.0.0.1]\n")
+				m := new(dns.Msg)
+				m.SetReply(r)
+				m.Authoritative = true
+				m.RecursionAvailable = true
+				a, err := dns.NewRR(fmt.Sprintf("%s 60 IN A 127.0.0.1", question))
+				if err != nil {
+					log.Fatal(err)
+				}
+				m.Answer = append(m.Answer, a)
+				w.WriteMsg(m)
+				return
+			}
+
+			log.Printf("Not a PWD host. Looking up [%s]\n", question)
 			ips, err := net.LookupIP(question)
 			if err != nil {
 				// we have no information about this and we are not a recursive dns server, so we just fail so the client can fallback to the next dns server it has configured
@@ -200,6 +217,7 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 			return
 
 		} else {
+			log.Printf("Not a PWD host. Got DNS without any question\n")
 			// we have no information about this and we are not a recursive dns server, so we just fail so the client can fallback to the next dns server it has configured
 			w.Close()
 			// dns.HandleFailed(w, r)
