@@ -83,7 +83,6 @@ fs.inotify.max_user_instances = 10000
 docker run -d \
         -e DIND_IMAGE=franela/dind:overlay2 \
         -e GOOGLE_RECAPTCHA_DISABLED=true \
-        -e APPARMOR_PROFILE=docker-dind \
         -e MAX_PROCESSES=10000 \
         -e EXPIRY=4h \
         --name pwd \
