@@ -1,6 +1,6 @@
 FROM docker:17.03.0-ce-dind
 
-RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash util-linux
+RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux
 
 ENV COMPOSE_VERSION=1.11.1
 # Install Compose and Machine
@@ -16,13 +16,16 @@ RUN mkdir -p /opt && cd /opt && \
     ./configure && make install LDFLAGS=-lintl && \
     rm -rf httping-2.5
 
+# Add bash completion
+RUN mkdir /etc/bash_completion.d && curl https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker
+
 # Replace modprobe with a no-op to get rid of spurious warnings
 # (note: we can't just symlink to /bin/true because it might be busybox)
 RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/modprobe
 
 # Install a nice vimrc file and prompt (by soulshake)
 COPY ["docker-prompt","/usr/local/bin/"]
-COPY [".vimrc",".bashrc", ".inputrc", ".gitconfig", "./root/"]
+COPY [".vimrc",".profile", ".inputrc", ".gitconfig", "./root/"]
 COPY ["daemon.json", "/etc/docker/"]
 
 ARG docker_storage_driver=overlay2
@@ -39,5 +42,5 @@ CMD cat /etc/hosts >/etc/hosts.bak && \
     sed -i "s/\PWD_IP_ADDRESS/$PWD_IP_ADDRESS/" /etc/docker/daemon.json && \
     umount /var/lib/docker && \
     dockerd &>/docker.log & \
-    while true ; do script -q -c /bin/bash /dev/null ; done
+    while true ; do script -q -c "/bin/bash -l" /dev/null ; done
 # ... and then put a shell in the foreground, restarting it if it exits
