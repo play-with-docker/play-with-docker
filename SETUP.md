@@ -108,13 +108,15 @@ sudo apparmor_parser -W docker-dind.profile
 docker pull franela/dind:overlay2
 ```
 
-12. Increase arp cache size
+12. Increase arp cache size and inotify handlers
+
+Edit sysctl.conf and add:
 ```
 net.ipv4.neigh.default.gc_thresh3 = 8192
 net.ipv4.neigh.default.gc_thresh2 = 8192
 net.ipv4.neigh.default.gc_thresh1 = 4096
+fs.inotify.max_user_instances = 10000
 ```
-
 13. Start pwd container
 ```bash
 docker run -d \
