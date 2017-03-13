@@ -3,6 +3,7 @@ package handlers
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -67,6 +68,7 @@ func NewMultipleHostReverseProxy() *httputil.ReverseProxy {
 		}
 
 		req.URL.Host = fmt.Sprintf("%s:%s", node, port)
+		log.Printf("HTTP Reverse proxying to %s\n", req.URL.Host)
 	}
 
 	return &httputil.ReverseProxy{Director: director, Transport: transport}
@@ -91,6 +93,7 @@ func NewSSLDaemonHandler() *httputil.ReverseProxy {
 		req.URL.Scheme = "http"
 
 		req.URL.Host = fmt.Sprintf("%s:%s", node, "2375")
+		log.Printf("HTTPS Reverse proxying to %s\n", req.URL.Host)
 	}
 
 	return &httputil.ReverseProxy{Director: director}
