@@ -14,6 +14,7 @@ import (
 
 	"github.com/docker/docker/api"
 	"github.com/docker/docker/client"
+	"github.com/franela/play-with-docker/config"
 	"github.com/googollee/go-socket.io"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/twinj/uuid"
@@ -241,13 +242,13 @@ func NewSession(duration time.Duration) (*Session, error) {
 	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
 
 	// Connect PWD daemon to the new network
-	ip, err := ConnectNetwork("pwd", s.Id, "")
+	ip, err := ConnectNetwork(config.PWDContainerName, s.Id, "")
 	if err != nil {
 		log.Println("ERROR NETWORKING")
 		return nil, err
 	}
 	s.PwdIpAddress = ip
-	log.Printf("Connected pwd to network [%s]\n", s.Id)
+	log.Printf("Connected %s to network [%s]\n", config.PWDContainerName, s.Id)
 
 	// Schedule peridic tasks execution
 	s.SchedulePeriodicTasks()
@@ -290,7 +291,7 @@ func setGauges() {
 }
 
 func LoadSessionsFromDisk() error {
-	file, err := os.Open("./pwd/sessions.gob")
+	file, err := os.Open(config.SessionsFile)
 	if err == nil {
 		decoder := gob.NewDecoder(file)
 		err = decoder.Decode(&sessions)
@@ -322,7 +323,7 @@ func LoadSessionsFromDisk() error {
 			if s.PwdIpAddress == "" {
 				log.Fatal("Cannot load stored sessions as they don't have the pwd ip address stored with them")
 			}
-			if _, err := ConnectNetwork("pwd", s.Id, s.PwdIpAddress); err != nil {
+			if _, err := ConnectNetwork(config.PWDContainerName, s.Id, s.PwdIpAddress); err != nil {
 				if strings.Contains(err.Error(), "Could not attach to network") {
 					log.Printf("Network for session [%s] doesn't exist. Removing all instances and session.", s.Id)
 					CloseSession(s)
@@ -331,7 +332,7 @@ func LoadSessionsFromDisk() error {
 					return err
 				}
 			} else {
-				log.Printf("Connected pwd to network [%s]\n", s.Id)
+				log.Printf("Connected %s to network [%s]\n", config.PWDContainerName, s.Id)
 
 				// Schedule peridic tasks execution
 				s.SchedulePeriodicTasks()
@@ -346,7 +347,7 @@ func LoadSessionsFromDisk() error {
 func saveSessionsToDisk() error {
 	rw.Lock()
 	defer rw.Unlock()
-	file, err := os.Create("./pwd/sessions.gob")
+	file, err := os.Create(config.SessionsFile)
 	if err == nil {
 		encoder := gob.NewEncoder(file)
 		err = encoder.Encode(&sessions)
