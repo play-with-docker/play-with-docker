@@ -2,7 +2,7 @@ package config
 
 import "flag"
 
-var SSLPortNumber, PortNumber, Key, Cert, SessionsFile, PWDContainerName, PWDCName string
+var SSLPortNumber, PortNumber, Key, Cert, SessionsFile, PWDContainerName, PWDCName, HashKey string
 var MaxLoadAvg float64
 
 func ParseFlags() {
@@ -13,6 +13,7 @@ func ParseFlags() {
 	flag.StringVar(&SessionsFile, "save", "./pwd/sessions", "Tell where to store sessions file")
 	flag.StringVar(&PWDContainerName, "name", "pwd", "Container name used to run PWD (used to be able to connect it to the networks it creates)")
 	flag.StringVar(&PWDCName, "cname", "host1", "CNAME given to this host")
+	flag.StringVar(&HashKey, "hash_key", "salmonrosado", "Hash key to use for cookies")
 	flag.Float64Var(&MaxLoadAvg, "maxload", 100, "Maximum allowed load average before failing ping requests")
 	flag.Parse()
 }

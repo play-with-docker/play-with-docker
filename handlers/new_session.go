@@ -17,10 +17,9 @@ type NewSessionResponse struct {
 
 func NewSession(rw http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
-	if !services.IsHuman(req) {
+	if !services.IsHuman(req, rw) {
 		// User it not a human
-		rw.WriteHeader(http.StatusConflict)
-		rw.Write([]byte("Only humans are allowed!"))
+		http.Redirect(rw, req, "/", http.StatusFound)
 		return
 	}
 

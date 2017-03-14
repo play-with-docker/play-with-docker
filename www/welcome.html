@@ -12,8 +12,9 @@
             <h1>Welcome!</h1>
             <h2>Before starting we need to verify you are a human</h2>
             <form id="welcomeForm" method="POST" action="/">
-                <div class="g-recaptcha" data-callback="iAmHuman" data-sitekey="{{.}}"></div>
+                <div id="recaptcha" class="g-recaptcha" data-callback="iAmHuman" data-sitekey="{{.}}"></div>
                 <input type="hidden" name="session-duration" value="4h"/>
+                <button id="create" style="display:none;">Create session</button>
             </form>
             <img src="/assets/large_h.png" />
         </div>
@@ -21,6 +22,10 @@
         <script>
             function iAmHuman(resp) {
                 document.getElementById('welcomeForm').submit();
+            }
+            if (document.cookie.indexOf('session_id') > -1) {
+                document.getElementById('create').style = "";
+                document.getElementById('recaptcha').style = "display:none;";
             }
         </script>
     </body>
