@@ -1,6 +1,6 @@
 FROM docker:17.03.0-ce-dind
 
-RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux
+RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq
 
 ENV COMPOSE_VERSION=1.11.1
 # Install Compose and Machine
