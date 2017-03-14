@@ -37,7 +37,7 @@ type recaptchaResponse struct {
 	Success bool `json:"success"`
 }
 
-var s = securecookie.New([]byte(config.HashKey), nil)
+var s = securecookie.New([]byte(config.HashKey), nil).MaxAge(int((1 * time.Hour).Seconds()))
 
 func IsHuman(req *http.Request, rw http.ResponseWriter) bool {
 	if os.Getenv("GOOGLE_RECAPTCHA_DISABLED") != "" {
@@ -45,9 +45,9 @@ func IsHuman(req *http.Request, rw http.ResponseWriter) bool {
 	}
 
 	if cookie, _ := req.Cookie("session_id"); cookie != nil {
-		fmt.Println(cookie)
 		var value string
 		if err := s.Decode("session_id", cookie.Value, &value); err != nil {
+			fmt.Println(err)
 			return false
 		}
 		return true
@@ -83,7 +83,7 @@ func IsHuman(req *http.Request, rw http.ResponseWriter) bool {
 	http.SetCookie(rw, &http.Cookie{
 		Name:    "session_id",
 		Value:   encoded,
-		Expires: time.Now().Add(3 * time.Hour),
+		Expires: time.Now().Add(1 * time.Hour),
 	})
 
 	return true
