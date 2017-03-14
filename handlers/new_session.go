@@ -19,7 +19,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	if !services.IsHuman(req, rw) {
 		// User it not a human
-		http.Redirect(rw, req, "/", http.StatusFound)
+		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 

@@ -83,7 +83,7 @@ func IsHuman(req *http.Request, rw http.ResponseWriter) bool {
 	http.SetCookie(rw, &http.Cookie{
 		Name:    "session_id",
 		Value:   encoded,
-		Expires: time.Now().Add(10 * time.Second),
+		Expires: time.Now().Add(3 * time.Hour),
 	})
 
 	return true
