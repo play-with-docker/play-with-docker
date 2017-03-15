@@ -230,8 +230,6 @@ func NewSession(duration time.Duration) (*Session, error) {
 	s.ExpiresAt = s.CreatedAt.Add(duration)
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
-	sessions[s.Id] = s
-
 	// Schedule cleanup of the session
 	CloseSessionAfter(s, duration)
 
@@ -252,6 +250,8 @@ func NewSession(duration time.Duration) (*Session, error) {
 
 	// Schedule peridic tasks execution
 	s.SchedulePeriodicTasks()
+
+	sessions[s.Id] = s
 
 	// We store sessions as soon as we create one so we don't delete new sessions on an api restart
 	if err := saveSessionsToDisk(); err != nil {
