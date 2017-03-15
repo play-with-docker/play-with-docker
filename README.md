@@ -9,22 +9,13 @@ A live version is available at: http://play-with-docker.com/
 
 ## Requirements
 
-Docker 1.13+ is required. If you're running an older version or you just want to run PWD in a VM you can use docker-machine with the following command:
-
-```
-docker-machine create -d virtualbox <name>
-```
+Docker 1.13+ is required. 
 
 The docker daemon needs to run in swarm mode because PWD uses overlay attachable networks. For that
 just run  `docker swarm init` in the destination daemon.
 
 It's also necessary to manually load the IPVS kernel module because as swarms are created in `dind`, 
 the daemon won't load it automatically. Run the following command for that purpose: `sudo modprobe xt_ipvs`
-
-If you are developing, there is a `Makefile` file with 2 targets that can set the whole environment for you (using docker-machine and virtual box).
-Just run once `make prepare`, which will create & prepare the docker-machine environment.
-Additionally, every time you want to start you environment run `make start`.
-And to start the application on a container on the docker machine host, run: `eval $(docker-machine env pwd) && docker-compose up`
 
 
 ## Development
