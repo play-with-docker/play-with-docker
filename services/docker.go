@@ -202,7 +202,7 @@ func ResizeConnection(name string, cols, rows uint) error {
 }
 
 func CreateInstance(session *Session, dindImage string) (*Instance, error) {
-	h := &container.HostConfig{NetworkMode: container.NetworkMode(session.Id), Privileged: true}
+	h := &container.HostConfig{NetworkMode: container.NetworkMode(session.Id), Privileged: true, AutoRemove: true}
 
 	if os.Getenv("APPARMOR_PROFILE") != "" {
 		h.SecurityOpt = []string{fmt.Sprintf("apparmor=%s", os.Getenv("APPARMOR_PROFILE"))}
