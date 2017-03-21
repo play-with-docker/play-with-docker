@@ -116,7 +116,14 @@ net.ipv4.neigh.default.gc_thresh3 = 8192
 net.ipv4.neigh.default.gc_thresh2 = 8192
 net.ipv4.neigh.default.gc_thresh1 = 4096
 fs.inotify.max_user_instances = 10000
+kernel.sysrq = 0
 ```
+
+12.a. Change kernel config
+```
+CONFIG_MAGIC_SYSRQ=n
+```
+
 13. Start pwd container
 ```bash
 docker run -d \
