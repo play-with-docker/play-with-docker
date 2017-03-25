@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# This script gets automatically executed when the DinD container
+# starts. If this script exits, it will be automatically restarted.
+
+# You can disable that script by renaming it or removing its
+# executable bit. If this script comes back, the DinD "init system"
+# will pick it up and execute it again.
+
+# First, let's redirect stdout and stderr to a log file.
+exec >>/docker.log 2>>/docker.log
+
+# If you want to change Docker's start-up flags, you can do it here!
+dockerd
+
+# If dockerd exits (or is killed), let's log the status.
+echo "dockerd: exit status: $?"
