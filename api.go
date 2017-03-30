@@ -19,7 +19,6 @@ import (
 	"github.com/miekg/dns"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
-	"github.com/yhat/wsutil"
 )
 
 func main() {
@@ -58,22 +57,16 @@ func main() {
 	corsRouter := mux.NewRouter()
 
 	// Reverse proxy (needs to be the first route, to make sure it is the first thing we check)
-	proxyHandler := handlers.NewMultipleHostReverseProxy()
-	websocketProxyHandler := handlers.NewMultipleHostWebsocketReverseProxy()
+	//proxyHandler := handlers.NewMultipleHostReverseProxy()
+	//websocketProxyHandler := handlers.NewMultipleHostWebsocketReverseProxy()
 
-	proxyMultiplexer := func(rw http.ResponseWriter, r *http.Request) {
-		if wsutil.IsWebSocketRequest(r) {
-			websocketProxyHandler.ServeHTTP(rw, r)
-		} else {
-			proxyHandler.ServeHTTP(rw, r)
-		}
-	}
+	tcpHandler := handlers.NewTCPProxy()
 
 	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))
 
 	// Specific routes
-	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
-	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).HandlerFunc(proxyMultiplexer)
+	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).Handler(tcpHandler)
+	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).Handler(tcpHandler)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances", handlers.NewInstance).Methods("POST")
