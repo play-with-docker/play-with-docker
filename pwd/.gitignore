@@ -1,1 +1,4 @@
-sessions.gob
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore

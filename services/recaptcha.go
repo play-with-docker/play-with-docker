@@ -2,11 +2,17 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/franela/play-with-docker/config"
+	"github.com/gorilla/securecookie"
+	"github.com/twinj/uuid"
 )
 
 func GetGoogleRecaptchaSiteKey() string {
@@ -31,10 +37,22 @@ type recaptchaResponse struct {
 	Success bool `json:"success"`
 }
 
-func IsHuman(req *http.Request) bool {
+var s = securecookie.New([]byte(config.HashKey), nil).MaxAge(int((1 * time.Hour).Seconds()))
+
+func IsHuman(req *http.Request, rw http.ResponseWriter) bool {
 	if os.Getenv("GOOGLE_RECAPTCHA_DISABLED") != "" {
 		return true
 	}
+
+	if cookie, _ := req.Cookie("session_id"); cookie != nil {
+		var value string
+		if err := s.Decode("session_id", cookie.Value, &value); err != nil {
+			fmt.Println(err)
+			return false
+		}
+		return true
+	}
+
 	challenge := req.Form.Get("g-recaptcha-response")
 
 	// Of X-Forwarded-For exists, it means we are behind a loadbalancer and we should use the real IP address of the user
@@ -57,5 +75,16 @@ func IsHuman(req *http.Request) bool {
 	var r recaptchaResponse
 	json.NewDecoder(resp.Body).Decode(&r)
 
-	return r.Success
+	if !r.Success {
+		return false
+	}
+
+	encoded, _ := s.Encode("session_id", uuid.NewV4().String())
+	http.SetCookie(rw, &http.Cookie{
+		Name:    "session_id",
+		Value:   encoded,
+		Expires: time.Now().Add(1 * time.Hour),
+	})
+
+	return true
 }

@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -99,7 +101,7 @@ func SetInstanceSwarmPorts(i *Instance) error {
 	return nil
 }
 
-func GetUsedPorts(i *Instance) ([]uint16, error) {
+func GetUsedPorts(i *Instance) ([]int, error) {
 	if i.dockerClient == nil {
 		return nil, fmt.Errorf("Docker client for DinD (%s) is not ready", i.IP)
 	}
@@ -109,15 +111,16 @@ func GetUsedPorts(i *Instance) ([]uint16, error) {
 		return nil, err
 	}
 
-	openPorts := []uint16{}
+	openPorts := sort.IntSlice{}
 	for _, c := range containers {
 		for _, p := range c.Ports {
 			// When port is not published on the host docker return public port as 0, so we need to avoid it
 			if p.PublicPort != 0 {
-				openPorts = append(openPorts, p.PublicPort)
+				openPorts = append(openPorts, int(p.PublicPort))
 			}
 		}
 	}
+	sort.Sort(openPorts)
 
 	return openPorts, nil
 }
@@ -134,17 +137,33 @@ func CreateNetwork(name string) error {
 
 	return nil
 }
-func ConnectNetwork(containerId, networkId string) error {
-	err := c.NetworkConnect(context.Background(), networkId, containerId, &network.EndpointSettings{})
+func ConnectNetwork(containerId, networkId, ip string) (string, error) {
+	settings := &network.EndpointSettings{}
+	if ip != "" {
+		settings.IPAddress = ip
+	}
+	err := c.NetworkConnect(context.Background(), networkId, containerId, settings)
 
 	if err != nil && !strings.Contains(err.Error(), "already exists") {
 		log.Printf("Connection container to network err [%s]\n", err)
 
-		return err
+		return "", err
 	}
 
-	return nil
+	// Obtain the IP of the PWD container in this network
+	container, err := c.ContainerInspect(context.Background(), containerId)
+	if err != nil {
+		return "", err
+	}
+
+	n, found := container.NetworkSettings.Networks[networkId]
+	if !found {
+		return "", fmt.Errorf("Container [%s] connected to the network [%s] but couldn't obtain it's IP address", containerId, networkId)
+	}
+
+	return n.IPAddress, nil
 }
+
 func DisconnectNetwork(containerId, networkId string) error {
 	err := c.NetworkDisconnect(context.Background(), networkId, containerId, true)
 
@@ -183,12 +202,19 @@ func ResizeConnection(name string, cols, rows uint) error {
 }
 
 func CreateInstance(session *Session, dindImage string) (*Instance, error) {
-	h := &container.HostConfig{NetworkMode: container.NetworkMode(session.Id), Privileged: true}
+	h := &container.HostConfig{NetworkMode: container.NetworkMode(session.Id), Privileged: true, AutoRemove: true}
 
 	if os.Getenv("APPARMOR_PROFILE") != "" {
 		h.SecurityOpt = []string{fmt.Sprintf("apparmor=%s", os.Getenv("APPARMOR_PROFILE"))}
 	}
-	h.Resources.PidsLimit = int64(500)
+
+	var pidsLimit = int64(1000)
+	if envLimit := os.Getenv("MAX_PROCESSES"); envLimit != "" {
+		if i, err := strconv.Atoi(envLimit); err == nil {
+			pidsLimit = int64(i)
+		}
+	}
+	h.Resources.PidsLimit = pidsLimit
 	h.Resources.Memory = 4092 * Megabyte
 	t := true
 	h.Resources.OomKillDisable = &t
@@ -209,7 +235,15 @@ func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 			break
 		}
 	}
-	conf := &container.Config{Hostname: nodeName, Image: dindImage, Tty: true, OpenStdin: true, AttachStdin: true, AttachStdout: true, AttachStderr: true}
+	conf := &container.Config{Hostname: nodeName,
+		Image:        dindImage,
+		Tty:          true,
+		OpenStdin:    true,
+		AttachStdin:  true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Env:          []string{fmt.Sprintf("PWD_IP_ADDRESS=%s", session.PwdIpAddress)},
+	}
 	networkConf := &network.NetworkingConfig{
 		map[string]*network.EndpointSettings{
 			session.Id: &network.EndpointSettings{Aliases: []string{nodeName}},

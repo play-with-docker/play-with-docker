@@ -12,7 +12,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/docker/api"
 	"github.com/docker/docker/client"
+	"github.com/franela/play-with-docker/config"
 	"github.com/googollee/go-socket.io"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/twinj/uuid"
@@ -42,14 +44,15 @@ func init() {
 var wsServer *socketio.Server
 
 type Session struct {
-	rw        sync.Mutex
-	Id        string               `json:"id"`
-	Instances map[string]*Instance `json:"instances"`
-	clients   []*Client            `json:"-"`
-	CreatedAt time.Time            `json:"created_at"`
-	ExpiresAt time.Time            `json:"expires_at"`
-	scheduled bool                 `json:"-"`
-	ticker    *time.Ticker         `json:"-"`
+	rw           sync.Mutex
+	Id           string               `json:"id"`
+	Instances    map[string]*Instance `json:"instances"`
+	clients      []*Client            `json:"-"`
+	CreatedAt    time.Time            `json:"created_at"`
+	ExpiresAt    time.Time            `json:"expires_at"`
+	scheduled    bool                 `json:"-"`
+	ticker       *time.Ticker         `json:"-"`
+	PwdIpAddress string               `json:"pwd_ip_address"`
 }
 
 func (s *Session) Lock() {
@@ -102,7 +105,7 @@ func (s *Session) SchedulePeriodicTasks() {
 					cli := &http.Client{
 						Transport: transport,
 					}
-					c, err := client.NewClient(fmt.Sprintf("http://%s:2375", i.IP), client.DefaultVersion, cli, nil)
+					c, err := client.NewClient(fmt.Sprintf("http://%s:2375", i.IP), api.DefaultVersion, cli, nil)
 					if err != nil {
 						log.Println("Could not connect to DinD docker daemon", err)
 					} else {
@@ -205,11 +208,10 @@ var defaultDuration = 4 * time.Hour
 
 func GetDuration(reqDur string) time.Duration {
 	if reqDur != "" {
-		if dur, err := time.ParseDuration(reqDur); err == nil {
+		if dur, err := time.ParseDuration(reqDur); err == nil && dur <= defaultDuration {
 			return dur
 		}
 		return defaultDuration
-
 	}
 
 	envDur := os.Getenv("EXPIRY")
@@ -228,8 +230,6 @@ func NewSession(duration time.Duration) (*Session, error) {
 	s.ExpiresAt = s.CreatedAt.Add(duration)
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
-	sessions[s.Id] = s
-
 	// Schedule cleanup of the session
 	CloseSessionAfter(s, duration)
 
@@ -240,14 +240,18 @@ func NewSession(duration time.Duration) (*Session, error) {
 	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
 
 	// Connect PWD daemon to the new network
-	if err := ConnectNetwork("pwd", s.Id); err != nil {
+	ip, err := ConnectNetwork(config.PWDContainerName, s.Id, "")
+	if err != nil {
 		log.Println("ERROR NETWORKING")
 		return nil, err
 	}
-	log.Printf("Connected pwd to network [%s]\n", s.Id)
+	s.PwdIpAddress = ip
+	log.Printf("Connected %s to network [%s]\n", config.PWDContainerName, s.Id)
 
 	// Schedule peridic tasks execution
 	s.SchedulePeriodicTasks()
+
+	sessions[s.Id] = s
 
 	// We store sessions as soon as we create one so we don't delete new sessions on an api restart
 	if err := saveSessionsToDisk(); err != nil {
@@ -287,7 +291,7 @@ func setGauges() {
 }
 
 func LoadSessionsFromDisk() error {
-	file, err := os.Open("./pwd/sessions.gob")
+	file, err := os.Open(config.SessionsFile)
 	if err == nil {
 		decoder := gob.NewDecoder(file)
 		err = decoder.Decode(&sessions)
@@ -316,7 +320,10 @@ func LoadSessionsFromDisk() error {
 			}
 
 			// Connect PWD daemon to the new network
-			if err := ConnectNetwork("pwd", s.Id); err != nil {
+			if s.PwdIpAddress == "" {
+				log.Fatal("Cannot load stored sessions as they don't have the pwd ip address stored with them")
+			}
+			if _, err := ConnectNetwork(config.PWDContainerName, s.Id, s.PwdIpAddress); err != nil {
 				if strings.Contains(err.Error(), "Could not attach to network") {
 					log.Printf("Network for session [%s] doesn't exist. Removing all instances and session.", s.Id)
 					CloseSession(s)
@@ -325,7 +332,7 @@ func LoadSessionsFromDisk() error {
 					return err
 				}
 			} else {
-				log.Printf("Connected pwd to network [%s]\n", s.Id)
+				log.Printf("Connected %s to network [%s]\n", config.PWDContainerName, s.Id)
 
 				// Schedule peridic tasks execution
 				s.SchedulePeriodicTasks()
@@ -340,7 +347,7 @@ func LoadSessionsFromDisk() error {
 func saveSessionsToDisk() error {
 	rw.Lock()
 	defer rw.Unlock()
-	file, err := os.Create("./pwd/sessions.gob")
+	file, err := os.Create(config.SessionsFile)
 	if err == nil {
 		encoder := gob.NewEncoder(file)
 		err = encoder.Encode(&sessions)

@@ -2,7 +2,7 @@
 <html ng-app="DockerPlay" ng-controller="PlayController">
     <head>
         <title>Docker Playground</title>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic|Material+Icons" />
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
         <link rel="stylesheet" href="/assets/xterm.css" />
         <link rel="stylesheet" href="/assets/style.css" />
@@ -44,7 +44,10 @@
                 <md-toolbar class="md-theme-indigo">
                   <span class="clock">{{ttl}}</span>
                   <md-button class="md-warn md-raised" ng-click="closeSession()">Close session</md-button>
-                  <h1 class="md-toolbar-tools">Instances</h1>
+                  <div class="md-toolbar-tools">
+                    <h1 class="md-toolbar-tools">Instances</h1>
+                    <settings-icon></settings-icon>
+                  </div>
                 </md-toolbar>
                 <md-content layout-padding>
                   <md-button ng-click="newInstance()" ng-disabled="isInstanceBeingCreated" class="md-primary">{{newInstanceBtnText}}</md-button>
@@ -68,33 +71,35 @@
                 <div flex></div>
               </md-content>
               <md-content flex layout="column" ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name">
-                  <md-card md-theme="default" md-theme-watch>
+                  <md-card class="stats" md-theme="default" md-theme-watch>
                       <md-card-title>
                           <md-card-title-text>
                               <span class="md-headline">{{instance.name}}</span>
-                               <div layout-gt-sm="row">
-                                  <md-input-container class="md-icon-float md-block">
-                                    <label>IP</label>
-                                    <input ng-model="instance.ip" type="text" readonly="readonly">
-                                  </md-input-container>
-                                  <md-chips ng-model="instance.ports" name="port" readonly="true" md-removable="false">
-                                    <md-chip-template>
-                                    <strong><a href="{{getProxyUrl(instance, $chip)}}" title="{{getProxyUrl(instance, $chip)}}" target="_blank">{{$chip}}</a></strong>
-                                    </md-chip-template>
-                                  </md-chips>
-                               </div>
-                               <div layout-gt-sm="row">
-                                  <md-input-container class="md-block" flex-gt-sm>
-                                    <label>Memory</label>
-                                    <input ng-model="instance.mem" type="text" readonly="readonly">
-                                  </md-input-container>
-                                  <md-input-container class="md-block" flex-gt-sm>
-                                    <label>CPU</label>
-                                    <input ng-model="instance.cpu" type="text" readonly="readonly">
-                                  </md-input-container>
-                              </div>
-                          <md-card-title-text>
+                          </md-card-title-text>
                       </md-card-title>
+                      <md-card-content>
+                          <div layout-gt-sm="row">
+                             <md-input-container class="md-icon-float md-block">
+                               <label>IP</label>
+                               <input ng-model="instance.ip" type="text" readonly="readonly">
+                             </md-input-container>
+                             <md-chips ng-model="instance.ports" name="port" readonly="true" md-removable="false">
+                               <md-chip-template>
+                               <strong><a href="{{getProxyUrl(instance, $chip)}}" title="{{getProxyUrl(instance, $chip)}}" target="_blank">{{$chip}}</a></strong>
+                               </md-chip-template>
+                             </md-chips>
+                          </div>
+                          <div layout-gt-sm="row">
+                             <md-input-container class="md-block" flex-gt-sm>
+                               <label>Memory</label>
+                               <input ng-model="instance.mem" type="text" readonly="readonly">
+                             </md-input-container>
+                             <md-input-container class="md-block" flex-gt-sm>
+                               <label>CPU</label>
+                               <input ng-model="instance.cpu" type="text" readonly="readonly">
+                             </md-input-container>
+                          </div>
+                      </md-card-content>
                       <md-card-actions>
                           <md-button class="md-warn md-raised" ng-click="deleteInstance(instance)" ng-disabled="isInstanceBeingDeleted">{{deleteInstanceBtnText}}</md-button>
                           </md-card-actions>
@@ -107,13 +112,61 @@
             </section>
         </div>
 
+        <script type="text/ng-template" id="settings-modal.html">
+            <md-toolbar>
+                <div class="md-toolbar-tools">
+                    <h2>Settings</h2>
+                    <span flex></span>
+                    <md-button class="md-icon-button" ng-click="$ctrl.close()">
+                        <md-icon class="material-icon" aria-label="Close dialog">close</md-icon>
+                    </md-button>
+                </div>
+                </md-toolbar>
+
+                <md-dialog-content>
+                <div class="md-dialog-content" style="width:600px;">
+                    <div layout="row">
+                        <div flex="50">
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Keyboard Shortcut Preset</label>
+                                <md-select ng-model="$ctrl.currentShortcutConfig" ng-model-options="{getterSetter: true}" placeholder="Keyboard shortcut prefix">
+                                    <md-option ng-repeat="preset in $ctrl.keyboardShortcutPresets" value="{{preset}}">
+                                        {{preset.name}}
+                                    </md-option>
+                                </md-select>
+                            </md-input-container>
+                        </div>
+                        <div flex="10"></div>
+                        <div flex="40">
+                            <div ng-if="$ctrl.selectedShortcutPreset">
+                                Preset details:
+                                <ul>
+                                    <li ng-if="$ctrl.selectedShortcutPreset.presets.length == 0">No presets defined</li>
+                                    <li ng-repeat="preset in $ctrl.selectedShortcutPreset.presets">
+                                        <code>{{preset.command}}</code> - {{preset.description}}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </md-dialog-content>
+
+                <md-dialog-actions layout="row">
+                    <span flex></span>
+                    <md-button ng-click="$ctrl.close()">
+                        Close
+                    </md-button>
+                </md-dialog-actions>
+        </script>
+
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
 
-        <script src="https://cdn.socket.io/socket.io-1.3.7.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
         <script src="/assets/app.js"></script>
         <script src="/assets/xterm.js"></script>
         <script src="/assets/xterm-addons/fit.js"></script>
