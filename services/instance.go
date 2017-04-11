@@ -96,7 +96,7 @@ func NewInstance(session *Session, imageName string) (*Instance, error) {
 		imageName = dindImage
 	}
 	log.Printf("NewInstance - using image: [%s]\n", imageName)
-	instance, err := CreateInstance(session, dindImage)
+	instance, err := CreateInstance(session, imageName)
 	if err != nil {
 		return nil, err
 	}
