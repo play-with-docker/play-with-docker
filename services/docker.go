@@ -79,7 +79,7 @@ func SetInstanceSwarmPorts(i *Instance) error {
 		services[t.ServiceID] = []uint16{}
 	}
 	for serviceID, _ := range services {
-		s, _, err := i.dockerClient.ServiceInspectWithRaw(context.Background(), serviceID)
+		s, _, err := i.dockerClient.ServiceInspectWithRaw(context.Background(), serviceID, types.ServiceInspectOptions{})
 		if err != nil {
 			return err
 		}
