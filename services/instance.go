@@ -76,7 +76,6 @@ func (i *Instance) SetSession(s *Session) {
 }
 
 var dindImage string
-var defaultDindImageName string
 
 func init() {
 	dindImage = getDindImageName()
@@ -84,7 +83,7 @@ func init() {
 
 func getDindImageName() string {
 	dindImage := os.Getenv("DIND_IMAGE")
-	defaultDindImageName = "franela/dind"
+	defaultDindImageName := "franela/dind"
 	if len(dindImage) == 0 {
 		dindImage = defaultDindImageName
 	}
