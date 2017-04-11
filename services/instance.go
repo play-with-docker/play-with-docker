@@ -91,8 +91,11 @@ func getDindImageName() string {
 	return dindImage
 }
 
-func NewInstance(session *Session) (*Instance, error) {
-	log.Printf("NewInstance - using image: [%s]\n", dindImage)
+func NewInstance(session *Session, imageName string) (*Instance, error) {
+	if imageName == "" {
+		imageName = dindImage
+	}
+	log.Printf("NewInstance - using image: [%s]\n", imageName)
 	instance, err := CreateInstance(session, dindImage)
 	if err != nil {
 		return nil, err

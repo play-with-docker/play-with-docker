@@ -13,6 +13,10 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
 
+	body := struct{ ImageName string }{}
+
+	json.NewDecoder(req.Body).Decode(&body)
+
 	s := services.GetSession(sessionId)
 
 	s.Lock()
@@ -22,7 +26,7 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	i, err := services.NewInstance(s)
+	i, err := services.NewInstance(s, body.ImageName)
 	if err != nil {
 		log.Println(err)
 		rw.WriteHeader(http.StatusInternalServerError)
