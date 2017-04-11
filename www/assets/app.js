@@ -11,7 +11,7 @@
         }, 500);
     }]);
 
-    app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'KeyboardShortcutService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, KeyboardShortcutService) {
+    app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'KeyboardShortcutService', 'InstanceService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, KeyboardShortcutService, InstanceService) {
         $scope.sessionId = window.location.pathname.replace('/p/', '');
         $scope.instances = [];
         $scope.idx = {};
@@ -75,6 +75,7 @@
             $http({
                 method: 'POST',
                 url: '/sessions/' + $scope.sessionId + '/instances',
+                data : { ImageName : InstanceService.getDesiredImage() }
             }).then(function(response) {
                 var i = $scope.upsertInstance(response.data);
                 $scope.showInstance(i);
@@ -325,12 +326,14 @@
     })
     .component("settingsDialog", {
         templateUrl : "settings-modal.html",
-        controller : function($mdDialog, KeyboardShortcutService, $rootScope) {
+        controller : function($mdDialog, KeyboardShortcutService, $rootScope, InstanceService) {
             var $ctrl = this;
 
             $ctrl.$onInit = function() {
                 $ctrl.keyboardShortcutPresets = KeyboardShortcutService.getAvailablePresets();
                 $ctrl.selectedShortcutPreset = KeyboardShortcutService.getCurrentShortcuts();
+                $ctrl.instanceImages = InstanceService.getAvailableImages();
+                $ctrl.selectedInstanceImage = InstanceService.getDesiredImage();
             };
 
             $ctrl.currentShortcutConfig = function(value) {
@@ -341,13 +344,58 @@
                     $rootScope.$broadcast('settings:shortcutsSelected', $ctrl.selectedShortcutPreset);
                 }
                 return JSON.stringify(KeyboardShortcutService.getCurrentShortcuts());
-            }
+            };
+
+            $ctrl.currentDesiredInstanceImage = function(value) {
+                if (value !== undefined) {
+                    InstanceService.setDesiredImage(value);
+                }
+                return InstanceService.getDesiredImage(value);
+            };
 
             $ctrl.close = function() {
                 $mdDialog.cancel();
             }
         }
     })
+    .service("InstanceService", function($http) {
+        var instanceImages = [];
+        _prepopulateAvailableImages();
+
+        return {
+            getAvailableImages : getAvailableImages,
+            setDesiredImage : setDesiredImage,
+            getDesiredImage : getDesiredImage,
+        };
+
+        function getAvailableImages() {
+            return instanceImages;
+        }
+
+        function getDesiredImage() {
+            var image = localStorage.getItem("settings.desiredImage");
+            if (image == null)
+                return instanceImages[0];
+            return image;
+        }
+
+        function setDesiredImage(image) {
+            if (image === null)
+                localStorage.removeItem("settings.desiredImage");
+            else
+                localStorage.setItem("settings.desiredImage", image);
+        }
+
+        function _prepopulateAvailableImages() {
+            return $http
+                .get("/instances/images")
+                .then(function(response) { 
+                    instanceImages = response.data; 
+                });
+        }
+
+    })
+    .run(function(InstanceService) { /* forcing pre-populating for now */ })
     .service("KeyboardShortcutService", function() {
         return {
             getAvailablePresets : getAvailablePresets,
@@ -394,3 +442,5 @@
         }
     });
 })();
+
+

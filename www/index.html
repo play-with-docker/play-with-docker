@@ -149,6 +149,18 @@
                             </div>
                         </div>
                     </div>
+                    <div layout="row">
+                        <div flex="50">
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Instance Image</label>
+                                <md-select ng-model="$ctrl.currentDesiredInstanceImage" ng-model-options="{getterSetter: true}" placeholder="New Instance Image">
+                                    <md-option ng-repeat="image in $ctrl.instanceImages" value="{{image}}">
+                                        {{ image }}
+                                    </md-option>
+                                </md-select>
+                            </md-input-container>
+                        </div>
+                    </div>
                 </div>
                 </md-dialog-content>
 
@@ -187,3 +199,4 @@
         </script>
     </body>
 </html>
+
