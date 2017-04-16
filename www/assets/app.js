@@ -11,7 +11,7 @@
         }, 500);
     }]);
 
-    app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'KeyboardShortcutService', 'InstanceService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, KeyboardShortcutService, InstanceService) {
+    app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService) {
         $scope.sessionId = window.location.pathname.replace('/p/', '');
         $scope.instances = [];
         $scope.idx = {};
@@ -51,6 +51,8 @@
         $scope.resize = function(geometry) {
             $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
         }
+
+	KeyboardShortcutService.setResizeFunc($scope.resize);
 
         $scope.closeSession = function() {
             $scope.socket.emit('session close');
@@ -195,6 +197,7 @@
                 if (!instance.term) {
                     $timeout(function() {
                         createTerminal(instance);
+			TerminalService.setFontSize(TerminalService.getFontSize());
                         instance.term.focus();
                     }, 0, false);
                     return
@@ -326,14 +329,14 @@
     })
     .component("settingsDialog", {
         templateUrl : "settings-modal.html",
-        controller : function($mdDialog, KeyboardShortcutService, $rootScope, InstanceService) {
+        controller : function($mdDialog, KeyboardShortcutService, $rootScope, InstanceService, TerminalService) {
             var $ctrl = this;
-
             $ctrl.$onInit = function() {
                 $ctrl.keyboardShortcutPresets = KeyboardShortcutService.getAvailablePresets();
                 $ctrl.selectedShortcutPreset = KeyboardShortcutService.getCurrentShortcuts();
                 $ctrl.instanceImages = InstanceService.getAvailableImages();
                 $ctrl.selectedInstanceImage = InstanceService.getDesiredImage();
+		$ctrl.terminalFontSizes = TerminalService.getFontSizes();
             };
 
             $ctrl.currentShortcutConfig = function(value) {
@@ -352,6 +355,15 @@
                 }
                 return InstanceService.getDesiredImage(value);
             };
+	    $ctrl.currentTerminalFontSize = function(value) {
+		if (value !== undefined) {
+		    // set font size
+		    TerminalService.setFontSize(value);
+		    return;
+		}
+
+		return TerminalService.getFontSize();
+	    }
 
             $ctrl.close = function() {
                 $mdDialog.cancel();
@@ -396,20 +408,30 @@
 
     })
     .run(function(InstanceService) { /* forcing pre-populating for now */ })
-    .service("KeyboardShortcutService", function() {
+    .service("KeyboardShortcutService", ['TerminalService', function(TerminalService) {
+	var resizeFunc;
+
         return {
             getAvailablePresets : getAvailablePresets,
             getCurrentShortcuts : getCurrentShortcuts,
-            setCurrentShortcuts : setCurrentShortcuts
+            setCurrentShortcuts : setCurrentShortcuts,
+	    setResizeFunc : setResizeFunc
         };
+
+	function setResizeFunc(f) {
+		resizeFunc = f;
+	}
 
         function getAvailablePresets() {
             return [
-                { name : "None", presets : [] },
+                { name : "None", presets : [
+                        { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullscreen(context.terminal, resizeFunc); }}
+		] },
                 { 
                     name : "Mac OSX",
                     presets : [
-                        { description : "Clear terminal", command : "Cmd+K", metaKey : true, keyCode : 75, action : function(context) { context.terminal.clear(); }}
+                        { description : "Clear terminal", command : "Cmd+K", metaKey : true, keyCode : 75, action : function(context) { context.terminal.clear(); }},
+                        { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullscreen(context.terminal, resizeFunc); }}
                     ]
                 }
             ]
@@ -440,7 +462,72 @@
                 return "Mac OSX";
             return null;
         }
-    });
+    }])
+    .service('TerminalService', ['$window', function($window) {
+	var fullscreen;
+	var fontSize = getFontSize();
+	return {
+		getFontSizes : getFontSizes,
+		setFontSize : setFontSize,
+		getFontSize : getFontSize,
+		increaseFontSize : increaseFontSize,
+		decreaseFontSize : decreaseFontSize,
+		toggleFullscreen : toggleFullscreen
+	};
+	function getFontSizes() {
+ 		var terminalFontSizes = [];
+		for (var i=3; i<40; i++) {
+		    terminalFontSizes.push(i+'px');
+		}
+		return terminalFontSizes;
+	};
+	function getFontSize() {
+		if (!fontSize) {
+			return $('.terminal').css('font-size');
+		}
+		return fontSize;
+	}
+	function setFontSize(value) {
+	    fontSize = value;
+	    var size = parseInt(value);
+	    $('.terminal').css('font-size', value).css('line-height', (size + 2)+'px');
+		    //.css('line-height', value).css('height', value);
+            angular.element($window).trigger('resize');
+	}
+	function increaseFontSize() {
+		var sizes = getFontSizes();
+		var size = getFontSize();
+		var i = sizes.indexOf(size);
+		if (i == -1) {
+			return;
+		}
+		if (i+1 > sizes.length) {
+			return;
+		}
+		setFontSize(sizes[i+1]);
+	}
+	function decreaseFontSize() {
+		var sizes = getFontSizes();
+		var size = getFontSize();
+		var i = sizes.indexOf(size);
+		if (i == -1) {
+			return;
+		}
+		if (i-1 < 0) {
+			return;
+		}
+		setFontSize(sizes[i-1]);
+	}
+	function toggleFullscreen(terminal, resize) {
+		if(fullscreen) {
+			terminal.toggleFullscreen();
+			resize(fullscreen);
+			fullscreen = null;
+		} else {
+			fullscreen = terminal.proposeGeometry();
+			terminal.toggleFullscreen();
+			angular.element($window).trigger('resize');
+		}
+	}
+    }]);
 })();
-
-

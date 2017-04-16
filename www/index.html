@@ -5,6 +5,7 @@
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic|Material+Icons" />
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
         <link rel="stylesheet" href="/assets/xterm.css" />
+	<link rel="stylesheet" href="/assets/xterm-addons/fullscreen.css" />
         <link rel="stylesheet" href="/assets/style.css" />
         <script>
             (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -161,6 +162,18 @@
                             </md-input-container>
                         </div>
                     </div>
+                    <div layout="row">
+                        <div flex="50">
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Terminal Font Size</label>
+                                <md-select ng-model="$ctrl.currentTerminalFontSize" ng-model-options="{getterSetter: true}">
+                                    <md-option ng-repeat="size in $ctrl.terminalFontSizes" value="{{size}}">
+                                        {{ size }}
+                                    </md-option>
+                                </md-select>
+                            </md-input-container>
+                        </div>
+                    </div>
                 </div>
                 </md-dialog-content>
 
@@ -172,6 +185,11 @@
                 </md-dialog-actions>
         </script>
 
+	<script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+      crossorigin="anonymous"></script>
+
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
@@ -182,6 +200,7 @@
         <script src="/assets/app.js"></script>
         <script src="/assets/xterm.js"></script>
         <script src="/assets/xterm-addons/fit.js"></script>
+        <script src="/assets/xterm-addons/fullscreen.js"></script>
         <script src="/assets/attach.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.16.0/moment.min.js"></script>
         <script type="text/javascript" charset="utf-8">
