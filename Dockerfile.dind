@@ -2,10 +2,11 @@ FROM docker:17.04.0-ce-dind
 
 RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq
 
-ENV COMPOSE_VERSION=1.11.1
+ENV COMPOSE_VERSION=1.12.0
+ENV MACHINE_VERSION=v0.10.0
 # Install Compose and Machine
 RUN pip install docker-compose==${COMPOSE_VERSION}
-RUN curl -L https://github.com/docker/machine/releases/download/v0.9.0-rc1/docker-machine-Linux-x86_64 \
+RUN curl -L https://github.com/docker/machine/releases/download/${MACHINE_VERSION}/docker-machine-Linux-x86_64 \
     -o /usr/bin/docker-machine && chmod +x /usr/bin/docker-machine
 
 # Compile and install httping

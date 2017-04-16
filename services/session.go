@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -131,8 +132,10 @@ func (s *Session) SchedulePeriodicTasks() {
 			wg.Wait()
 			// broadcast all information
 			for _, ins := range s.Instances {
-				ins.Ports = ins.tempPorts
+				ins.Ports = UInt16Slice(ins.tempPorts)
+				sort.Sort(ins.Ports)
 				ins.tempPorts = []uint16{}
+
 				wsServer.BroadcastTo(ins.session.Id, "instance stats", ins.Name, ins.Mem, ins.Cpu, ins.IsManager, ins.Ports)
 			}
 		}

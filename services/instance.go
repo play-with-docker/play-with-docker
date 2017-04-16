@@ -17,6 +17,12 @@ import (
 
 var rw sync.Mutex
 
+type UInt16Slice []uint16
+
+func (p UInt16Slice) Len() int           { return len(p) }
+func (p UInt16Slice) Less(i, j int) bool { return p[i] < p[j] }
+func (p UInt16Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
 type Instance struct {
 	session      *Session                `json:"-"`
 	Name         string                  `json:"name"`
@@ -28,11 +34,11 @@ type Instance struct {
 	IsManager    *bool                   `json:"is_manager"`
 	Mem          string                  `json:"mem"`
 	Cpu          string                  `json:"cpu"`
-	Ports        []uint16                `json:"ports"`
-	tempPorts    []uint16                `json:"-"`
-	ServerCert   []byte                  `json:"server_cert"`
-	ServerKey    []byte                  `json:"server_key"`
-	cert         *tls.Certificate        `json:"-"`
+	Ports        UInt16Slice
+	tempPorts    []uint16         `json:"-"`
+	ServerCert   []byte           `json:"server_cert"`
+	ServerKey    []byte           `json:"server_key"`
+	cert         *tls.Certificate `json:"-"`
 }
 
 func (i *Instance) setUsedPort(port uint16) {
