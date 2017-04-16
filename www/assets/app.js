@@ -52,6 +52,8 @@
             $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
         }
 
+	KeyboardShortcutService.setResizeFunc($scope.resize);
+
         $scope.closeSession = function() {
             $scope.socket.emit('session close');
         }
@@ -407,22 +409,29 @@
     })
     .run(function(InstanceService) { /* forcing pre-populating for now */ })
     .service("KeyboardShortcutService", ['TerminalService', function(TerminalService) {
+	var resizeFunc;
+
         return {
             getAvailablePresets : getAvailablePresets,
             getCurrentShortcuts : getCurrentShortcuts,
-            setCurrentShortcuts : setCurrentShortcuts
+            setCurrentShortcuts : setCurrentShortcuts,
+	    setResizeFunc : setResizeFunc
         };
+
+	function setResizeFunc(f) {
+		resizeFunc = f;
+	}
 
         function getAvailablePresets() {
             return [
                 { name : "None", presets : [
-                        { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullscreen(context.terminal); }}
+                        { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullscreen(context.terminal, resizeFunc); }}
 		] },
                 { 
                     name : "Mac OSX",
                     presets : [
                         { description : "Clear terminal", command : "Cmd+K", metaKey : true, keyCode : 75, action : function(context) { context.terminal.clear(); }},
-                        { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullscreen(context.terminal); }}
+                        { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullscreen(context.terminal, resizeFunc); }}
                     ]
                 }
             ]
@@ -454,7 +463,8 @@
             return null;
         }
     }])
-    .service('TerminalService', function() {
+    .service('TerminalService', ['$window', function($window) {
+	var fullscreen;
 	var fontSize = getFontSize();
 	return {
 		getFontSizes : getFontSizes,
@@ -479,9 +489,10 @@
 	}
 	function setFontSize(value) {
 	    fontSize = value;
-	    $('.terminal').find('*').css('font-size', value);
-	    $('.terminal').find('*').css('line-height', value);
-	    $('.terminal').find('*').css('height', value);
+	    var size = parseInt(value);
+	    $('.terminal').css('font-size', value).css('line-height', (size + 2)+'px');
+		    //.css('line-height', value).css('height', value);
+            angular.element($window).trigger('resize');
 	}
 	function increaseFontSize() {
 		var sizes = getFontSizes();
@@ -507,10 +518,16 @@
 		}
 		setFontSize(sizes[i-1]);
 	}
-	function toggleFullscreen(terminal) {
-		terminal.toggleFullscreen();
+	function toggleFullscreen(terminal, resize) {
+		if(fullscreen) {
+			terminal.toggleFullscreen();
+			resize(fullscreen);
+			fullscreen = null;
+		} else {
+			fullscreen = terminal.proposeGeometry();
+			terminal.toggleFullscreen();
+			angular.element($window).trigger('resize');
+		}
 	}
-    });
+    }]);
 })();
-
-
