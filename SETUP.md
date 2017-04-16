@@ -86,8 +86,14 @@ profile docker-dind flags=(attach_disconnected,mediate_deleted) {
   deny @{PROC}/kmem rwklx,
   deny @{PROC}/sys/kernel/[^s][^h][^m]* wklx,
   deny @{PROC}/sys/kernel/*/** wklx,
+  deny /etc/apparmor.d/cache/docker** rwklx,
 
+  # only allow to mount in graph folder
   deny mount fstype=proc -> /[^g]**,
+
+  # only allow to mount in proc folder
+  deny mount options=bind /proc/sysrq-trigger -> /[^p]**,
+
 
 
   deny mount /dev/s*,
@@ -117,6 +123,7 @@ net.ipv4.neigh.default.gc_thresh2 = 8192
 net.ipv4.neigh.default.gc_thresh1 = 4096
 fs.inotify.max_user_instances = 10000
 kernel.sysrq = 0
+net.ipv4.tcp_tw_recycle = 1
 ```
 
 12.a. Change kernel config
