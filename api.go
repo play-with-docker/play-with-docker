@@ -65,8 +65,8 @@ func main() {
 	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))
 
 	// Specific routes
-	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).Handler(tcpHandler)
-	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).Handler(tcpHandler)
+	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).Handler(tcpHandler)
+	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}}.{tld:.*}`).Handler(tcpHandler)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	corsRouter.HandleFunc("/instances/images", handlers.GetInstanceImages).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
@@ -116,7 +116,7 @@ func main() {
 
 	ssl := mux.NewRouter()
 	sslProxyHandler := handlers.NewSSLDaemonHandler()
-	ssl.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
+	ssl.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
 	log.Println("Listening TLS on port " + config.SSLPortNumber)
 
 	s := &http.Server{Addr: "0.0.0.0:" + config.SSLPortNumber, Handler: ssl}
@@ -125,7 +125,8 @@ func main() {
 
 		chunks := strings.Split(clientHello.ServerName, ".")
 		chunks = strings.Split(chunks[0], "-")
-		ip := strings.Replace(strings.TrimPrefix(chunks[0], "pwd"), "_", ".", -1)
+		ipAndPort := strings.TrimPrefix(chunks[0], "pwd")
+		ip := strings.Replace(ipAndPort[0:strings.LastIndex(ipAndPort, "-")], "-", ".", -1)
 		i := services.FindInstanceByIP(ip)
 		if i == nil {
 			return nil, fmt.Errorf("Instance %s doesn't exist", clientHello.ServerName)
@@ -138,15 +139,21 @@ func main() {
 	log.Fatal(s.ListenAndServeTLS("", ""))
 }
 
-var dnsFilter = regexp.MustCompile(`pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}`)
+var dnsFilter = regexp.MustCompile(`pwd[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}`)
 
 func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 	if len(r.Question) > 0 && dnsFilter.MatchString(r.Question[0].Name) {
 		// this is something we know about and we should try to handle
 		question := r.Question[0].Name
 		domainChunks := strings.Split(question, ".")
-		tldChunks := strings.Split(strings.TrimPrefix(domainChunks[0], "pwd"), "-")
-		ip := strings.Replace(tldChunks[0], "_", ".", -1)
+		ipAndPort := strings.TrimPrefix(domainChunks[0], "pwd")
+		ip := ""
+
+		if len(strings.Split(ipAndPort, "-")) == 5 {
+			ip = strings.Replace(ipAndPort[0:strings.LastIndex(ipAndPort, "-")], "-", ".", -1)
+		} else {
+			ip = strings.Replace(ipAndPort, "-", ".", -1)
+		}
 
 		m := new(dns.Msg)
 		m.SetReply(r)

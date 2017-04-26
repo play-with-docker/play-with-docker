@@ -27,7 +27,7 @@ func getTargetInfo(vars map[string]string, req *http.Request) (string, string) {
 
 	if strings.HasPrefix(node, "pwd") {
 		// Node is actually an ip, need to convert underscores by dots.
-		ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "_", ".", -1)
+		ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "-", ".", -1)
 
 		if net.ParseIP(ip) == nil {
 			// Not a valid IP, so treat this is a hostname.
@@ -132,7 +132,7 @@ func NewSSLDaemonHandler() http.Handler {
 		node := v["node"]
 		if strings.HasPrefix(node, "pwd") {
 			// Node is actually an ip, need to convert underscores by dots.
-			ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "_", ".", -1)
+			ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "-", ".", -1)
 
 			if net.ParseIP(ip) == nil {
 				// Not a valid IP, so treat this is a hostname.
