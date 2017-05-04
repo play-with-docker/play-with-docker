@@ -200,7 +200,12 @@ func ResizeConnection(name string, cols, rows uint) error {
 }
 
 func CreateInstance(session *Session, dindImage string) (*Instance, error) {
-	h := &container.HostConfig{NetworkMode: container.NetworkMode(session.Id), Privileged: true, AutoRemove: true}
+	h := &container.HostConfig{
+		NetworkMode: container.NetworkMode(session.Id),
+		Privileged:  true,
+		AutoRemove:  true,
+		LogConfig:   container.LogConfig{Config: map[string]string{"max-size": "10m", "max-file": "1"}},
+	}
 
 	if os.Getenv("APPARMOR_PROFILE") != "" {
 		h.SecurityOpt = []string{fmt.Sprintf("apparmor=%s", os.Getenv("APPARMOR_PROFILE"))}
