@@ -27,6 +27,7 @@ RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/mo
 # Install a nice vimrc file and prompt (by soulshake)
 COPY ["docker-prompt","/usr/local/bin/"]
 COPY [".vimrc",".profile", ".inputrc", ".gitconfig", "./root/"]
+COPY ["motd", "/etc/motd"]
 COPY ["daemon.json", "/etc/docker/"]
 
 ARG docker_storage_driver=overlay2
