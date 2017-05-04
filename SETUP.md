@@ -24,7 +24,24 @@ sudo service docker stop
 ```
 
 4. Install devicemapper with directlvm
-Follow instructions on [https://docs.docker.com/engine/userguide/storagedriver/device-mapper-driver/#configure-direct-lvm-mode-for-production]
+
+```bash
+apt-get install -y thin-provisioning-tools
+pvcreate /dev/xvdb
+vgcreate docker /dev/xvdb
+lvcreate --wipesignatures y -n thinpool docker -l 95%VG
+lvcreate --wipesignatures y -n thinpoolmeta docker -l 1%VG
+lvconvert -y --zero n -c 512K --thinpool docker/thinpool --poolmetadata docker/thinpoolmeta
+mkdir -p /etc/lvm/profile/
+echo '
+activation {
+    thin_pool_autoextend_threshold=80
+    thin_pool_autoextend_percent=20
+}
+' > /etc/lvm/profile/docker-thinpool.profile
+lvchange --metadataprofile docker-thinpool docker/thinpool
+lvs -o+seg_monitor
+```
 
 5. Remove files
 ```bash
@@ -63,6 +80,7 @@ sudo iptables -t nat -A PREROUTING -p tcp -m multiport --dports 1024:2376,2378:7
 9. Start docker swarm
 ```bash
 docker swarm init
+
 ```
 
 10. Make sure apparmor file is there and load it
@@ -90,6 +108,7 @@ profile docker-dind flags=(attach_disconnected,mediate_deleted) {
 
   # only allow to mount in graph folder
   deny mount fstype=proc -> /[^g]**,
+  deny mount fstype=devtmpfs,
 
   # only allow to mount in proc folder
   deny mount options=bind /proc/sysrq-trigger -> /[^p]**,
