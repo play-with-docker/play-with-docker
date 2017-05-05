@@ -460,7 +460,7 @@
         function getDefaultShortcutPrefixName() {
             if (window.navigator.platform.toUpperCase().indexOf('MAC') >= 0)
                 return "Mac OSX";
-            return null;
+            return "None";
         }
     }])
     .service('TerminalService', ['$window', function($window) {
