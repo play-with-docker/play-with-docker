@@ -183,7 +183,7 @@ func CloseSession(s *Session) error {
 		}
 	}
 	// Disconnect PWD daemon from the network
-	if err := DisconnectNetwork("pwd", s.Id); err != nil {
+	if err := DisconnectNetwork(config.PWDContainerName, s.Id); err != nil {
 		if !strings.Contains(err.Error(), "is not connected to the network") {
 			log.Println("ERROR NETWORKING")
 			return err
