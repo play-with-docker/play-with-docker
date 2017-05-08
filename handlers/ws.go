@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/franela/play-with-docker/services"
 	"github.com/googollee/go-socket.io"
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func WS(so socketio.Socket) {

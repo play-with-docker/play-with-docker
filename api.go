@@ -10,13 +10,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/franela/play-with-docker/config"
-	"github.com/franela/play-with-docker/handlers"
-	"github.com/franela/play-with-docker/services"
-	"github.com/franela/play-with-docker/templates"
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/miekg/dns"
+	"github.com/play-with-docker/play-with-docker/config"
+	"github.com/play-with-docker/play-with-docker/handlers"
+	"github.com/play-with-docker/play-with-docker/services"
+	"github.com/play-with-docker/play-with-docker/templates"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
 )
@@ -219,5 +219,3 @@ func handleDnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 		}
 	}
 }
-
-
