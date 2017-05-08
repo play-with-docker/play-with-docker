@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"html/template"
 
-	"github.com/franela/play-with-docker/services"
+	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func GetWelcomeTemplate() ([]byte, error) {

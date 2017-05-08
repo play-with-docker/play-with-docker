@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/franela/play-with-docker/config"
 	"github.com/gorilla/securecookie"
+	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/twinj/uuid"
 )
 

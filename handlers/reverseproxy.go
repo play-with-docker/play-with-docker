@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/franela/play-with-docker/config"
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/config"
 )
 
 func getTargetInfo(vars map[string]string, req *http.Request) (string, string) {
