@@ -11,6 +11,7 @@
             <h2>We're bypassing the Captcha and redirecting you now..</h2>
             <form id="welcomeFormBypass" method="POST" action="/">
                 <button id="start" type="submit">Start Session</button>
+                <input id="stack" type="hidden" name="stack" value=""/>
             </form>
         </div>
     </body>
@@ -21,4 +22,20 @@
     <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
 
     <script src="/assets/app.js"></script>
+    <script>
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
+
+        var stack = getParameterByName('stack');
+        if (stack) {
+            document.getElementById('stack').value = stack;
+        }
+    </script>
 </html>

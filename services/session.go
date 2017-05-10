@@ -54,6 +54,7 @@ type Session struct {
 	scheduled    bool                 `json:"-"`
 	ticker       *time.Ticker         `json:"-"`
 	PwdIpAddress string               `json:"pwd_ip_address"`
+	StackFile    string               `json:"-"`
 }
 
 func (s *Session) Lock() {

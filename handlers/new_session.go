@@ -24,6 +24,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	reqDur := req.Form.Get("session-duration")
+	stack := req.Form.Get("stack")
 
 	duration := services.GetDuration(reqDur)
 	s, err := services.NewSession(duration)
@@ -31,7 +32,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		log.Println(err)
 		//TODO: Return some error code
 	} else {
-
+		s.StackFile = stack
 		hostname := fmt.Sprintf("%s.%s", config.PWDCName, req.Host)
 		// If request is not a form, return sessionId in the body
 		if req.Header.Get("X-Requested-With") == "XMLHttpRequest" {
