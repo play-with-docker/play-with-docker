@@ -8,16 +8,20 @@ import (
 	"strings"
 
 	"github.com/miekg/dns"
+	"github.com/play-with-docker/play-with-docker/services"
 )
 
-var dnsFilter = regexp.MustCompile(`pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}`)
+var dnsFilter = regexp.MustCompile(`^.*pwd([0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}(?:-[0-9]{1,5})?)\..*$`)
+var aliasFilter = regexp.MustCompile(`^.*pwd(.*?)-(.*?)[\.-].*`)
 
 func DnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 	if len(r.Question) > 0 && dnsFilter.MatchString(r.Question[0].Name) {
 		// this is something we know about and we should try to handle
 		question := r.Question[0].Name
-		domainChunks := strings.Split(question, ".")
-		tldChunks := strings.Split(strings.TrimPrefix(domainChunks[0], "pwd"), "-")
+
+		match := dnsFilter.FindStringSubmatch(question)
+
+		tldChunks := strings.Split(match[1], "-")
 		ip := strings.Replace(tldChunks[0], "_", ".", -1)
 
 		m := new(dns.Msg)
@@ -25,6 +29,25 @@ func DnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 		m.Authoritative = true
 		m.RecursionAvailable = true
 		a, err := dns.NewRR(fmt.Sprintf("%s 60 IN A %s", question, ip))
+		if err != nil {
+			log.Fatal(err)
+		}
+		m.Answer = append(m.Answer, a)
+		w.WriteMsg(m)
+		return
+	} else if len(r.Question) > 0 && aliasFilter.MatchString(r.Question[0].Name) {
+		// this is something we know about and we should try to handle
+		question := r.Question[0].Name
+
+		match := aliasFilter.FindStringSubmatch(question)
+
+		i := services.FindInstanceByAlias(match[2], match[1])
+
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Authoritative = true
+		m.RecursionAvailable = true
+		a, err := dns.NewRR(fmt.Sprintf("%s 60 IN A %s", question, i.IP))
 		if err != nil {
 			log.Fatal(err)
 		}

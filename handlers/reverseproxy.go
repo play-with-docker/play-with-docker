@@ -32,6 +32,7 @@ func getTargetInfo(vars map[string]string, req *http.Request) (string, string) {
 		instance := services.FindInstanceByAlias(sessionPrefix, alias)
 		if instance != nil {
 			node = instance.IP
+			return node, port
 		}
 	}
 
