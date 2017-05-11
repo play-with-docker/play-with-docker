@@ -280,16 +280,6 @@ func GetSession(sessionId string) *Session {
 	return s
 }
 
-func GetSessionByPrefix(sessionPrefix string) *Session {
-
-	for id, s := range sessions {
-		if strings.HasPrefix(id, sessionPrefix) {
-			return s
-		}
-	}
-	return nil
-}
-
 func setGauges() {
 	var ins float64
 	var cli float64
