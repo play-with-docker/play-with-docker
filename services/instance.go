@@ -34,6 +34,7 @@ type Instance struct {
 	IsManager    *bool                   `json:"is_manager"`
 	Mem          string                  `json:"mem"`
 	Cpu          string                  `json:"cpu"`
+	Alias        string                  `json:"alias"`
 	Ports        UInt16Slice
 	tempPorts    []uint16         `json:"-"`
 	ServerCert   []byte           `json:"server_cert"`
@@ -96,7 +97,7 @@ func getDindImageName() string {
 	return dindImage
 }
 
-func NewInstance(session *Session, imageName string) (*Instance, error) {
+func NewInstance(session *Session, imageName, alias string) (*Instance, error) {
 	if imageName == "" {
 		imageName = dindImage
 	}
@@ -105,6 +106,9 @@ func NewInstance(session *Session, imageName string) (*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	instance.Alias = alias
+
 	instance.session = session
 
 	if session.Instances == nil {
@@ -168,6 +172,19 @@ func FindInstanceByIP(ip string) *Instance {
 		for _, i := range s.Instances {
 			if i.IP == ip {
 				return i
+			}
+		}
+	}
+	return nil
+}
+
+func FindInstanceByAlias(sessionPrefix, alias string) *Instance {
+	for id, s := range sessions {
+		if strings.HasPrefix(id, sessionPrefix) {
+			for _, i := range s.Instances {
+				if i.Alias == alias {
+					return i
+				}
 			}
 		}
 	}
