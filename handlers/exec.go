@@ -10,11 +10,11 @@ import (
 )
 
 type execRequest struct {
-	Command []string `json:"command"`
+	Cmd []string `json:"command"`
 }
 
 type execResponse struct {
-	StatusCode int `json:"status_code"`
+	ExitCode int `json:"status_code"`
 }
 
 func Exec(rw http.ResponseWriter, req *http.Request) {
@@ -28,7 +28,7 @@ func Exec(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	code, err := services.Exec(instanceName, er.Command)
+	code, err := services.Exec(instanceName, er.Cmd)
 
 	if err != nil {
 		log.Println(err)
