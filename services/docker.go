@@ -274,3 +274,20 @@ func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 func DeleteContainer(id string) error {
 	return c.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
 }
+
+func Exec(instanceName string, command []string) (int, error) {
+	e, err := c.ContainerExecCreate(context.Background(), instanceName, types.ExecConfig{Cmd: command})
+	if err != nil {
+		return 0, err
+	}
+	err = c.ContainerExecStart(context.Background(), e.ID, types.ExecStartCheck{})
+	if err != nil {
+		return 0, err
+	}
+	ins, err := c.ContainerExecInspect(context.Background(), e.ID)
+	if err != nil {
+		return 0, err
+	}
+	return ins.ExitCode, nil
+
+}
