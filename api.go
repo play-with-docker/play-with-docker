@@ -65,6 +65,8 @@ func main() {
 	// Specific routes
 	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).Handler(tcpHandler)
 	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).Handler(tcpHandler)
+	r.Host(`{alias:.*}-{session:.*}-{port:[0-9]*}.{tld:.*}`).Handler(tcpHandler)
+	r.Host(`{alias:.*}-{session:.*}.{tld:.*}`).Handler(tcpHandler)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	corsRouter.HandleFunc("/instances/images", handlers.GetInstanceImages).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")

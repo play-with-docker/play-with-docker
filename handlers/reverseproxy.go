@@ -11,11 +11,14 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/config"
+	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func getTargetInfo(vars map[string]string, req *http.Request) (string, string) {
 	node := vars["node"]
 	port := vars["port"]
+	alias := vars["alias"]
+	sessionPrefix := vars["session"]
 	hostPort := strings.Split(req.Host, ":")
 
 	// give priority to the URL host port
@@ -23,6 +26,13 @@ func getTargetInfo(vars map[string]string, req *http.Request) (string, string) {
 		port = hostPort[1]
 	} else if port == "" {
 		port = "80"
+	}
+
+	if alias != "" {
+		instance := services.FindInstanceByAlias(sessionPrefix, alias)
+		if instance != nil {
+			node = instance.IP
+		}
 	}
 
 	if strings.HasPrefix(node, "pwd") {
