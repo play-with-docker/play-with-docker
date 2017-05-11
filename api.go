@@ -1,12 +1,9 @@
 package main
 
 import (
-	"crypto/tls"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -71,9 +68,9 @@ func main() {
 	corsRouter.HandleFunc("/instances/images", handlers.GetInstanceImages).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances", handlers.NewInstance).Methods("POST")
+	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/uploads", handlers.FileUpload).Methods("POST")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", handlers.DeleteInstance).Methods("DELETE")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/exec", handlers.Exec).Methods("POST")
-	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/keys", handlers.SetKeys).Methods("POST")
 
 	h := func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./www/index.html")
@@ -115,26 +112,6 @@ func main() {
 		log.Fatal(http.ListenAndServe("0.0.0.0:"+config.PortNumber, n))
 	}()
 
-	ssl := mux.NewRouter()
-	sslProxyHandler := handlers.NewSSLDaemonHandler()
-	ssl.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-2375.{tld:.*}`).Handler(sslProxyHandler)
-	log.Println("Listening TLS on port " + config.SSLPortNumber)
-
-	s := &http.Server{Addr: "0.0.0.0:" + config.SSLPortNumber, Handler: ssl}
-	s.TLSConfig = &tls.Config{}
-	s.TLSConfig.GetCertificate = func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-
-		chunks := strings.Split(clientHello.ServerName, ".")
-		chunks = strings.Split(chunks[0], "-")
-		ip := strings.Replace(strings.TrimPrefix(chunks[0], "pwd"), "_", ".", -1)
-		i := services.FindInstanceByIP(ip)
-		if i == nil {
-			return nil, fmt.Errorf("Instance %s doesn't exist", clientHello.ServerName)
-		}
-		if i.GetCertificate() == nil {
-			return nil, fmt.Errorf("Instance %s doesn't have a certificate", clientHello.ServerName)
-		}
-		return i.GetCertificate(), nil
-	}
-	log.Fatal(s.ListenAndServeTLS("", ""))
+	// Now listen for TLS connections that need to be proxied
+	handlers.StartTLSProxy(config.SSLPortNumber)
 }
