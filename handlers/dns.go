@@ -11,7 +11,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/services"
 )
 
-var dnsFilter = regexp.MustCompile(`^.*pwd([0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}(?:-[0-9]{1,5})?)\..*$`)
+var dnsFilter = regexp.MustCompile(`^.*pwd([0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}(?:-[0-9]{1,5})?)\..*$`)
 var aliasFilter = regexp.MustCompile(`^.*pwd(.*?)-(.*?)[\.-].*`)
 
 func DnsRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -22,7 +22,7 @@ func DnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 		match := dnsFilter.FindStringSubmatch(question)
 
 		tldChunks := strings.Split(match[1], "-")
-		ip := strings.Replace(tldChunks[0], "_", ".", -1)
+		ip := strings.Replace(tldChunks[0], "-", ".", -1)
 
 		m := new(dns.Msg)
 		m.SetReply(r)

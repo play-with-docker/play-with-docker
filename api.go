@@ -60,8 +60,8 @@ func main() {
 	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))
 
 	// Specific routes
-	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).Handler(tcpHandler)
-	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}}.{tld:.*}`).Handler(tcpHandler)
+	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}}-{port:[0-9]*}.{tld:.*}`).Handler(tcpHandler)
+	r.Host(`{subdomain:.*}{node:pwd[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}}.{tld:.*}`).Handler(tcpHandler)
 	r.Host(`pwd{alias:.*}-{session:.*}-{port:[0-9]*}.{tld:.*}`).Handler(tcpHandler)
 	r.Host(`pwd{alias:.*}-{session:.*}.{tld:.*}`).Handler(tcpHandler)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")

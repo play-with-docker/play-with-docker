@@ -13,7 +13,7 @@ import (
 )
 
 func StartTLSProxy(port string) {
-	var validProxyHost = regexp.MustCompile(`^.*pwd([0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}(?:-[0-9]{1,5})?)\..*$`)
+	var validProxyHost = regexp.MustCompile(`^.*pwd([0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}(?:-[0-9]{1,5})?)\..*$`)
 
 	tlsListener, tlsErr := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	log.Println("Listening on port " + port)
