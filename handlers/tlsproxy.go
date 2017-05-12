@@ -8,12 +8,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/franela/play-with-docker.old/config"
 	vhost "github.com/inconshreveable/go-vhost"
+	"github.com/play-with-docker/play-with-docker/config"
 )
 
 func StartTLSProxy(port string) {
-	var validProxyHost = regexp.MustCompile(`^.*(pwd[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}(?:-[0-9]{1,5})?)\..*$`)
+	var validProxyHost = regexp.MustCompile(`^.*pwd([0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}(?:-[0-9]{1,5})?)\..*$`)
 
 	tlsListener, tlsErr := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	log.Println("Listening on port " + port)
@@ -61,7 +61,7 @@ func StartTLSProxy(port string) {
 				targetPort = target[1]
 			}
 
-			ip := strings.Replace(strings.TrimPrefix(target[0], "pwd"), "_", ".", -1)
+			ip := strings.Replace(target[0], "_", ".", -1)
 
 			if net.ParseIP(ip) == nil {
 				// Not a valid IP, so treat this is a hostname.

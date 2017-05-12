@@ -318,23 +318,14 @@ func CreateInstance(session *Session, conf InstanceConfig) (*Instance, error) {
 		return nil, err
 	}
 
-	if len(conf.ServerCert) > 0 {
-		copyErr := CopyToContainer(containerName, containerCertDir, "cert.pem", bytes.NewReader(conf.ServerCert))
-		if copyErr != nil {
-			return nil, copyErr
-		}
+	if err := copyIfSet(conf.ServerCert, "cert.pem", containerCertDir, containerName); err != nil {
+		return nil, err
 	}
-	if len(conf.ServerKey) > 0 {
-		copyErr := CopyToContainer(containerName, containerCertDir, "key.pem", bytes.NewReader(conf.ServerKey))
-		if copyErr != nil {
-			return nil, copyErr
-		}
+	if err := copyIfSet(conf.ServerKey, "key.pem", containerCertDir, containerName); err != nil {
+		return nil, err
 	}
-	if len(conf.CACert) > 0 {
-		copyErr := CopyToContainer(containerName, containerCertDir, "ca.pem", bytes.NewReader(conf.CACert))
-		if copyErr != nil {
-			return nil, copyErr
-		}
+	if err := copyIfSet(conf.CACert, "ca.pem", containerCertDir, containerName); err != nil {
+		return nil, err
 	}
 
 	err = c.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{})
@@ -348,6 +339,13 @@ func CreateInstance(session *Session, conf InstanceConfig) (*Instance, error) {
 	}
 
 	return &Instance{Name: containerName, Hostname: cinfo.Config.Hostname, IP: cinfo.NetworkSettings.Networks[session.Id].IPAddress}, nil
+}
+
+func copyIfSet(content []byte, fileName, path, containerName string) error {
+	if len(content) > 0 {
+		return CopyToContainer(containerName, path, fileName, bytes.NewReader(content))
+	}
+	return nil
 }
 
 func DeleteContainer(id string) error {
