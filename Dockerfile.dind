@@ -38,6 +38,8 @@ ENV DOCKER_STORAGE_DRIVER=$docker_storage_driver
 # Move to our home
 WORKDIR /root
 
+RUN mkdir -p /var/run/pwd/certs && mkdir -p /var/run/pwd/uploads
+
 # Remove IPv6 alias for localhost and start docker in the background ...
 CMD cat /etc/hosts >/etc/hosts.bak && \
     sed 's/^::1.*//' /etc/hosts.bak > /etc/hosts && \

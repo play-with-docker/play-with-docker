@@ -3,9 +3,12 @@ package services
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -40,6 +43,14 @@ type Instance struct {
 	ServerCert   []byte           `json:"server_cert"`
 	ServerKey    []byte           `json:"server_key"`
 	cert         *tls.Certificate `json:"-"`
+}
+
+type InstanceConfig struct {
+	ImageName  string
+	Alias      string
+	ServerCert []byte
+	ServerKey  []byte
+	CACert     []byte
 }
 
 func (i *Instance) setUsedPort(port uint16) {
@@ -97,17 +108,17 @@ func getDindImageName() string {
 	return dindImage
 }
 
-func NewInstance(session *Session, imageName, alias string) (*Instance, error) {
-	if imageName == "" {
-		imageName = dindImage
+func NewInstance(session *Session, conf InstanceConfig) (*Instance, error) {
+	if conf.ImageName == "" {
+		conf.ImageName = dindImage
 	}
-	log.Printf("NewInstance - using image: [%s]\n", imageName)
-	instance, err := CreateInstance(session, imageName)
+	log.Printf("NewInstance - using image: [%s]\n", conf.ImageName)
+	instance, err := CreateInstance(session, conf)
 	if err != nil {
 		return nil, err
 	}
 
-	instance.Alias = alias
+	instance.Alias = conf.Alias
 
 	instance.session = session
 
@@ -163,6 +174,29 @@ func (i *Instance) Attach() {
 	case <-i.ctx.Done():
 	}
 }
+
+func (i *Instance) UploadFromURL(url string) error {
+	log.Printf("Downloading file [%s]\n", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("Could not download file [%s]. Error: %s\n", url, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Could not download file [%s]. Status code: %d\n", url, resp.StatusCode)
+	}
+
+	_, fileName := filepath.Split(url)
+
+	copyErr := CopyToContainer(i.Name, "/var/run/pwd/uploads", fileName, resp.Body)
+
+	if copyErr != nil {
+		return fmt.Errorf("Error while downloading file [%s]. Error: %s\n", url, copyErr)
+	}
+
+	return nil
+}
+
 func GetInstance(session *Session, name string) *Instance {
 	return session.Instances[name]
 }
