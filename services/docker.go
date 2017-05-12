@@ -282,37 +282,22 @@ func CreateInstance(session *Session, conf InstanceConfig) (*Instance, error) {
 	t := true
 	h.Resources.OomKillDisable = &t
 
-	var nodeName string
-	var containerName string
-	for i := 1; ; i++ {
-		nodeName = fmt.Sprintf("node%d", i)
-		containerName = fmt.Sprintf("%s_%s", session.Id[:8], nodeName)
-		exists := false
-		for _, instance := range session.Instances {
-			if instance.Name == containerName {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			break
-		}
-	}
-	conf := &container.Config{Hostname: nodeName,
+	env = append(env, fmt.Sprintf("PWD_IP_ADDRESS=%s", session.PwdIpAddress))
+	cf := &container.Config{Hostname: nodeName,
 		Image:        dindImage,
 		Tty:          true,
 		OpenStdin:    true,
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
-		Env:          []string{fmt.Sprintf("PWD_IP_ADDRESS=%s", session.PwdIpAddress)},
+		Env:          env,
 	}
 	networkConf := &network.NetworkingConfig{
 		map[string]*network.EndpointSettings{
 			session.Id: &network.EndpointSettings{Aliases: []string{nodeName}},
 		},
 	}
-	container, err := c.ContainerCreate(context.Background(), conf, h, networkConf, containerName)
+	container, err := c.ContainerCreate(context.Background(), cf, h, networkConf, containerName)
 
 	if err != nil {
 		return nil, err

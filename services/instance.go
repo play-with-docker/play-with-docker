@@ -45,6 +45,14 @@ type Instance struct {
 	cert         *tls.Certificate `json:"-"`
 }
 
+type InstanceConfig struct {
+	ImageName  string
+	Alias      string
+	ServerCert []byte
+	ServerKey  []byte
+	CACert     []byte
+}
+
 func (i *Instance) setUsedPort(port uint16) {
 	rw.Lock()
 	defer rw.Unlock()
@@ -100,17 +108,17 @@ func getDindImageName() string {
 	return dindImage
 }
 
-func NewInstance(session *Session, imageName, alias string) (*Instance, error) {
-	if imageName == "" {
-		imageName = dindImage
+func NewInstance(session *Session, conf InstanceConfig) (*Instance, error) {
+	if conf.ImageName == "" {
+		conf.ImageName = dindImage
 	}
-	log.Printf("NewInstance - using image: [%s]\n", imageName)
-	instance, err := CreateInstance(session, imageName)
+	log.Printf("NewInstance - using image: [%s]\n", conf.ImageName)
+	instance, err := CreateInstance(session, conf)
 	if err != nil {
 		return nil, err
 	}
 
-	instance.Alias = alias
+	instance.Alias = conf.Alias
 
 	instance.session = session
 
