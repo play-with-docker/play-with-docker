@@ -1,8 +1,11 @@
 package services
 
 import (
+	"archive/tar"
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -199,7 +202,64 @@ func ResizeConnection(name string, cols, rows uint) error {
 	return c.ContainerResize(context.Background(), name, types.ResizeOptions{Height: rows, Width: cols})
 }
 
-func CreateInstance(session *Session, dindImage string) (*Instance, error) {
+func CopyToContainer(containerName, destination, fileName string, content io.Reader) error {
+	r, w := io.Pipe()
+	b, readErr := ioutil.ReadAll(content)
+	if readErr != nil {
+		return readErr
+	}
+	t := tar.NewWriter(w)
+	go func() {
+		t.WriteHeader(&tar.Header{Name: fileName, Mode: 0600, Size: int64(len(b))})
+		t.Write(b)
+		t.Close()
+		w.Close()
+	}()
+	return c.CopyToContainer(context.Background(), containerName, destination, r, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+}
+
+func CreateInstance(session *Session, conf InstanceConfig) (*Instance, error) {
+	var nodeName string
+	var containerName string
+	for i := 1; ; i++ {
+		nodeName = fmt.Sprintf("node%d", i)
+		containerName = fmt.Sprintf("%s_%s", session.Id[:8], nodeName)
+		exists := false
+		for _, instance := range session.Instances {
+			if instance.Name == containerName {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			break
+		}
+	}
+
+	// Make sure directories are available for the new instance container
+	containerDir := "/var/run/pwd"
+	containerCertDir := fmt.Sprintf("%s/certs", containerDir)
+
+	env := []string{}
+
+	// Write certs to container cert dir
+	if len(conf.ServerCert) > 0 {
+		env = append(env, "DOCKER_TLSCERT=/var/run/pwd/certs/cert.pem")
+	}
+	if len(conf.ServerKey) > 0 {
+		env = append(env, "DOCKER_TLSKEY=/var/run/pwd/certs/key.pem")
+	}
+	if len(conf.CACert) > 0 {
+		// if ca cert is specified, verify that clients that connects present a certificate signed by the CA
+		env = append(env, "DOCKER_TLSCACERT=/var/run/pwd/certs/ca.pem")
+	}
+	if len(conf.ServerCert) > 0 || len(conf.ServerKey) > 0 || len(conf.CACert) > 0 {
+		// if any of the certs is specified, enable TLS
+		env = append(env, "DOCKER_TLSENABLE=true")
+	} else {
+		env = append(env, "DOCKER_TLSENABLE=false")
+	}
+
 	h := &container.HostConfig{
 		NetworkMode: container.NetworkMode(session.Id),
 		Privileged:  true,
@@ -256,6 +316,25 @@ func CreateInstance(session *Session, dindImage string) (*Instance, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	if len(conf.ServerCert) > 0 {
+		copyErr := CopyToContainer(containerName, containerCertDir, "cert.pem", bytes.NewReader(conf.ServerCert))
+		if copyErr != nil {
+			return nil, copyErr
+		}
+	}
+	if len(conf.ServerKey) > 0 {
+		copyErr := CopyToContainer(containerName, containerCertDir, "key.pem", bytes.NewReader(conf.ServerKey))
+		if copyErr != nil {
+			return nil, copyErr
+		}
+	}
+	if len(conf.CACert) > 0 {
+		copyErr := CopyToContainer(containerName, containerCertDir, "ca.pem", bytes.NewReader(conf.CACert))
+		if copyErr != nil {
+			return nil, copyErr
+		}
 	}
 
 	err = c.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{})
