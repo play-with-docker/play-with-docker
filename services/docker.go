@@ -244,14 +244,14 @@ func CreateInstance(session *Session, conf InstanceConfig) (*Instance, error) {
 
 	// Write certs to container cert dir
 	if len(conf.ServerCert) > 0 {
-		env = append(env, "DOCKER_TLSCERT=/var/run/pwd/certs/cert.pem")
+		env = append(env, `DOCKER_TLSCERT=\/var\/run\/pwd\/certs\/cert.pem`)
 	}
 	if len(conf.ServerKey) > 0 {
-		env = append(env, "DOCKER_TLSKEY=/var/run/pwd/certs/key.pem")
+		env = append(env, `DOCKER_TLSKEY=\/var\/run\/pwd\/certs\/key.pem`)
 	}
 	if len(conf.CACert) > 0 {
 		// if ca cert is specified, verify that clients that connects present a certificate signed by the CA
-		env = append(env, "DOCKER_TLSCACERT=/var/run/pwd/certs/ca.pem")
+		env = append(env, `DOCKER_TLSCACERT=\/var\/run\/pwd\/certs\/ca.pem`)
 	}
 	if len(conf.ServerCert) > 0 || len(conf.ServerKey) > 0 || len(conf.CACert) > 0 {
 		// if any of the certs is specified, enable TLS
@@ -323,7 +323,11 @@ func CreateInstance(session *Session, conf InstanceConfig) (*Instance, error) {
 		return nil, err
 	}
 
-	return &Instance{Name: containerName, Hostname: cinfo.Config.Hostname, IP: cinfo.NetworkSettings.Networks[session.Id].IPAddress}, nil
+	return &Instance{
+		Name:     containerName,
+		Hostname: cinfo.Config.Hostname,
+		IP:       cinfo.NetworkSettings.Networks[session.Id].IPAddress,
+	}, nil
 }
 
 func copyIfSet(content []byte, fileName, path, containerName string) error {

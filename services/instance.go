@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -38,11 +37,13 @@ type Instance struct {
 	Mem          string                  `json:"mem"`
 	Cpu          string                  `json:"cpu"`
 	Alias        string                  `json:"alias"`
+	tempPorts    []uint16                `json:"-"`
+	ServerCert   []byte                  `json:"server_cert"`
+	ServerKey    []byte                  `json:"server_key"`
+	CACert       []byte                  `json:"ca_cert"`
+	Cert         []byte                  `json:"cert"`
+	Key          []byte                  `json:"key"`
 	Ports        UInt16Slice
-	tempPorts    []uint16         `json:"-"`
-	ServerCert   []byte           `json:"server_cert"`
-	ServerKey    []byte           `json:"server_key"`
-	cert         *tls.Certificate `json:"-"`
 }
 
 type InstanceConfig struct {
@@ -51,6 +52,8 @@ type InstanceConfig struct {
 	ServerCert []byte
 	ServerKey  []byte
 	CACert     []byte
+	Cert       []byte
+	Key        []byte
 }
 
 func (i *Instance) setUsedPort(port uint16) {
@@ -63,25 +66,6 @@ func (i *Instance) setUsedPort(port uint16) {
 		}
 	}
 	i.tempPorts = append(i.tempPorts, port)
-}
-
-func (i *Instance) SetCertificate(cert, key []byte) (*tls.Certificate, error) {
-	i.ServerCert = cert
-	i.ServerKey = key
-	c, e := tls.X509KeyPair(i.ServerCert, i.ServerKey)
-	if e != nil {
-		return nil, e
-	}
-	i.cert = &c
-
-	// We store sessions as soon as we set instance keys
-	if err := saveSessionsToDisk(); err != nil {
-		return nil, err
-	}
-	return i.cert, nil
-}
-func (i *Instance) GetCertificate() *tls.Certificate {
-	return i.cert
 }
 
 func (i *Instance) IsConnected() bool {
@@ -119,7 +103,11 @@ func NewInstance(session *Session, conf InstanceConfig) (*Instance, error) {
 	}
 
 	instance.Alias = conf.Alias
-
+	instance.Cert = conf.Cert
+	instance.Key = conf.Key
+	instance.ServerCert = conf.ServerCert
+	instance.ServerKey = conf.ServerKey
+	instance.CACert = conf.CACert
 	instance.session = session
 
 	if session.Instances == nil {

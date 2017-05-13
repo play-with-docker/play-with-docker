@@ -1,6 +1,7 @@
 package services
 
 import (
+	"crypto/tls"
 	"encoding/gob"
 	"fmt"
 	"log"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/docker/docker/api"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/tlsconfig"
 	"github.com/googollee/go-socket.io"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/prometheus/client_golang/prometheus"
@@ -99,11 +101,27 @@ func (s *Session) SchedulePeriodicTasks() {
 				if i.dockerClient == nil {
 					// Need to create client to the DinD docker daemon
 
+					// We check if the client needs to use TLS
+					var tlsConfig *tls.Config
+					if len(i.Cert) > 0 && len(i.Key) > 0 {
+						tlsConfig = tlsconfig.ClientDefault()
+						tlsConfig.InsecureSkipVerify = true
+						tlsCert, err := tls.X509KeyPair(i.Cert, i.Key)
+						if err != nil {
+							log.Println("Could not load X509 key pair: %v. Make sure the key is not encrypted", err)
+							continue
+						}
+						tlsConfig.Certificates = []tls.Certificate{tlsCert}
+					}
+
 					transport := &http.Transport{
 						DialContext: (&net.Dialer{
 							Timeout:   1 * time.Second,
 							KeepAlive: 30 * time.Second,
 						}).DialContext}
+					if tlsConfig != nil {
+						transport.TLSClientConfig = tlsConfig
+					}
 					cli := &http.Client{
 						Transport: transport,
 					}
@@ -313,14 +331,6 @@ func LoadSessionsFromDisk() error {
 			for _, i := range s.Instances {
 				// wire the session back to the instance
 				i.session = s
-
-				if i.ServerCert != nil && i.ServerKey != nil {
-					_, err := i.SetCertificate(i.ServerCert, i.ServerKey)
-					if err != nil {
-						log.Println(err)
-						return err
-					}
-				}
 			}
 
 			// Connect PWD daemon to the new network

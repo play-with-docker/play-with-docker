@@ -9,10 +9,12 @@ import (
 	"strings"
 
 	vhost "github.com/inconshreveable/go-vhost"
+	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func StartTLSProxy(port string) {
 	var validProxyHost = regexp.MustCompile(`^.*pwd([0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3})(?:-?([0-9]{1,5}))?\..*$`)
+	var validAliasProxyHost = regexp.MustCompile(`^.*pwd([0-9|a-z|A-Z]*)-([0-9|a-z|A-Z]{8})(?:-?([0-9]{1,5}))?\..*$`)
 
 	tlsListener, tlsErr := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	log.Println("Listening on port " + port)
@@ -37,26 +39,42 @@ func StartTLSProxy(port string) {
 			}
 			defer vhostConn.Close()
 
-			host := vhostConn.ClientHelloMsg.ServerName
-			match := validProxyHost.FindStringSubmatch(host)
-			if len(match) < 2 {
-				// Not a valid proxy host, just close connection.
-				return
-			}
-
 			var targetIP string
 			targetPort := "443"
 
-			if len(match) == 3 {
-				targetPort = match[2]
-			}
-
-			ip := strings.Replace(match[1], "-", ".", -1)
-
-			if net.ParseIP(ip) == nil {
-				// Not a valid IP, so treat this is a hostname.
+			host := vhostConn.ClientHelloMsg.ServerName
+			match := validProxyHost.FindStringSubmatch(host)
+			if len(match) < 2 {
+				// Not a valid proxy host, try alias hosts
+				match := validAliasProxyHost.FindStringSubmatch(host)
+				if len(match) < 4 {
+					// Not valid, just close the connection
+					return
+				} else {
+					alias := match[1]
+					sessionPrefix := match[2]
+					instance := services.FindInstanceByAlias(sessionPrefix, alias)
+					if instance != nil {
+						targetIP = instance.IP
+					} else {
+						return
+					}
+					if len(match) == 4 {
+						targetPort = match[3]
+					}
+				}
 			} else {
-				targetIP = ip
+				// Valid proxy host
+				ip := strings.Replace(match[1], "-", ".", -1)
+				if net.ParseIP(ip) == nil {
+					// Not a valid IP, so treat this is a hostname.
+					return
+				} else {
+					targetIP = ip
+				}
+				if len(match) == 3 {
+					targetPort = match[2]
+				}
 			}
 
 			dest := fmt.Sprintf("%s:%s", targetIP, targetPort)
