@@ -5,16 +5,14 @@ import (
 	"io"
 	"log"
 	"net"
-	"regexp"
 	"strings"
 
 	vhost "github.com/inconshreveable/go-vhost"
+	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func StartTLSProxy(port string) {
-	var validProxyHost = regexp.MustCompile(`^.*pwd([0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3})(?:-?([0-9]{1,5}))?\..*$`)
-	var validAliasProxyHost = regexp.MustCompile(`^.*pwd([0-9|a-z|A-Z]*)-([0-9|a-z|A-Z]{8})(?:-?([0-9]{1,5}))?\..*$`)
 
 	tlsListener, tlsErr := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	log.Println("Listening on port " + port)
@@ -43,10 +41,10 @@ func StartTLSProxy(port string) {
 			targetPort := "443"
 
 			host := vhostConn.ClientHelloMsg.ServerName
-			match := validProxyHost.FindStringSubmatch(host)
+			match := config.NameFilter.FindStringSubmatch(host)
 			if len(match) < 2 {
 				// Not a valid proxy host, try alias hosts
-				match := validAliasProxyHost.FindStringSubmatch(host)
+				match := config.AliasFilter.FindStringSubmatch(host)
 				if len(match) < 4 {
 					// Not valid, just close the connection
 					return

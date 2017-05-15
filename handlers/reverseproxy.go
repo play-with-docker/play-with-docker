@@ -36,15 +36,13 @@ func getTargetInfo(vars map[string]string, req *http.Request) (string, string) {
 		}
 	}
 
-	if strings.HasPrefix(node, "pwd") {
-		// Node is actually an ip, need to convert underscores by dots.
-		ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "-", ".", -1)
+	// Node is actually an ip, need to convert underscores by dots.
+	ip := strings.Replace(node, "-", ".", -1)
 
-		if net.ParseIP(ip) == nil {
-			// Not a valid IP, so treat this is a hostname.
-		} else {
-			node = ip
-		}
+	if net.ParseIP(ip) == nil {
+		// Not a valid IP, so treat this is a hostname.
+	} else {
+		node = ip
 	}
 
 	return node, port
@@ -134,30 +132,5 @@ func NewTCPProxy() http.Handler {
 		}
 		req.URL.Host = fmt.Sprintf("%s:%s", node, port)
 	}
-	return &tcpProxy{Director: director}
-}
-
-func NewSSLDaemonHandler() http.Handler {
-	director := func(req *http.Request) {
-		v := mux.Vars(req)
-		node := v["node"]
-		if strings.HasPrefix(node, "pwd") {
-			// Node is actually an ip, need to convert underscores by dots.
-			ip := strings.Replace(strings.TrimPrefix(node, "pwd"), "-", ".", -1)
-
-			if net.ParseIP(ip) == nil {
-				// Not a valid IP, so treat this is a hostname.
-			} else {
-				node = ip
-			}
-		}
-
-		// Only proxy http for now
-		req.URL.Scheme = "http"
-
-		req.URL.Host = fmt.Sprintf("%s:%s", node, "2375")
-		log.Printf("HTTPS Reverse proxying to %s\n", req.URL.Host)
-	}
-
 	return &tcpProxy{Director: director}
 }

@@ -4,22 +4,19 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"regexp"
 	"strings"
 
 	"github.com/miekg/dns"
+	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/services"
 )
 
-var dnsFilter = regexp.MustCompile(`^.*pwd([0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3})(?:-[0-9]{1,5})?\..*$`)
-var aliasFilter = regexp.MustCompile(`^.*pwd(.*?)-(.*?)[\.-].*`)
-
 func DnsRequest(w dns.ResponseWriter, r *dns.Msg) {
-	if len(r.Question) > 0 && dnsFilter.MatchString(r.Question[0].Name) {
+	if len(r.Question) > 0 && config.NameFilter.MatchString(r.Question[0].Name) {
 		// this is something we know about and we should try to handle
 		question := r.Question[0].Name
 
-		match := dnsFilter.FindStringSubmatch(question)
+		match := config.NameFilter.FindStringSubmatch(question)
 
 		ip := strings.Replace(match[1], "-", ".", -1)
 
@@ -34,11 +31,11 @@ func DnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 		m.Answer = append(m.Answer, a)
 		w.WriteMsg(m)
 		return
-	} else if len(r.Question) > 0 && aliasFilter.MatchString(r.Question[0].Name) {
+	} else if len(r.Question) > 0 && config.AliasFilter.MatchString(r.Question[0].Name) {
 		// this is something we know about and we should try to handle
 		question := r.Question[0].Name
 
-		match := aliasFilter.FindStringSubmatch(question)
+		match := config.AliasFilter.FindStringSubmatch(question)
 
 		i := services.FindInstanceByAlias(match[2], match[1])
 
