@@ -39,7 +39,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 
 	}
 	duration := services.GetDuration(reqDur)
-	s, err := services.NewSession(duration)
+	s, err := services.NewSession(duration, stack)
 	if err != nil {
 		log.Println(err)
 		//TODO: Return some error code
@@ -54,7 +54,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		if stack != "" {
-			http.Redirect(rw, req, fmt.Sprintf("http://%s/p/%s?stack=%s", hostname, s.Id, stack), http.StatusFound)
+			http.Redirect(rw, req, fmt.Sprintf("http://%s/p/%s", hostname, s.Id), http.StatusFound)
 			return
 		}
 		http.Redirect(rw, req, fmt.Sprintf("http://%s/p/%s", hostname, s.Id), http.StatusFound)

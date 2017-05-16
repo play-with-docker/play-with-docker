@@ -365,3 +365,27 @@ func Exec(instanceName string, command []string) (int, error) {
 	return ins.ExitCode, nil
 
 }
+func ExecAttach(instanceName string, command []string, out io.Writer) (int, error) {
+	e, err := c.ContainerExecCreate(context.Background(), instanceName, types.ExecConfig{Cmd: command, AttachStdout: true, AttachStderr: true, Tty: true})
+	if err != nil {
+		return 0, err
+	}
+	resp, err := c.ContainerExecAttach(context.Background(), e.ID, types.ExecConfig{AttachStdout: true, AttachStderr: true, Tty: true})
+	if err != nil {
+		return 0, err
+	}
+	io.Copy(out, resp.Reader)
+	var ins types.ContainerExecInspect
+	for _ = range time.Tick(1 * time.Second) {
+		ins, err = c.ContainerExecInspect(context.Background(), e.ID)
+		if ins.Running {
+			continue
+		}
+		if err != nil {
+			return 0, err
+		}
+		break
+	}
+	return ins.ExitCode, nil
+
+}

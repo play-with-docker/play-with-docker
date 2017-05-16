@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"sort"
 	"strings"
 	"sync"
@@ -56,6 +57,17 @@ type Session struct {
 	scheduled    bool                 `json:"-"`
 	ticker       *time.Ticker         `json:"-"`
 	PwdIpAddress string               `json:"pwd_ip_address"`
+	Ready        bool                 `json:"ready"`
+	Stack        string               `json:"stack"`
+}
+
+type sessionBuilderWriter struct {
+	session *Session
+}
+
+func (s *sessionBuilderWriter) Write(p []byte) (n int, err error) {
+	wsServer.BroadcastTo(s.session.Id, "session builder out", string(p))
+	return len(p), nil
 }
 
 func (s *Session) Lock() {
@@ -76,6 +88,48 @@ func (s *Session) GetSmallestViewPort() ViewPort {
 	}
 
 	return ViewPort{Rows: minRows, Cols: minCols}
+}
+
+func (s *Session) DeployStack() error {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.Ready {
+		// a stack was already deployed on this session, just ignore
+		return nil
+	}
+
+	s.setReady(false)
+	i, err := NewInstance(s, InstanceConfig{})
+	if err != nil {
+		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
+		return err
+	}
+	err = i.UploadFromURL("https://raw.githubusercontent.com/play-with-docker/stacks/master" + s.Stack)
+	if err != nil {
+		log.Printf("Error uploading stack file [%s]: %s\n", s.Stack, err)
+		return err
+	}
+
+	w := sessionBuilderWriter{session: s}
+	fileName := path.Base(s.Stack)
+	code, err := ExecAttach(i.Name, []string{"docker-compose", "-f", "/var/run/pwd/uploads/" + fileName, "up", "-d"}, &w)
+	if err != nil {
+		log.Printf("Error executing stack [%s]: %s\n", s.Stack, err)
+		return err
+	}
+
+	log.Printf("Stack execution finished with code %d\n", code)
+	s.setReady(true)
+	if err := saveSessionsToDisk(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Session) setReady(ready bool) {
+	s.Ready = ready
+	wsServer.BroadcastTo(s.Id, "session ready", s.Ready)
 }
 
 func (s *Session) AddNewClient(c *Client) {
@@ -243,12 +297,16 @@ func GetDuration(reqDur string) time.Duration {
 	return defaultDuration
 }
 
-func NewSession(duration time.Duration) (*Session, error) {
+func NewSession(duration time.Duration, stack string) (*Session, error) {
 	s := &Session{}
 	s.Id = uuid.NewV4().String()
 	s.Instances = map[string]*Instance{}
 	s.CreatedAt = time.Now()
 	s.ExpiresAt = s.CreatedAt.Add(duration)
+	if stack == "" {
+		s.Ready = true
+	}
+	s.Stack = stack
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
 	// Schedule cleanup of the session

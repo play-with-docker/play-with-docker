@@ -11,6 +11,14 @@
         }, 500);
     }]);
 
+    function SessionBuilderModalController($mdDialog, $scope) {
+        $scope.createBuilderTerminal();
+
+        $scope.closeSessionBuilder = function() {
+            $mdDialog.cancel();
+        }
+    }
+
     app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService) {
         $scope.sessionId = window.location.pathname.replace('/p/', '');
         $scope.instances = [];
@@ -23,7 +31,7 @@
         $scope.newInstanceBtnText = '+ Add new instance';
         $scope.deleteInstanceBtnText = 'Delete';
         $scope.isInstanceBeingDeleted = false;
-        
+  
         var selectedKeyboardShortcuts = KeyboardShortcutService.getCurrentShortcuts();
 
         angular.element($window).bind('resize', function() {
@@ -90,11 +98,28 @@
             });
         }
 
+        $scope.setSessionState = function(state) {
+            $scope.ready = state;
+
+            if (!state) {
+                $mdDialog.show({
+                    controller: SessionBuilderModalController,
+                    templateUrl: "session-builder-modal.html",
+                    parent: angular.element(document.body),
+                    clickOutsideToClose: false,
+                    scope: $scope,
+                    preserveScope: true
+                });
+            }
+        }
+
         $scope.getSession = function(sessionId) {
             $http({
                 method: 'GET',
                 url: '/sessions/' + $scope.sessionId,
             }).then(function(response) {
+                $scope.setSessionState(response.data.ready);
+
                 if (response.data.created_at) {
                     $scope.expiresAt = moment(response.data.expires_at);
                     setInterval(function() {
@@ -103,6 +128,14 @@
                     }, 1000);
                 }
                 var socket = io({ path: '/sessions/' + sessionId + '/ws' });
+
+                socket.on('session ready', function(ready) {
+                    $scope.setSessionState(ready);
+                });
+
+                socket.on('session builder out', function(data) {
+                    $scope.builderTerminal.write(data);
+                });
 
                 socket.on('terminal out', function(name, data) {
                     var instance = $scope.idx[name];
@@ -236,6 +269,21 @@
 
         $scope.getSession($scope.sessionId);
 
+        $scope.createBuilderTerminal = function() {
+            var builderTerminalContainer = document.getElementById('builder-terminal');
+            // For some reason the dialog DOM might not be ready, so we just keep trying
+            if (!builderTerminalContainer) {
+                setTimeout($scope.createBuilderTerminal, 100);
+                return;
+            }
+            var term = new Terminal({
+                cursorBlink: false
+            });
+
+            term.open(builderTerminalContainer);
+            term.resize(80, 24);
+            $scope.builderTerminal = term;
+        }
         function createTerminal(instance, cb) {
             if (instance.term) {
                 return instance.term;
