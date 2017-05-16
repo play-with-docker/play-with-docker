@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"path"
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/services"
@@ -27,16 +26,24 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 	reqDur := req.Form.Get("session-duration")
 	stack := req.Form.Get("stack")
 
+	if stack != "" {
+		if ok, err := stackExists(stack); err != nil {
+			log.Printf("Error retrieving stack: %s", err)
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		} else if !ok {
+			log.Printf("Stack [%s] could not be found", stack)
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+	}
 	duration := services.GetDuration(reqDur)
 	s, err := services.NewSession(duration)
 	if err != nil {
 		log.Println(err)
 		//TODO: Return some error code
 	} else {
-		s.StackFile = stack
-		if stack != "" {
-			go deployStack(s)
-		}
 		hostname := fmt.Sprintf("%s.%s", config.PWDCName, req.Host)
 		// If request is not a form, return sessionId in the body
 		if req.Header.Get("X-Requested-With") == "XMLHttpRequest" {
@@ -45,25 +52,22 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 			json.NewEncoder(rw).Encode(resp)
 			return
 		}
+
+		if stack != "" {
+			http.Redirect(rw, req, fmt.Sprintf("http://%s/p/%s?stack=%s", hostname, s.Id, stack), http.StatusFound)
+			return
+		}
 		http.Redirect(rw, req, fmt.Sprintf("http://%s/p/%s", hostname, s.Id), http.StatusFound)
 	}
 }
 
-func deployStack(s *services.Session) {
-	i, err := services.NewInstance(s, services.InstanceConfig{})
+func stackExists(stack string) (bool, error) {
+	resp, err := http.Head("https://raw.githubusercontent.com/play-with-docker/stacks/master" + stack)
 	if err != nil {
-		log.Printf("Error creating instance for stack [%s]: %s\n", s.StackFile, err)
+		return false, err
 	}
-	err = i.UploadFromURL("https://raw.githubusercontent.com/play-with-docker/stacks/master" + s.StackFile)
-	if err != nil {
-		log.Printf("Error uploading stack file [%s]: %s\n", s.StackFile, err)
-	}
+	defer resp.Body.Close()
 
-	fileName := path.Base(s.StackFile)
-	code, err := services.Exec(i.Name, []string{"docker-compose", "-f", "/var/run/pwd/uploads/" + fileName, "up", "-d"})
-	if err != nil {
-		log.Printf("Error executing stack [%s]: %s\n", s.StackFile, err)
-	}
+	return resp.StatusCode == 200, nil
 
-	log.Printf("Stack execution finished with code %d\n", code)
 }

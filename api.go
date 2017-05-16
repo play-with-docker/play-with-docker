@@ -73,11 +73,7 @@ func main() {
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", handlers.DeleteInstance).Methods("DELETE")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/exec", handlers.Exec).Methods("POST")
 
-	h := func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./www/index.html")
-	}
-
-	r.HandleFunc("/p/{sessionId}", h).Methods("GET")
+	r.HandleFunc("/p/{sessionId}", handlers.Home).Methods("GET")
 	r.PathPrefix("/assets").Handler(http.FileServer(http.Dir("./www")))
 	r.HandleFunc("/robots.txt", func(rw http.ResponseWriter, r *http.Request) {
 		http.ServeFile(rw, r, "www/robots.txt")
