@@ -113,38 +113,37 @@
             </section>
         </div>
 
-        <script type="text/ng-template" id="session-builder-modal.html">
-            <md-toolbar>
-                <div class="md-toolbar-tools">
-                    <h2>Session stack builder</h2>
-                    <span flex></span>
-                </div>
-            </md-toolbar>
-            <md-dialog-content>
-                <div class="md-dialog-content" style="width:800px;">
-                    <div layout="row">
-                        <div flex="100" style="margin-bottom: 20px;">
+        <div style="visibility: hidden;">
+            <div class="md-dialog-container" id="builderDialog">
+                <md-dialog>
+                    <md-toolbar>
+                         <div class="md-toolbar-tools">    
+                             <h2>Session stack builder</h2>
+                             <span flex></span>            
+                         </div>                            
+                    </md-toolbar>
+                    <md-dialog-content layout-padding>
+                        <div flex="100" style="margin: 20px 0px;">
                             We are building your stack. This might take a while.<br/>
                         </div>
-                    </div>
-                    <div layout="row" layout-align="center center">
-                        <div id="builder-terminal" flex="100" style="height: 450px;">
+                        <div id="builder-terminal"  style="height: 450px; width: 800px">
                         </div>
-                    </div>
-                    <div layout="row" ng-if="ready">
-                        <div flex="100" style="margin-top: 20px;">
-                            Your session is ready!
+                        <div layout="row" ng-if="ready">
+                            <div flex="100" style="margin-top: 20px; text-align:center; font-weight: bold; color: green;">
+                                Your session is ready!
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <md-dialog-actions layout="row" ng-if="ready">
-                    <span flex></span>
-                    <md-button ng-click="closeSessionBuilder()">
-                        Close
-                    </md-button>
-                </md-dialog-actions>
-            </md-dialog-content>
-        </script>
+                    </md-dialog-content>
+                    <md-dialog-actions layout="row" ng-if="ready">
+                        <span flex></span>
+                        <md-button ng-click="closeSessionBuilder()">
+                            Close
+                        </md-button>
+                    </md-dialog-actions>
+                </md-dialog>
+            </div>
+        </div>
+            
 
         <script type="text/ng-template" id="settings-modal.html">
             <md-toolbar>
