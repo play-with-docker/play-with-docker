@@ -46,6 +46,8 @@ You can achieve this by setting up a `dnsmasq` server (you can run it in a docke
 address=/localhost/127.0.0.1
 ```
 
+Don't forget to change your computer default DNS to 
+
 ### Building the dind image myself.
 
 If you want to make changes to the `dind` image being used, make your changes to the `Dockerfile.dind` file and then build it using this command: `docker build --build-arg docker_storage_driver=vfs -f Dockerfile.dind -t franela/dind .` 
