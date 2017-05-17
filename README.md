@@ -46,7 +46,7 @@ You can achieve this by setting up a `dnsmasq` server (you can run it in a docke
 address=/localhost/127.0.0.1
 ```
 
-Don't forget to change your computer default DNS to 
+Don't forget to change your computer default DNS to use the dnsmasq server to resolve.
 
 ### Building the dind image myself.
 
