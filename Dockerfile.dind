@@ -3,8 +3,8 @@ FROM docker:${VERSION}
 
 RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq
 
-ENV COMPOSE_VERSION=1.12.0
-ENV MACHINE_VERSION=v0.10.0
+ENV COMPOSE_VERSION=1.13.0
+ENV MACHINE_VERSION=v0.11.0
 # Install Compose and Machine
 RUN pip install docker-compose==${COMPOSE_VERSION}
 RUN curl -L https://github.com/docker/machine/releases/download/${MACHINE_VERSION}/docker-machine-Linux-x86_64 \
