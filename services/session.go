@@ -111,14 +111,12 @@ func (s *Session) DeployStack() error {
 		return err
 	}
 
-	_, err = Exec(i.Name, []string{"docker", "swarm", "init", "--advertise-addr", "eth0"})
-	if err != nil {
-		log.Printf("Error executing stack [%s]: %s\n", s.Stack, err)
-		return err
-	}
-	w := sessionBuilderWriter{session: s}
 	fileName := path.Base(s.Stack)
-	code, err := ExecAttach(i.Name, []string{"docker", "stack", "deploy", "-c", "/var/run/pwd/uploads/" + fileName, "pwd"}, &w)
+	file := fmt.Sprintf("/var/run/pwd/uploads/%s", fileName)
+	cmd := fmt.Sprintf("docker swarm init --advertise-addr eth0 && docker-compose -f %s pull && docker stack deploy -c %s pwd", file, file)
+
+	w := sessionBuilderWriter{session: s}
+	code, err := ExecAttach(i.Name, []string{"sh", "-c", cmd}, &w)
 	if err != nil {
 		log.Printf("Error executing stack [%s]: %s\n", s.Stack, err)
 		return err
