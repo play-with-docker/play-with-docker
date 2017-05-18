@@ -23,7 +23,7 @@
         $scope.newInstanceBtnText = '+ Add new instance';
         $scope.deleteInstanceBtnText = 'Delete';
         $scope.isInstanceBeingDeleted = false;
-        
+
         var selectedKeyboardShortcuts = KeyboardShortcutService.getCurrentShortcuts();
 
         angular.element($window).bind('resize', function() {
