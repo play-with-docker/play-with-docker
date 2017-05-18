@@ -1,4 +1,4 @@
-version: '2'
+version: '3.2'
 services:
     haproxy:
         container_name: proxy
@@ -15,12 +15,13 @@ services:
         # use the latest golang image
         image: golang
         # go to the right place and starts the app
-        command: /bin/sh -c 'cd /go/src/github.com/play-with-docker/play-with-docker; go run api.go -save ./pwd/sessions1 -name pwd1 -cname host1'
+        command: /bin/sh -c 'cd /go/src/github.com/play-with-docker/play-with-docker; go run api.go -save /pwd/sessions1 -name pwd1 -cname host1'
         volumes:
             # since this app creates networks and launches containers, we need to talk to docker daemon
             - /var/run/docker.sock:/var/run/docker.sock
             # mount the box mounted shared folder to the container
             - $GOPATH/src:/go/src
+            - sessions:/pwd
         environment:
             GOOGLE_RECAPTCHA_DISABLED: "true"
     pwd2:
@@ -29,11 +30,14 @@ services:
         # use the latest golang image
         image: golang
         # go to the right place and starts the app
-        command: /bin/sh -c 'cd /go/src/github.com/play-with-docker/play-with-docker; go run api.go -save ./pwd/sessions2 -name pwd2 -cname host2'
+        command: /bin/sh -c 'cd /go/src/github.com/play-with-docker/play-with-docker; go run api.go -save /pwd/sessions2 -name pwd2 -cname host2'
         volumes:
             # since this app creates networks and launches containers, we need to talk to docker daemon
             - /var/run/docker.sock:/var/run/docker.sock
             # mount the box mounted shared folder to the container
             - $GOPATH/src:/go/src
+            - sessions:/pwd
         environment:
             GOOGLE_RECAPTCHA_DISABLED: "true"
+volumes:
+    sessions:
