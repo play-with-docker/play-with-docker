@@ -23,7 +23,7 @@
         $scope.newInstanceBtnText = '+ Add new instance';
         $scope.deleteInstanceBtnText = 'Delete';
         $scope.isInstanceBeingDeleted = false;
-        
+
         var selectedKeyboardShortcuts = KeyboardShortcutService.getCurrentShortcuts();
 
         angular.element($window).bind('resize', function() {
@@ -55,6 +55,8 @@
 	KeyboardShortcutService.setResizeFunc($scope.resize);
 
         $scope.closeSession = function() {
+            // Remove alert before closing browser tab
+            window.onbeforeunload = null;
             $scope.socket.emit('session close');
         }
 
