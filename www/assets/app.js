@@ -55,6 +55,8 @@
 	KeyboardShortcutService.setResizeFunc($scope.resize);
 
         $scope.closeSession = function() {
+            // Remove alert before closing browser tab
+            window.onbeforeunload = null;
             $scope.socket.emit('session close');
         }
 
