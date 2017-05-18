@@ -6,5 +6,9 @@
     "insecure-registries": ["127.0.0.1"],
     "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"],
     "storage-driver": "DOCKER_STORAGE_DRIVER",
-    "dns": ["PWD_IP_ADDRESS", "8.8.8.8"]
+    "dns": ["PWD_IP_ADDRESS", "8.8.8.8"],
+    "tls": DOCKER_TLSENABLE,
+    "tlscacert": "DOCKER_TLSCACERT",
+    "tlscert": "DOCKER_TLSCERT",
+    "tlskey": "DOCKER_TLSKEY"
 }

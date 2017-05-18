@@ -14,6 +14,7 @@
             <form id="welcomeForm" method="POST" action="/">
                 <div id="recaptcha" class="g-recaptcha" data-callback="iAmHuman" data-sitekey="{{.}}"></div>
                 <input type="hidden" name="session-duration" value="4h"/>
+                <input id="stack" type="hidden" name="stack" value=""/>
                 <button id="create" style="display:none;">Create session</button>
             </form>
             <img src="/assets/large_h.png" />
@@ -22,6 +23,20 @@
         <script>
             function iAmHuman(resp) {
                 document.getElementById('welcomeForm').submit();
+            }
+            function getParameterByName(name, url) {
+                if (!url) url = window.location.href;
+                name = name.replace(/[\[\]]/g, "\\$&");
+                var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                    results = regex.exec(url);
+                if (!results) return null;
+                if (!results[2]) return '';
+                return decodeURIComponent(results[2].replace(/\+/g, " "));
+            }
+
+            var stack = getParameterByName('stack');
+            if (stack) {
+                document.getElementById('stack').value = stack;
             }
             if (document.cookie.indexOf('session_id') > -1) {
                 document.getElementById('create').style = "";

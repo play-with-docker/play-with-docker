@@ -5,15 +5,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/franela/play-with-docker/services"
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
 
-	body := struct{ ImageName string }{}
+	body := services.InstanceConfig{}
 
 	json.NewDecoder(req.Body).Decode(&body)
 
@@ -26,7 +26,7 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	i, err := services.NewInstance(s, body.ImageName)
+	i, err := services.NewInstance(s, body)
 	if err != nil {
 		log.Println(err)
 		rw.WriteHeader(http.StatusInternalServerError)

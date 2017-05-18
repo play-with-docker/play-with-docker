@@ -1,6 +1,22 @@
 package config
 
-import "flag"
+import (
+	"flag"
+	"regexp"
+)
+
+const (
+	PWDHostnameRegex      = "[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}"
+	PortRegex             = "[0-9]{1,5}"
+	AliasnameRegex        = "[0-9|a-z|A-Z|-]*"
+	AliasSessionRegex     = "[0-9|a-z|A-Z]{8}"
+	AliasGroupRegex       = "(" + AliasnameRegex + ")-(" + AliasSessionRegex + ")"
+	PWDHostPortGroupRegex = "^.*pwd(" + PWDHostnameRegex + ")(?:-?(" + PortRegex + "))?\\..*$"
+	AliasPortGroupRegex   = "^.*pwd" + AliasGroupRegex + "(?:-?(" + PortRegex + "))?\\..*$"
+)
+
+var NameFilter = regexp.MustCompile(PWDHostPortGroupRegex)
+var AliasFilter = regexp.MustCompile(AliasPortGroupRegex)
 
 var SSLPortNumber, PortNumber, Key, Cert, SessionsFile, PWDContainerName, PWDCName, HashKey string
 var MaxLoadAvg float64

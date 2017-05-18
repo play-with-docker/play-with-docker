@@ -2,10 +2,12 @@ package services
 
 import (
 	"context"
-	"crypto/tls"
+	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -34,11 +36,24 @@ type Instance struct {
 	IsManager    *bool                   `json:"is_manager"`
 	Mem          string                  `json:"mem"`
 	Cpu          string                  `json:"cpu"`
+	Alias        string                  `json:"alias"`
+	tempPorts    []uint16                `json:"-"`
+	ServerCert   []byte                  `json:"server_cert"`
+	ServerKey    []byte                  `json:"server_key"`
+	CACert       []byte                  `json:"ca_cert"`
+	Cert         []byte                  `json:"cert"`
+	Key          []byte                  `json:"key"`
 	Ports        UInt16Slice
-	tempPorts    []uint16         `json:"-"`
-	ServerCert   []byte           `json:"server_cert"`
-	ServerKey    []byte           `json:"server_key"`
-	cert         *tls.Certificate `json:"-"`
+}
+
+type InstanceConfig struct {
+	ImageName  string
+	Alias      string
+	ServerCert []byte
+	ServerKey  []byte
+	CACert     []byte
+	Cert       []byte
+	Key        []byte
 }
 
 func (i *Instance) setUsedPort(port uint16) {
@@ -51,25 +66,6 @@ func (i *Instance) setUsedPort(port uint16) {
 		}
 	}
 	i.tempPorts = append(i.tempPorts, port)
-}
-
-func (i *Instance) SetCertificate(cert, key []byte) (*tls.Certificate, error) {
-	i.ServerCert = cert
-	i.ServerKey = key
-	c, e := tls.X509KeyPair(i.ServerCert, i.ServerKey)
-	if e != nil {
-		return nil, e
-	}
-	i.cert = &c
-
-	// We store sessions as soon as we set instance keys
-	if err := saveSessionsToDisk(); err != nil {
-		return nil, err
-	}
-	return i.cert, nil
-}
-func (i *Instance) GetCertificate() *tls.Certificate {
-	return i.cert
 }
 
 func (i *Instance) IsConnected() bool {
@@ -96,15 +92,22 @@ func getDindImageName() string {
 	return dindImage
 }
 
-func NewInstance(session *Session, imageName string) (*Instance, error) {
-	if imageName == "" {
-		imageName = dindImage
+func NewInstance(session *Session, conf InstanceConfig) (*Instance, error) {
+	if conf.ImageName == "" {
+		conf.ImageName = dindImage
 	}
-	log.Printf("NewInstance - using image: [%s]\n", imageName)
-	instance, err := CreateInstance(session, imageName)
+	log.Printf("NewInstance - using image: [%s]\n", conf.ImageName)
+	instance, err := CreateInstance(session, conf)
 	if err != nil {
 		return nil, err
 	}
+
+	instance.Alias = conf.Alias
+	instance.Cert = conf.Cert
+	instance.Key = conf.Key
+	instance.ServerCert = conf.ServerCert
+	instance.ServerKey = conf.ServerKey
+	instance.CACert = conf.CACert
 	instance.session = session
 
 	if session.Instances == nil {
@@ -159,6 +162,29 @@ func (i *Instance) Attach() {
 	case <-i.ctx.Done():
 	}
 }
+
+func (i *Instance) UploadFromURL(url string) error {
+	log.Printf("Downloading file [%s]\n", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("Could not download file [%s]. Error: %s\n", url, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Could not download file [%s]. Status code: %d\n", url, resp.StatusCode)
+	}
+
+	_, fileName := filepath.Split(url)
+
+	copyErr := CopyToContainer(i.Name, "/var/run/pwd/uploads", fileName, resp.Body)
+
+	if copyErr != nil {
+		return fmt.Errorf("Error while downloading file [%s]. Error: %s\n", url, copyErr)
+	}
+
+	return nil
+}
+
 func GetInstance(session *Session, name string) *Instance {
 	return session.Instances[name]
 }
@@ -168,6 +194,19 @@ func FindInstanceByIP(ip string) *Instance {
 		for _, i := range s.Instances {
 			if i.IP == ip {
 				return i
+			}
+		}
+	}
+	return nil
+}
+
+func FindInstanceByAlias(sessionPrefix, alias string) *Instance {
+	for id, s := range sessions {
+		if strings.HasPrefix(id, sessionPrefix) {
+			for _, i := range s.Instances {
+				if i.Alias == alias {
+					return i
+				}
 			}
 		}
 	}

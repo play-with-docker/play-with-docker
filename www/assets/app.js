@@ -187,7 +187,7 @@
         }
 
         $scope.getProxyUrl = function(instance, port) {
-            var url = window.location.protocol + '//pwd' + instance.ip.replace(/\./g, '_') + '-' + port + '.' + window.location.host;
+            var url = window.location.protocol + '//pwd' + instance.ip.replace(/\./g, '-') + '-' + port + '.' + window.location.host;
 
             return url;
         }
