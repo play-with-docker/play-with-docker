@@ -59,6 +59,7 @@ type Session struct {
 	PwdIpAddress string               `json:"pwd_ip_address"`
 	Ready        bool                 `json:"ready"`
 	Stack        string               `json:"stack"`
+	StackName    string               `json:"stack_name"`
 }
 
 type sessionBuilderWriter struct {
@@ -113,7 +114,7 @@ func (s *Session) DeployStack() error {
 
 	fileName := path.Base(s.Stack)
 	file := fmt.Sprintf("/var/run/pwd/uploads/%s", fileName)
-	cmd := fmt.Sprintf("docker swarm init --advertise-addr eth0 && docker-compose -f %s pull && docker stack deploy -c %s pwd", file, file)
+	cmd := fmt.Sprintf("docker swarm init --advertise-addr eth0 && docker-compose -f %s pull && docker stack deploy -c %s %s", file, file, s.StackName)
 
 	w := sessionBuilderWriter{session: s}
 	code, err := ExecAttach(i.Name, []string{"sh", "-c", cmd}, &w)
@@ -300,7 +301,7 @@ func GetDuration(reqDur string) time.Duration {
 	return defaultDuration
 }
 
-func NewSession(duration time.Duration, stack string) (*Session, error) {
+func NewSession(duration time.Duration, stack, stackName string) (*Session, error) {
 	s := &Session{}
 	s.Id = uuid.NewV4().String()
 	s.Instances = map[string]*Instance{}
@@ -310,6 +311,10 @@ func NewSession(duration time.Duration, stack string) (*Session, error) {
 		s.Ready = true
 	}
 	s.Stack = stack
+	if stackName == "" {
+		stackName = "pwd"
+	}
+	s.StackName = stackName
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
 	// Schedule cleanup of the session
