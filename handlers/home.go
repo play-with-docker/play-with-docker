@@ -12,6 +12,12 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	sessionId := vars["sessionId"]
 
 	s := services.GetSession(sessionId)
+	if s == nil {
+		// Session doesn't exist (can happen if closing the sessions an reloading the page, or similar).
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	if s.Stack != "" {
 		go s.DeployStack()
 	}
