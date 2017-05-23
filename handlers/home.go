@@ -4,16 +4,15 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func Home(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sessionId := vars["sessionId"]
 
-	s := services.GetSession(sessionId)
+	s := core.SessionGet(sessionId)
 	if s.Stack != "" {
-		go s.DeployStack()
+		go core.SessionDeployStack(s)
 	}
 	http.ServeFile(w, r, "./www/index.html")
 }

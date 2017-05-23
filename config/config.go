@@ -2,7 +2,9 @@ package config
 
 import (
 	"flag"
+	"os"
 	"regexp"
+	"time"
 )
 
 const (
@@ -32,4 +34,28 @@ func ParseFlags() {
 	flag.StringVar(&HashKey, "hash_key", "salmonrosado", "Hash key to use for cookies")
 	flag.Float64Var(&MaxLoadAvg, "maxload", 100, "Maximum allowed load average before failing ping requests")
 	flag.Parse()
+}
+func GetDindImageName() string {
+	dindImage := os.Getenv("DIND_IMAGE")
+	defaultDindImageName := "franela/dind"
+	if len(dindImage) == 0 {
+		dindImage = defaultDindImageName
+	}
+	return dindImage
+}
+func GetDuration(reqDur string) time.Duration {
+	var defaultDuration = 4 * time.Hour
+	if reqDur != "" {
+		if dur, err := time.ParseDuration(reqDur); err == nil && dur <= defaultDuration {
+			return dur
+		}
+		return defaultDuration
+	}
+
+	envDur := os.Getenv("EXPIRY")
+	if dur, err := time.ParseDuration(envDur); err == nil {
+		return dur
+	}
+
+	return defaultDuration
 }

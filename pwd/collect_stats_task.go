@@ -1,4 +1,4 @@
-package services
+package pwd
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	units "github.com/docker/go-units"
+	"github.com/play-with-docker/play-with-docker/docker"
 )
 
 type collectStatsTask struct {
@@ -17,10 +18,12 @@ type collectStatsTask struct {
 	cpuPercent     float64
 	previousCPU    uint64
 	previousSystem uint64
+
+	docker docker.DockerApi
 }
 
 func (c collectStatsTask) Run(i *Instance) error {
-	reader, err := GetContainerStats(i.Name)
+	reader, err := c.docker.GetContainerStats(i.Name)
 	if err != nil {
 		log.Println("Error while trying to collect instance stats", err)
 		return err

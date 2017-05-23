@@ -1,4 +1,4 @@
-package services
+package recaptcha
 
 import (
 	"encoding/json"

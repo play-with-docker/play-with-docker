@@ -11,7 +11,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func getTargetInfo(vars map[string]string, req *http.Request) (string, string) {
@@ -29,7 +28,7 @@ func getTargetInfo(vars map[string]string, req *http.Request) (string, string) {
 	}
 
 	if alias != "" {
-		instance := services.FindInstanceByAlias(sessionPrefix, alias)
+		instance := core.InstanceFindByAlias(sessionPrefix, alias)
 		if instance != nil {
 			node = instance.IP
 			return node, port

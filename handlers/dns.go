@@ -8,7 +8,6 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func DnsRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -37,7 +36,7 @@ func DnsRequest(w dns.ResponseWriter, r *dns.Msg) {
 
 		match := config.AliasFilter.FindStringSubmatch(question)
 
-		i := services.FindInstanceByAlias(match[2], match[1])
+		i := core.InstanceFindByAlias(match[2], match[1])
 
 		m := new(dns.Msg)
 		m.SetReply(r)
