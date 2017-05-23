@@ -12,8 +12,15 @@ RUN go get -v -d ./...
 
 RUN CGO_ENABLED=0 go build -a -installsuffix nocgo -o /go/bin/play-with-docker .
 
-# Set the workdir to be /go/bin which is where the binaries are built
-WORKDIR /go/bin
+FROM alpine
 
-# Export the WORKDIR as a tar stream
-CMD tar -cf - .
+RUN apk --update add ca-certificates
+RUN mkdir -p /app/pwd
+
+COPY --from=0 /go/bin/play-with-docker /app/play-with-docker
+COPY ./www /app/www
+
+WORKDIR /app
+CMD ["./play-with-docker"]
+
+EXPOSE 3000

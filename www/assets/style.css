@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css?family=Rationale');
 
 .selected button {
-	background-color: rgba(158,158,158,0.2);
+    background-color: rgba(158,158,158,0.2);
 }
 
 md-card-content.terminal-container {
@@ -48,4 +48,14 @@ md-input-container .md-errors-spacer {
 
 .stats {
     min-height: 230px;
+}
+
+::-webkit-scrollbar {
+    -webkit-appearance: none;
+    width: 7px;
+}
+::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: rgba(0,0,0,.5);
+    -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
 }
