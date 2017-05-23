@@ -285,7 +285,7 @@ func CreateInstance(session *Session, conf InstanceConfig) (*Instance, error) {
 
 	env = append(env, fmt.Sprintf("PWD_IP_ADDRESS=%s", session.PwdIpAddress))
 	cf := &container.Config{Hostname: nodeName,
-		Image:        dindImage,
+		Image:        conf.ImageName,
 		Tty:          true,
 		OpenStdin:    true,
 		AttachStdin:  true,
