@@ -43,6 +43,8 @@ func TestSessionNew(t *testing.T) {
 	assert.Nil(t, e)
 	assert.NotNil(t, s)
 
+	assert.Equal(t, "pwd", s.StackName)
+
 	assert.NotEmpty(t, s.Id)
 	assert.WithinDuration(t, s.CreatedAt, before, time.Since(before))
 	assert.WithinDuration(t, s.ExpiresAt, before.Add(time.Hour), time.Second)

@@ -1,14 +1,8 @@
-ARG VERSION=17.05.0-ce-dind
-FROM docker:${VERSION}
+ARG VERSION=docker:17.05.0-ce-dind
+FROM ${VERSION}
 
 RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq
 
-ENV COMPOSE_VERSION=1.12.0
-ENV MACHINE_VERSION=v0.10.0
-# Install Compose and Machine
-RUN pip install docker-compose==${COMPOSE_VERSION}
-RUN curl -L https://github.com/docker/machine/releases/download/${MACHINE_VERSION}/docker-machine-Linux-x86_64 \
-    -o /usr/bin/docker-machine && chmod +x /usr/bin/docker-machine
 
 # Compile and install httping
 # (used in orchestration workshop, and very useful anyway)
@@ -17,6 +11,13 @@ RUN mkdir -p /opt && cd /opt && \
     tar -zxf- && cd httping-2.5 && \
     ./configure && make install LDFLAGS=-lintl && \
     rm -rf httping-2.5
+
+ENV COMPOSE_VERSION=1.13.0
+ENV MACHINE_VERSION=v0.11.0
+# Install Compose and Machine
+RUN pip install docker-compose==${COMPOSE_VERSION}
+RUN curl -L https://github.com/docker/machine/releases/download/${MACHINE_VERSION}/docker-machine-Linux-x86_64 \
+    -o /usr/bin/docker-machine && chmod +x /usr/bin/docker-machine
 
 # Add bash completion
 RUN mkdir /etc/bash_completion.d && curl https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/recaptcha"
@@ -25,8 +27,10 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 
 	reqDur := req.Form.Get("session-duration")
 	stack := req.Form.Get("stack")
+	stackName := req.Form.Get("stack_name")
 
 	if stack != "" {
+		stack = formatStack(stack)
 		if ok, err := stackExists(stack); err != nil {
 			log.Printf("Error retrieving stack: %s", err)
 			rw.WriteHeader(http.StatusInternalServerError)
@@ -39,7 +43,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 
 	}
 	duration := config.GetDuration(reqDur)
-	s, err := core.SessionNew(duration, stack, "")
+	s, err := core.SessionNew(duration, stack, stackName)
 	if err != nil {
 		log.Println(err)
 		//TODO: Return some error code
@@ -61,13 +65,24 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func formatStack(stack string) string {
+	if !strings.HasSuffix(stack, ".yml") {
+		// If it doesn't end with ".yml", assume it hasn't been specified, then default to "stack.yml"
+		stack = path.Join(stack, "stack.yml")
+	}
+	if strings.HasPrefix(stack, "/") {
+		// The host is anonymous, then use our own stack repo.
+		stack = fmt.Sprintf("%s%s", "https://raw.githubusercontent.com/play-with-docker/stacks/master", stack)
+	}
+	return stack
+}
+
 func stackExists(stack string) (bool, error) {
-	resp, err := http.Head("https://raw.githubusercontent.com/play-with-docker/stacks/master" + stack)
+	resp, err := http.Head(stack)
 	if err != nil {
 		return false, err
 	}
 	defer resp.Body.Close()
 
 	return resp.StatusCode == 200, nil
-
 }

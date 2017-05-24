@@ -22,7 +22,7 @@ the daemon won't load it automatically. Run the following command for that purpo
 
 Start the Docker daemon on your machine and run `docker pull franela/dind`. 
 
-1) Install go 1.7.1 with `brew` on Mac or through a package manager.
+1) Install go 1.7.1+ with `brew` on Mac or through a package manager.
 
 2) `go get -v -d -t ./...`
 
@@ -35,13 +35,27 @@ Notes:
 * There is a hard-coded limit to 5 Docker playgrounds per session. After 4 hours sessions are deleted.
 * If you want to override the DIND version or image then set the environmental variable i.e.
   `DIND_IMAGE=franela/docker<version>-rc:dind`. Take into account that you can't use standard `dind` images, only [franela](https://hub.docker.com/r/franela/) ones work.
+  
+### Port forwarding
 
+In order for port forwarding to work correctly in development you need to make `*.localhost` to resolve to `127.0.0.1`. That way when you try to access to `pwd10-0-0-1-8080.host1.localhost`, then you're forwarded correctly to your local PWD server.
+
+You can achieve this by setting up a `dnsmasq` server (you can run it in a docker container also) and adding the following configuration:
+
+```
+address=/localhost/127.0.0.1
+```
+
+Don't forget to change your computer default DNS to use the dnsmasq server to resolve.
+
+### Building the dind image myself.
+
+If you want to make changes to the `dind` image being used, make your changes to the `Dockerfile.dind` file and then build it using this command: `docker build --build-arg docker_storage_driver=vfs -f Dockerfile.dind -t franela/dind .` 
 
 ## FAQ
 
 ### How can I connect to a published port from the outside world?
 
-~~We're planning to setup a reverse proxy that handles redirection automatically, in the meantime you can use [ngrok](https://ngrok.com) within PWD running `docker run --name supergrok -d jpetazzo/supergrok` then `docker logs --follow supergrok` , it will give you a ngrok URL, now you can go to that URL and add the IP+port that you want to connect to… e.g. if your PWD instance is 10.0.42.3, you can go to http://xxxxxx.ngrok.io/10.0.42.3:8000 (where the xxxxxx is given to you in the supergrok logs).~~
 
 If you need to access your services from outside, use the following URL pattern `http://pwd<underscore_ip>-<port>.<host#>.labs.play-with-docker.com` (i.e: http://pwd10_2_135_3-80.host3.labs.play-with-docker.com/).
 

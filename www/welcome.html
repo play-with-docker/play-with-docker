@@ -15,6 +15,7 @@
                 <div id="recaptcha" class="g-recaptcha" data-callback="iAmHuman" data-sitekey="{{.}}"></div>
                 <input type="hidden" name="session-duration" value="4h"/>
                 <input id="stack" type="hidden" name="stack" value=""/>
+                <input id="stack_name" type="hidden" name="stack_name" value=""/>
                 <button id="create" style="display:none;">Create session</button>
             </form>
             <img src="/assets/large_h.png" />
@@ -37,6 +38,10 @@
             var stack = getParameterByName('stack');
             if (stack) {
                 document.getElementById('stack').value = stack;
+            }
+            var stackName = getParameterByName('stack_name');
+            if (stackName) {
+                document.getElementById('stack_name').value = stackName;
             }
             if (document.cookie.indexOf('session_id') > -1) {
                 document.getElementById('create').style = "";

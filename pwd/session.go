@@ -47,11 +47,14 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName string) (*Sess
 	s.ExpiresAt = s.CreatedAt.Add(duration)
 	s.Ready = true
 	s.Stack = stack
-	s.StackName = stackName
 
 	if s.Stack != "" {
 		s.Ready = false
 	}
+	if stackName == "" {
+		stackName = "pwd"
+	}
+	s.StackName = stackName
 
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
@@ -142,32 +145,32 @@ func (p *pwd) SessionDeployStack(s *Session) error {
 	}
 
 	s.Ready = false
-	p.broadcast.BroadcastTo(s.Id, "session ready", s.Ready)
-
+	p.broadcast.BroadcastTo(s.Id, "session ready", false)
 	i, err := p.InstanceNew(s, InstanceConfig{})
 	if err != nil {
 		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
 		return err
 	}
-	err = p.InstanceUploadFromUrl(i, "https://raw.githubusercontent.com/play-with-docker/stacks/master"+s.Stack)
+	err = p.InstanceUploadFromUrl(i, s.Stack)
 	if err != nil {
 		log.Printf("Error uploading stack file [%s]: %s\n", s.Stack, err)
 		return err
 	}
 
-	w := sessionBuilderWriter{sessionId: s.Id, broadcast: p.broadcast}
 	fileName := path.Base(s.Stack)
-	code, err := p.docker.ExecAttach(i.Name, []string{"docker-compose", "-f", "/var/run/pwd/uploads/" + fileName, "up", "-d"}, &w)
+	file := fmt.Sprintf("/var/run/pwd/uploads/%s", fileName)
+	cmd := fmt.Sprintf("docker swarm init --advertise-addr eth0 && docker-compose -f %s pull && docker stack deploy -c %s %s", file, file, s.StackName)
+
+	w := sessionBuilderWriter{sessionId: s.Id, broadcast: p.broadcast}
+	code, err := p.docker.ExecAttach(i.Name, []string{"sh", "-c", cmd}, &w)
 	if err != nil {
 		log.Printf("Error executing stack [%s]: %s\n", s.Stack, err)
 		return err
 	}
 
 	log.Printf("Stack execution finished with code %d\n", code)
-
 	s.Ready = true
-	p.broadcast.BroadcastTo(s.Id, "session ready", s.Ready)
-
+	p.broadcast.BroadcastTo(s.Id, "session ready", true)
 	if err := p.storage.Save(); err != nil {
 		return err
 	}
@@ -176,16 +179,6 @@ func (p *pwd) SessionDeployStack(s *Session) error {
 
 func (p *pwd) SessionGet(sessionId string) *Session {
 	s := sessions[sessionId]
-	/*
-		if s != nil {
-			for _, instance := range s.Instances {
-				if !instance.IsConnected() {
-					instance.SetSession(s)
-					go instance.Attach()
-				}
-			}
-
-		}*/
 	return s
 }
 
