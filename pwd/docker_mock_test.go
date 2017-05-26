@@ -9,8 +9,9 @@ import (
 )
 
 type mockDocker struct {
-	createNetwork  func(string) error
-	connectNetwork func(container, network, ip string) (string, error)
+	createNetwork   func(string) error
+	connectNetwork  func(container, network, ip string) (string, error)
+	containerResize func(string, uint, uint) error
 }
 
 func (m *mockDocker) CreateNetwork(id string) error {
@@ -40,6 +41,9 @@ func (m *mockDocker) GetContainerStats(name string) (io.ReadCloser, error) {
 	return nil, nil
 }
 func (m *mockDocker) ContainerResize(name string, rows, cols uint) error {
+	if m.containerResize != nil {
+		return m.containerResize(name, rows, cols)
+	}
 	return nil
 }
 func (m *mockDocker) CreateAttachConnection(name string) (net.Conn, error) {
