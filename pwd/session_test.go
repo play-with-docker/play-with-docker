@@ -12,6 +12,8 @@ func TestSessionNew(t *testing.T) {
 	config.PWDContainerName = "pwd"
 	var connectContainerName, connectNetworkName, connectIP string
 	createdNetworkId := ""
+	saveCalled := false
+	expectedSessions := map[string]*Session{}
 
 	docker := &mockDocker{}
 	docker.createNetwork = func(id string) error {
@@ -33,12 +35,17 @@ func TestSessionNew(t *testing.T) {
 
 	broadcast := &mockBroadcast{}
 	storage := &mockStorage{}
+	storage.save = func() error {
+		saveCalled = true
+		return nil
+	}
 
 	p := NewPWD(docker, tasks, broadcast, storage)
 
 	before := time.Now()
 
 	s, e := p.SessionNew(time.Hour, "", "")
+	expectedSessions[s.Id] = s
 
 	assert.Nil(t, e)
 	assert.NotNil(t, s)
@@ -52,6 +59,7 @@ func TestSessionNew(t *testing.T) {
 	assert.True(t, s.Ready)
 
 	s, _ = p.SessionNew(time.Hour, "stackPath", "stackName")
+	expectedSessions[s.Id] = s
 
 	assert.Equal(t, "stackPath", s.Stack)
 	assert.Equal(t, "stackName", s.StackName)
@@ -66,4 +74,7 @@ func TestSessionNew(t *testing.T) {
 	assert.Equal(t, "10.0.0.1", s.PwdIpAddress)
 
 	assert.Equal(t, s, scheduledSession)
+
+	assert.Equal(t, expectedSessions, sessions)
+	assert.True(t, saveCalled)
 }
