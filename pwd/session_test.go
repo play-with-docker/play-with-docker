@@ -9,6 +9,8 @@ import (
 )
 
 func TestSessionNew(t *testing.T) {
+	sessions = map[string]*Session{}
+
 	config.PWDContainerName = "pwd"
 	var connectContainerName, connectNetworkName, connectIP string
 	createdNetworkId := ""
