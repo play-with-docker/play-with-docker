@@ -35,25 +35,26 @@ func (p UInt16Slice) Less(i, j int) bool { return p[i] < p[j] }
 func (p UInt16Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 type Instance struct {
-	rw         sync.Mutex
-	session    *Session         `json:"-"`
+	Image      string           `json:"image"`
 	Name       string           `json:"name"`
 	Hostname   string           `json:"hostname"`
 	IP         string           `json:"ip"`
-	conn       net.Conn         `json:"-"`
-	ctx        context.Context  `json:"-"`
-	docker     docker.DockerApi `json:"-"`
 	IsManager  *bool            `json:"is_manager"`
 	Mem        string           `json:"mem"`
 	Cpu        string           `json:"cpu"`
 	Alias      string           `json:"alias"`
-	tempPorts  []uint16         `json:"-"`
 	ServerCert []byte           `json:"server_cert"`
 	ServerKey  []byte           `json:"server_key"`
 	CACert     []byte           `json:"ca_cert"`
 	Cert       []byte           `json:"cert"`
 	Key        []byte           `json:"key"`
+	session    *Session         `json:"-"`
+	conn       net.Conn         `json:"-"`
+	ctx        context.Context  `json:"-"`
+	docker     docker.DockerApi `json:"-"`
+	tempPorts  []uint16         `json:"-"`
 	Ports      UInt16Slice
+	rw         sync.Mutex
 }
 type InstanceConfig struct {
 	ImageName  string
@@ -200,7 +201,7 @@ func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, err
 	}
 
 	opts := docker.CreateContainerOpts{
-		Image:         config.GetDindImageName(),
+		Image:         conf.ImageName,
 		SessionId:     session.Id,
 		PwdIpAddress:  session.PwdIpAddress,
 		ContainerName: containerName,
@@ -208,6 +209,14 @@ func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, err
 		ServerCert:    conf.ServerCert,
 		ServerKey:     conf.ServerKey,
 		CACert:        conf.CACert,
+		Privileged:    false,
+	}
+
+	for _, imageName := range p.InstanceAllowedImages() {
+		if conf.ImageName == imageName {
+			opts.Privileged = true
+			break
+		}
 	}
 
 	ip, err := p.docker.CreateContainer(opts)
@@ -216,6 +225,7 @@ func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, err
 	}
 
 	instance := &Instance{}
+	instance.Image = opts.Image
 	instance.IP = ip
 	instance.Name = containerName
 	instance.Hostname = nodeName

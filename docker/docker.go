@@ -14,10 +14,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/jsonmessage"
 )
 
 const (
@@ -190,6 +192,7 @@ type CreateContainerOpts struct {
 	ServerCert    []byte
 	ServerKey     []byte
 	CACert        []byte
+	Privileged    bool
 }
 
 func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
@@ -219,7 +222,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 
 	h := &container.HostConfig{
 		NetworkMode: container.NetworkMode(opts.SessionId),
-		Privileged:  true,
+		Privileged:  opts.Privileged,
 		AutoRemove:  true,
 		LogConfig:   container.LogConfig{Config: map[string]string{"max-size": "10m", "max-file": "1"}},
 	}
@@ -257,7 +260,18 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
 
 	if err != nil {
-		return "", err
+		if client.IsErrImageNotFound(err) {
+			log.Printf("Unable to find image '%s' locally\n", opts.Image)
+			if err = d.pullImage(context.Background(), opts.Image); err != nil {
+				return "", err
+			}
+			container, err = d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
+			if err != nil {
+				return "", err
+			}
+		} else {
+			return "", err
+		}
 	}
 
 	if err := d.copyIfSet(opts.ServerCert, "cert.pem", containerCertDir, opts.ContainerName); err != nil {
@@ -281,6 +295,28 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 	}
 
 	return cinfo.NetworkSettings.Networks[opts.SessionId].IPAddress, nil
+}
+
+func (d *docker) pullImage(ctx context.Context, image string) error {
+	_, err := reference.ParseNormalizedNamed(image)
+	if err != nil {
+		return err
+	}
+
+	options := types.ImageCreateOptions{}
+
+	responseBody, err := d.c.ImageCreate(ctx, image, options)
+	if err != nil {
+		return err
+	}
+	defer responseBody.Close()
+
+	return jsonmessage.DisplayJSONMessagesStream(
+		responseBody,
+		os.Stderr,
+		os.Stdout.Fd(),
+		false,
+		nil)
 }
 
 func (d *docker) copyIfSet(content []byte, fileName, path, containerName string) error {

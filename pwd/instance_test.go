@@ -1,8 +1,12 @@
 package pwd
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
+	"github.com/play-with-docker/play-with-docker/config"
+	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,4 +36,111 @@ func TestInstanceResizeTerminal(t *testing.T) {
 	assert.Equal(t, "foobar", resizedInstanceName)
 	assert.Equal(t, uint(24), resizedRows)
 	assert.Equal(t, uint(80), resizedCols)
+}
+
+func TestInstanceNew(t *testing.T) {
+	containerOpts := docker.CreateContainerOpts{}
+	dock := &mockDocker{}
+	dock.createContainer = func(opts docker.CreateContainerOpts) (string, error) {
+		containerOpts = opts
+		return "10.0.0.1", nil
+	}
+
+	tasks := &mockTasks{}
+	broadcast := &mockBroadcast{}
+	storage := &mockStorage{}
+
+	p := NewPWD(dock, tasks, broadcast, storage)
+
+	session, err := p.SessionNew(time.Hour, "", "")
+
+	assert.Nil(t, err)
+
+	instance, err := p.InstanceNew(session, InstanceConfig{})
+
+	assert.Nil(t, err)
+
+	expectedInstance := Instance{
+		Name:     fmt.Sprintf("%s_node1", session.Id[:8]),
+		Hostname: "node1",
+		IP:       "10.0.0.1",
+		Alias:    "",
+		Image:    config.GetDindImageName(),
+		session:  session,
+	}
+
+	assert.Equal(t, expectedInstance, *instance)
+
+	expectedContainerOpts := docker.CreateContainerOpts{
+		Image:         expectedInstance.Image,
+		SessionId:     session.Id,
+		PwdIpAddress:  session.PwdIpAddress,
+		ContainerName: expectedInstance.Name,
+		Hostname:      expectedInstance.Hostname,
+		ServerCert:    nil,
+		ServerKey:     nil,
+		CACert:        nil,
+		Privileged:    true,
+	}
+	assert.Equal(t, expectedContainerOpts, containerOpts)
+}
+
+func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
+	containerOpts := docker.CreateContainerOpts{}
+	dock := &mockDocker{}
+	dock.createContainer = func(opts docker.CreateContainerOpts) (string, error) {
+		containerOpts = opts
+		return "10.0.0.1", nil
+	}
+
+	tasks := &mockTasks{}
+	broadcast := &mockBroadcast{}
+	storage := &mockStorage{}
+
+	p := NewPWD(dock, tasks, broadcast, storage)
+
+	session, err := p.SessionNew(time.Hour, "", "")
+
+	assert.Nil(t, err)
+
+	instance, err := p.InstanceNew(session, InstanceConfig{ImageName: "redis"})
+
+	assert.Nil(t, err)
+
+	expectedInstance := Instance{
+		Name:     fmt.Sprintf("%s_node1", session.Id[:8]),
+		Hostname: "node1",
+		IP:       "10.0.0.1",
+		Alias:    "",
+		Image:    "redis",
+		session:  session,
+	}
+
+	assert.Equal(t, expectedInstance, *instance)
+
+	expectedContainerOpts := docker.CreateContainerOpts{
+		Image:         expectedInstance.Image,
+		SessionId:     session.Id,
+		PwdIpAddress:  session.PwdIpAddress,
+		ContainerName: expectedInstance.Name,
+		Hostname:      expectedInstance.Hostname,
+		ServerCert:    nil,
+		ServerKey:     nil,
+		CACert:        nil,
+		Privileged:    false,
+	}
+	assert.Equal(t, expectedContainerOpts, containerOpts)
+}
+
+func TestInstanceAllowedImages(t *testing.T) {
+	dock := &mockDocker{}
+	tasks := &mockTasks{}
+	broadcast := &mockBroadcast{}
+	storage := &mockStorage{}
+
+	p := NewPWD(dock, tasks, broadcast, storage)
+
+	expectedImages := []string{config.GetDindImageName(), "franela/dind:overlay2-dev"}
+
+	assert.Equal(t, expectedImages, p.InstanceAllowedImages())
 }
