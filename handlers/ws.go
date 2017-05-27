@@ -6,7 +6,6 @@ import (
 
 	"github.com/googollee/go-socket.io"
 	"github.com/gorilla/mux"
-	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func WS(so socketio.Socket) {
@@ -19,74 +18,36 @@ func WS(so socketio.Socket) {
 
 	sessionId := vars["sessionId"]
 
-	session := services.GetSession(sessionId)
+	session := core.SessionGet(sessionId)
 	if session == nil {
 		log.Printf("Session with id [%s] does not exist!\n", sessionId)
 		return
 	}
 
-	session.AddNewClient(services.NewClient(so, session))
-}
-func WSError(so socketio.Socket) {
-	log.Println("error ws")
-}
+	so.Join(session.Id)
 
-/*
-	so.Join(sessionId)
+	client := core.ClientNew(so.Id(), session)
 
-	// TODO: Reset terminal geometry
+	so.On("session close", func() {
+		core.SessionClose(session)
+	})
 
-	so.On("resize", func(cols, rows int) {
-		// TODO: Reset terminal geometry
+	so.On("terminal in", func(name, data string) {
+		// User wrote something on the terminal. Need to write it to the instance terminal
+		instance := core.InstanceGet(session, name)
+		core.InstanceWriteToTerminal(instance, data)
+	})
+
+	so.On("viewport resize", func(cols, rows uint) {
+		// User resized his viewport
+		core.ClientResizeViewPort(client, cols, rows)
 	})
 
 	so.On("disconnection", func() {
-		//TODO: reset the best terminal geometry
+		core.ClientClose(client)
 	})
-
-	ctx := context.Background()
-
-	session := services.GetSession(sessionId)
-	instance := services.GetInstance(session, instanceName)
-
-	if instance.Stdout == nil {
-		id, err := services.CreateExecConnection(instance.Name, ctx)
-		if err != nil {
-			return
-		}
-		conn, err := services.AttachExecConnection(id, ctx)
-		if err != nil {
-			return
-		}
-
-		encoder := encoding.Replacement.NewEncoder()
-		instance.Conn = conn
-		instance.Stdout = &cookoo.MultiWriter{}
-		instance.Stdout.Init()
-		u1 := uuid.NewV4()
-		instance.Stdout.AddWriter(u1.String(), ws)
-		go func() {
-			io.Copy(encoder.Writer(instance.Stdout), instance.Conn.Reader)
-			instance.Stdout.RemoveWriter(u1.String())
-		}()
-		go func() {
-			io.Copy(instance.Conn.Conn, ws)
-			instance.Stdout.RemoveWriter(u1.String())
-		}()
-		select {
-		case <-ctx.Done():
-		}
-	} else {
-		u1 := uuid.NewV4()
-		instance.Stdout.AddWriter(u1.String(), ws)
-
-		go func() {
-			io.Copy(instance.Conn.Conn, ws)
-			instance.Stdout.RemoveWriter(u1.String())
-		}()
-		select {
-		case <-ctx.Done():
-		}
-	}
 }
-*/
+
+func WSError(so socketio.Socket) {
+	log.Println("error ws")
+}

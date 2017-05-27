@@ -11,7 +11,6 @@ import (
 	"github.com/miekg/dns"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/handlers"
-	"github.com/play-with-docker/play-with-docker/services"
 	"github.com/play-with-docker/play-with-docker/templates"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
@@ -20,6 +19,7 @@ import (
 func main() {
 
 	config.ParseFlags()
+	handlers.Bootstrap()
 
 	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
 
@@ -40,14 +40,7 @@ func main() {
 		}
 	}()
 
-	server := services.CreateWSServer()
-	server.On("connection", handlers.WS)
-	server.On("error", handlers.WSError)
-
-	err := services.LoadSessionsFromDisk()
-	if err != nil && !os.IsNotExist(err) {
-		log.Fatal("Error decoding sessions from disk ", err)
-	}
+	server := handlers.Broadcast.GetHandler()
 
 	r := mux.NewRouter()
 	corsRouter := mux.NewRouter()

@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/play-with-docker/play-with-docker/services"
 )
 
 type execRequest struct {
@@ -19,6 +18,7 @@ type execResponse struct {
 
 func Exec(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
+	sessionId := vars["sessionId"]
 	instanceName := vars["instanceName"]
 
 	var er execRequest
@@ -28,7 +28,18 @@ func Exec(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	code, err := services.Exec(instanceName, er.Cmd)
+	s := core.SessionGet(sessionId)
+	if s == nil {
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	}
+	i := core.InstanceGet(s, instanceName)
+	if i == nil {
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	code, err := core.InstanceExec(i, er.Cmd)
 
 	if err != nil {
 		log.Println(err)

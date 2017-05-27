@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/play-with-docker/play-with-docker/services"
+	"github.com/play-with-docker/play-with-docker/recaptcha"
 )
 
 type NewSessionResponse struct {
@@ -19,7 +19,7 @@ type NewSessionResponse struct {
 
 func NewSession(rw http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
-	if !services.IsHuman(req, rw) {
+	if !recaptcha.IsHuman(req, rw) {
 		// User it not a human
 		rw.WriteHeader(http.StatusForbidden)
 		return
@@ -42,8 +42,8 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		}
 
 	}
-	duration := services.GetDuration(reqDur)
-	s, err := services.NewSession(duration, stack, stackName)
+	duration := config.GetDuration(reqDur)
+	s, err := core.SessionNew(duration, stack, stackName)
 	if err != nil {
 		log.Println(err)
 		//TODO: Return some error code

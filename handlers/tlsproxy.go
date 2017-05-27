@@ -9,7 +9,6 @@ import (
 
 	vhost "github.com/inconshreveable/go-vhost"
 	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/play-with-docker/play-with-docker/services"
 )
 
 func StartTLSProxy(port string) {
@@ -51,7 +50,7 @@ func StartTLSProxy(port string) {
 				} else {
 					alias := match[1]
 					sessionPrefix := match[2]
-					instance := services.FindInstanceByAlias(sessionPrefix, alias)
+					instance := core.InstanceFindByAlias(sessionPrefix, alias)
 					if instance != nil {
 						targetIP = instance.IP
 					} else {

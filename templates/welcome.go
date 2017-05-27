@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"html/template"
 
-	"github.com/play-with-docker/play-with-docker/services"
+	"github.com/play-with-docker/play-with-docker/recaptcha"
 )
 
 func GetWelcomeTemplate() ([]byte, error) {
@@ -13,7 +13,7 @@ func GetWelcomeTemplate() ([]byte, error) {
 		return nil, tplErr
 	}
 	var b bytes.Buffer
-	tplExecuteErr := welcomeTemplate.ExecuteTemplate(&b, "GOOGLE_RECAPTCHA_SITE_KEY", services.GetGoogleRecaptchaSiteKey())
+	tplExecuteErr := welcomeTemplate.ExecuteTemplate(&b, "GOOGLE_RECAPTCHA_SITE_KEY", recaptcha.GetGoogleRecaptchaSiteKey())
 	if tplExecuteErr != nil {
 		return nil, tplExecuteErr
 	}
