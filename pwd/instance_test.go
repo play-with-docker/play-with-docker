@@ -61,12 +61,13 @@ func TestInstanceNew(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedInstance := Instance{
-		Name:     fmt.Sprintf("%s_node1", session.Id[:8]),
-		Hostname: "node1",
-		IP:       "10.0.0.1",
-		Alias:    "",
-		Image:    config.GetDindImageName(),
-		session:  session,
+		Name:         fmt.Sprintf("%s_node1", session.Id[:8]),
+		Hostname:     "node1",
+		IP:           "10.0.0.1",
+		Alias:        "",
+		Image:        config.GetDindImageName(),
+		IsDockerHost: true,
+		session:      session,
 	}
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -108,12 +109,13 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedInstance := Instance{
-		Name:     fmt.Sprintf("%s_node1", session.Id[:8]),
-		Hostname: "node1",
-		IP:       "10.0.0.1",
-		Alias:    "",
-		Image:    "redis",
-		session:  session,
+		Name:         fmt.Sprintf("%s_node1", session.Id[:8]),
+		Hostname:     "node1",
+		IP:           "10.0.0.1",
+		Alias:        "",
+		Image:        "redis",
+		IsDockerHost: false,
+		session:      session,
 	}
 
 	assert.Equal(t, expectedInstance, *instance)

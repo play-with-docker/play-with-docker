@@ -35,26 +35,27 @@ func (p UInt16Slice) Less(i, j int) bool { return p[i] < p[j] }
 func (p UInt16Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 type Instance struct {
-	Image      string           `json:"image"`
-	Name       string           `json:"name"`
-	Hostname   string           `json:"hostname"`
-	IP         string           `json:"ip"`
-	IsManager  *bool            `json:"is_manager"`
-	Mem        string           `json:"mem"`
-	Cpu        string           `json:"cpu"`
-	Alias      string           `json:"alias"`
-	ServerCert []byte           `json:"server_cert"`
-	ServerKey  []byte           `json:"server_key"`
-	CACert     []byte           `json:"ca_cert"`
-	Cert       []byte           `json:"cert"`
-	Key        []byte           `json:"key"`
-	session    *Session         `json:"-"`
-	conn       net.Conn         `json:"-"`
-	ctx        context.Context  `json:"-"`
-	docker     docker.DockerApi `json:"-"`
-	tempPorts  []uint16         `json:"-"`
-	Ports      UInt16Slice
-	rw         sync.Mutex
+	Image        string           `json:"image"`
+	Name         string           `json:"name"`
+	Hostname     string           `json:"hostname"`
+	IP           string           `json:"ip"`
+	IsManager    *bool            `json:"is_manager"`
+	Mem          string           `json:"mem"`
+	Cpu          string           `json:"cpu"`
+	Alias        string           `json:"alias"`
+	ServerCert   []byte           `json:"server_cert"`
+	ServerKey    []byte           `json:"server_key"`
+	CACert       []byte           `json:"ca_cert"`
+	Cert         []byte           `json:"cert"`
+	Key          []byte           `json:"key"`
+	IsDockerHost bool             `json:"is_docker_host"`
+	session      *Session         `json:"-"`
+	conn         net.Conn         `json:"-"`
+	ctx          context.Context  `json:"-"`
+	docker       docker.DockerApi `json:"-"`
+	tempPorts    []uint16         `json:"-"`
+	Ports        UInt16Slice
+	rw           sync.Mutex
 }
 type InstanceConfig struct {
 	ImageName  string
@@ -236,6 +237,8 @@ func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, err
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
 	instance.session = session
+	// For now this condition holds through. In the future we might need a more complex logic.
+	instance.IsDockerHost = opts.Privileged
 
 	if session.Instances == nil {
 		session.Instances = make(map[string]*Instance)

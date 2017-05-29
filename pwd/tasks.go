@@ -45,7 +45,7 @@ func (sch *scheduler) Schedule(s *Session) {
 			wg.Add(len(s.Instances))
 			for _, ins := range s.Instances {
 				var i *Instance = ins
-				if i.docker == nil {
+				if i.docker == nil && i.IsDockerHost {
 					// Need to create client to the DinD docker daemon
 
 					// We check if the client needs to use TLS
