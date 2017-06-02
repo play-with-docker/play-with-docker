@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -104,9 +105,16 @@ func main() {
 	r.PathPrefix("/").Handler(negroni.New(negroni.Wrap(corsHandler(corsRouter))))
 	n.UseHandler(r)
 
+	httpServer := http.Server{
+		Addr:              "0.0.0.0:" + config.PortNumber,
+		Handler:           n,
+		IdleTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
 	go func() {
 		log.Println("Listening on port " + config.PortNumber)
-		log.Fatal(http.ListenAndServe("0.0.0.0:"+config.PortNumber, n))
+		log.Fatal(httpServer.ListenAndServe())
 	}()
 
 	// Now listen for TLS connections that need to be proxied
