@@ -60,6 +60,7 @@ type Instance struct {
 type InstanceConfig struct {
 	ImageName  string
 	Alias      string
+	Hostname   string
 	ServerCert []byte
 	ServerKey  []byte
 	CACert     []byte
@@ -178,35 +179,43 @@ func (p *pwd) InstanceDelete(session *Session, instance *Instance) error {
 	return nil
 }
 
+func (p *pwd) checkHostnameExists(session *Session, hostname string) bool {
+	containerName := fmt.Sprintf("%s_%s", session.Id[:8], hostname)
+	exists := false
+	for _, instance := range session.Instances {
+		if instance.Name == containerName {
+			exists = true
+			break
+		}
+	}
+	return exists
+}
+
 func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, error) {
 	if conf.ImageName == "" {
 		conf.ImageName = config.GetDindImageName()
 	}
 	log.Printf("NewInstance - using image: [%s]\n", conf.ImageName)
 
-	var nodeName string
-	var containerName string
-	for i := 1; ; i++ {
-		nodeName = fmt.Sprintf("node%d", i)
-		containerName = fmt.Sprintf("%s_%s", session.Id[:8], nodeName)
-		exists := false
-		for _, instance := range session.Instances {
-			if instance.Name == containerName {
-				exists = true
+	if conf.Hostname == "" {
+		var nodeName string
+		for i := 1; ; i++ {
+			nodeName = fmt.Sprintf("node%d", i)
+			exists := p.checkHostnameExists(session, nodeName)
+			if !exists {
 				break
 			}
 		}
-		if !exists {
-			break
-		}
+		conf.Hostname = nodeName
 	}
+	containerName := fmt.Sprintf("%s_%s", session.Id[:8], conf.Hostname)
 
 	opts := docker.CreateContainerOpts{
 		Image:         conf.ImageName,
 		SessionId:     session.Id,
 		PwdIpAddress:  session.PwdIpAddress,
 		ContainerName: containerName,
-		Hostname:      nodeName,
+		Hostname:      conf.Hostname,
 		ServerCert:    conf.ServerCert,
 		ServerKey:     conf.ServerKey,
 		CACert:        conf.CACert,
@@ -229,7 +238,7 @@ func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, err
 	instance.Image = opts.Image
 	instance.IP = ip
 	instance.Name = containerName
-	instance.Hostname = nodeName
+	instance.Hostname = conf.Hostname
 	instance.Alias = conf.Alias
 	instance.Cert = conf.Cert
 	instance.Key = conf.Key
