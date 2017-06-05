@@ -134,6 +134,54 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	assert.Equal(t, expectedContainerOpts, containerOpts)
 }
 
+func TestInstanceNew_WithCustomHostname(t *testing.T) {
+	containerOpts := docker.CreateContainerOpts{}
+	dock := &mockDocker{}
+	dock.createContainer = func(opts docker.CreateContainerOpts) (string, error) {
+		containerOpts = opts
+		return "10.0.0.1", nil
+	}
+
+	tasks := &mockTasks{}
+	broadcast := &mockBroadcast{}
+	storage := &mockStorage{}
+
+	p := NewPWD(dock, tasks, broadcast, storage)
+
+	session, err := p.SessionNew(time.Hour, "", "")
+
+	assert.Nil(t, err)
+
+	instance, err := p.InstanceNew(session, InstanceConfig{ImageName: "redis", Hostname: "redis-master"})
+
+	assert.Nil(t, err)
+
+	expectedInstance := Instance{
+		Name:         fmt.Sprintf("%s_redis-master", session.Id[:8]),
+		Hostname:     "redis-master",
+		IP:           "10.0.0.1",
+		Alias:        "",
+		Image:        "redis",
+		IsDockerHost: false,
+		session:      session,
+	}
+
+	assert.Equal(t, expectedInstance, *instance)
+
+	expectedContainerOpts := docker.CreateContainerOpts{
+		Image:         expectedInstance.Image,
+		SessionId:     session.Id,
+		PwdIpAddress:  session.PwdIpAddress,
+		ContainerName: expectedInstance.Name,
+		Hostname:      expectedInstance.Hostname,
+		ServerCert:    nil,
+		ServerKey:     nil,
+		CACert:        nil,
+		Privileged:    false,
+	}
+	assert.Equal(t, expectedContainerOpts, containerOpts)
+}
+
 func TestInstanceAllowedImages(t *testing.T) {
 	dock := &mockDocker{}
 	tasks := &mockTasks{}
