@@ -33,6 +33,7 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 		return
 		//TODO: Set a status error
 	} else {
+		rw.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(rw).Encode(i)
 	}
 }
