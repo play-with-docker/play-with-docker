@@ -6,6 +6,9 @@ type checkUsedPortsTask struct {
 }
 
 func (c checkUsedPortsTask) Run(i *Instance) error {
+	if i.docker == nil {
+		return nil
+	}
 	if ports, err := i.docker.GetPorts(); err == nil {
 		for _, p := range ports {
 			i.setUsedPort(uint16(p))

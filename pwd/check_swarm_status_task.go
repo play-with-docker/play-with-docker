@@ -10,6 +10,9 @@ type checkSwarmStatusTask struct {
 }
 
 func (c checkSwarmStatusTask) Run(i *Instance) error {
+	if i.docker == nil {
+		return nil
+	}
 	if info, err := i.docker.GetDaemonInfo(); err == nil {
 		if info.Swarm.LocalNodeState != swarm.LocalNodeStateInactive && info.Swarm.LocalNodeState != swarm.LocalNodeStateLocked {
 			i.IsManager = &info.Swarm.ControlAvailable

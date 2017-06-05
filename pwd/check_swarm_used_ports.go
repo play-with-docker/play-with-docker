@@ -9,6 +9,9 @@ type checkSwarmUsedPortsTask struct {
 }
 
 func (c checkSwarmUsedPortsTask) Run(i *Instance) error {
+	if i.docker == nil {
+		return nil
+	}
 	if i.IsManager != nil && *i.IsManager {
 		sessionPrefix := i.session.Id[:8]
 		// This is a swarm manager instance, then check for ports

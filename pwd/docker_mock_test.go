@@ -3,6 +3,7 @@ package pwd
 import (
 	"io"
 	"net"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/play-with-docker/play-with-docker/docker"
@@ -12,6 +13,7 @@ type mockDocker struct {
 	createNetwork   func(string) error
 	connectNetwork  func(container, network, ip string) (string, error)
 	containerResize func(string, uint, uint) error
+	createContainer func(opts docker.CreateContainerOpts) (string, error)
 }
 
 func (m *mockDocker) CreateNetwork(id string) error {
@@ -47,7 +49,7 @@ func (m *mockDocker) ContainerResize(name string, rows, cols uint) error {
 	return nil
 }
 func (m *mockDocker) CreateAttachConnection(name string) (net.Conn, error) {
-	return nil, nil
+	return &mockConn{}, nil
 }
 func (m *mockDocker) CopyToContainer(containerName, destination, fileName string, content io.Reader) error {
 	return nil
@@ -56,7 +58,10 @@ func (m *mockDocker) DeleteContainer(id string) error {
 	return nil
 }
 func (m *mockDocker) CreateContainer(opts docker.CreateContainerOpts) (string, error) {
-	return "", nil
+	if m.createContainer != nil {
+		return m.createContainer(opts)
+	}
+	return "10.0.0.1", nil
 }
 func (m *mockDocker) ExecAttach(instanceName string, command []string, out io.Writer) (int, error) {
 	return 0, nil
@@ -69,4 +74,39 @@ func (m *mockDocker) DeleteNetwork(id string) error {
 }
 func (m *mockDocker) Exec(instanceName string, command []string) (int, error) {
 	return 0, nil
+}
+
+type mockConn struct {
+}
+
+func (m *mockConn) Read(b []byte) (n int, err error) {
+	return len(b), nil
+}
+
+func (m *mockConn) Write(b []byte) (n int, err error) {
+	return len(b), nil
+}
+
+func (m *mockConn) Close() error {
+	return nil
+}
+
+func (m *mockConn) LocalAddr() net.Addr {
+	return &net.IPAddr{}
+}
+
+func (m *mockConn) RemoteAddr() net.Addr {
+	return &net.IPAddr{}
+}
+
+func (m *mockConn) SetDeadline(t time.Time) error {
+	return nil
+}
+
+func (m *mockConn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func (m *mockConn) SetWriteDeadline(t time.Time) error {
+	return nil
 }
