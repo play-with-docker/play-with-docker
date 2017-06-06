@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/config"
+	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/twinj/uuid"
 )
 
@@ -21,6 +22,17 @@ type sessionBuilderWriter struct {
 func (s *sessionBuilderWriter) Write(p []byte) (n int, err error) {
 	s.broadcast.BroadcastTo(s.sessionId, "session builder out", string(p))
 	return len(p), nil
+}
+
+type SessionSetupConf struct {
+	Instances []SessionSetupInstanceConf `json:"instances"`
+}
+
+type SessionSetupInstanceConf struct {
+	Image          string `json:"image"`
+	Hostname       string `json:"hostname"`
+	IsSwarmManager bool   `json:"is_swarm_manager"`
+	IsSwarmWorker  bool   `json:"is_swarm_worker"`
 }
 
 type Session struct {
@@ -205,6 +217,60 @@ func (p *pwd) SessionLoadAndPrepare() error {
 	}
 
 	setGauges()
+
+	return nil
+}
+
+func (p *pwd) SessionSetup(session *Session, conf SessionSetupConf) error {
+	var tokens *docker.SwarmTokens = nil
+	var firstSwarmManager *Instance = nil
+
+	// First create all instances and record who is a swarm manager and who is a swarm worker
+	for _, conf := range conf.Instances {
+		instanceConf := InstanceConfig{
+			ImageName: conf.Image,
+			Hostname:  conf.Hostname,
+		}
+		i, err := p.InstanceNew(session, instanceConf)
+		if err != nil {
+			return err
+		}
+		if conf.IsSwarmManager || conf.IsSwarmWorker {
+			// check if we have connection to the daemon, if not, create it
+			if i.docker == nil {
+				dock, err := p.docker.New(i.IP, i.Cert, i.Key)
+				if err != nil {
+					return err
+				}
+				i.docker = dock
+			}
+		}
+		if conf.IsSwarmManager {
+			// this is a swarm manager
+			// if no swarm cluster has been initiated, then initiate it!
+			if firstSwarmManager == nil {
+				tkns, err := i.docker.SwarmInit()
+				if err != nil {
+					return err
+				}
+				tokens = tkns
+				firstSwarmManager = i
+			} else {
+				// cluster has already been initiated, join as manager
+				err := i.docker.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Manager)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		if conf.IsSwarmWorker {
+			// this is a swarm worker
+			err := i.docker.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Worker)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }

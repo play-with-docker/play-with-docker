@@ -61,6 +61,7 @@ func main() {
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	corsRouter.HandleFunc("/instances/images", handlers.GetInstanceImages).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
+	corsRouter.HandleFunc("/sessions/{sessionId}/setup", handlers.SessionSetup).Methods("POST")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances", handlers.NewInstance).Methods("POST")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/uploads", handlers.FileUpload).Methods("POST")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", handlers.DeleteInstance).Methods("DELETE")

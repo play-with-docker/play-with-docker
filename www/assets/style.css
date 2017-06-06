@@ -59,3 +59,6 @@ md-input-container .md-errors-spacer {
     background-color: rgba(0,0,0,.5);
     -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
 }
+.md-mini {
+    min-width: 24px;
+}
