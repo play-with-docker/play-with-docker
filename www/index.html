@@ -47,6 +47,7 @@
                   <md-button class="md-warn md-raised" ng-click="closeSession()">Close session</md-button>
                   <div class="md-toolbar-tools">
                     <h1 class="md-toolbar-tools">Instances</h1>
+                    <templates-icon></templates-icon>
                     <settings-icon></settings-icon>
                   </div>
                 </md-toolbar>
@@ -145,6 +146,49 @@
         </div>
             
 
+        <script type="text/ng-template" id="templates-modal.html">
+            <md-toolbar>
+                <div class="md-toolbar-tools">
+                    <h2>Templates</h2>
+                    <span flex></span>
+                    <md-button class="md-icon-button" ng-click="$ctrl.close()">
+                        <md-icon class="material-icon" aria-label="Close dialog">close</md-icon>
+                    </md-button>
+                </div>
+                </md-toolbar>
+
+                <md-dialog-content>
+                <div class="md-dialog-content" style="width:600px;">
+					<div layout="row" layout-sm="column" layout-align="space-around" ng-if="building">
+						<md-progress-circular md-mode="indeterminate"></md-progress-circular>
+					</div>
+					<div layout="row" ng-if="errorMessage">
+						<div flex="100" style="margin-top: 20px; text-align:center; font-weight: bold; color: red;">
+							{{errorMessage}}
+						</div>
+					</div>
+                    <md-list flex ng-if="!building">
+                        <md-list-item class="md-3-line" ng-repeat="template in templates" ng-click="$ctrl.setupSession(template.setup)">
+							<md-card md-theme="default" md-theme-watch>
+								<md-card-title>
+								  <md-card-title-text>
+									<span class="md-headline">{{template.title}}</span>
+								  </md-card-title-text>
+								  <md-card-title-media>
+            						<div class="md-media-sm card-media"><img ng-src="{{template.icon}}" style="height: 75px;" class="md-card-image"></div>
+                                  </md-card-title-media>
+								</md-card-title>
+						    </md-card>
+                        </md-list-item>
+                    </md-list>
+                </md-dialog-content>
+                <md-dialog-actions layout="row">
+                    <span flex></span>
+                    <md-button ng-click="$ctrl.close()">
+                        Close
+                    </md-button>
+                </md-dialog-actions>
+        </script>
         <script type="text/ng-template" id="settings-modal.html">
             <md-toolbar>
                 <div class="md-toolbar-tools">

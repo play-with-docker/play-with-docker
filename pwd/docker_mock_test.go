@@ -14,6 +14,10 @@ type mockDocker struct {
 	connectNetwork  func(container, network, ip string) (string, error)
 	containerResize func(string, uint, uint) error
 	createContainer func(opts docker.CreateContainerOpts) (string, error)
+	execAttach      func(instanceName string, command []string, out io.Writer) (int, error)
+	new             func(ip string, cert, key []byte) (docker.DockerApi, error)
+	swarmInit       func() (*docker.SwarmTokens, error)
+	swarmJoin       func(addr, token string) error
 }
 
 func (m *mockDocker) CreateNetwork(id string) error {
@@ -64,6 +68,9 @@ func (m *mockDocker) CreateContainer(opts docker.CreateContainerOpts) (string, e
 	return "10.0.0.1", nil
 }
 func (m *mockDocker) ExecAttach(instanceName string, command []string, out io.Writer) (int, error) {
+	if m.execAttach != nil {
+		return m.execAttach(instanceName, command, out)
+	}
 	return 0, nil
 }
 func (m *mockDocker) DisconnectNetwork(containerId, networkId string) error {
@@ -74,6 +81,24 @@ func (m *mockDocker) DeleteNetwork(id string) error {
 }
 func (m *mockDocker) Exec(instanceName string, command []string) (int, error) {
 	return 0, nil
+}
+func (m *mockDocker) New(ip string, cert, key []byte) (docker.DockerApi, error) {
+	if m.new != nil {
+		return m.new(ip, cert, key)
+	}
+	return nil, nil
+}
+func (m *mockDocker) SwarmInit() (*docker.SwarmTokens, error) {
+	if m.swarmInit != nil {
+		return m.swarmInit()
+	}
+	return nil, nil
+}
+func (m *mockDocker) SwarmJoin(addr, token string) error {
+	if m.swarmJoin != nil {
+		return m.swarmJoin(addr, token)
+	}
+	return nil
 }
 
 type mockConn struct {

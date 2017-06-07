@@ -19,8 +19,8 @@
     }
   }
 
-  app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService) {
-    $scope.sessionId = window.location.pathname.replace('/p/', '');
+  app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', 'SessionService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService, SessionService) {
+    $scope.sessionId = SessionService.getCurrentSessionId();
     $scope.instances = [];
     $scope.idx = {};
     $scope.selectedInstance = null;
@@ -363,7 +363,7 @@
     $mdIconProvider.defaultIconSet('../assets/social-icons.svg', 24);
   }])
   .component('settingsIcon', {
-    template : "<md-button ng-click='$ctrl.onClick()'><md-icon class='material-icons'>settings</md-icon></md-button>",
+    template : "<md-button class='md-mini' ng-click='$ctrl.onClick()'><md-icon class='material-icons'>settings</md-icon></md-button>",
     controller : function($mdDialog) {
       var $ctrl = this;
       $ctrl.onClick = function() {
@@ -374,6 +374,42 @@
           clickOutsideToClose : true
         })
       }
+    }
+  })
+  .component('templatesIcon', {
+    template : "<md-button class='md-mini' ng-click='$ctrl.onClick()'><md-icon class='material-icons'>build</md-icon></md-button>",
+    controller : function($mdDialog) {
+      var $ctrl = this;
+      $ctrl.onClick = function() {
+        $mdDialog.show({
+          controller : function() {},
+          template : "<templates-dialog></templates-dialog>",
+          parent: angular.element(document.body),
+          clickOutsideToClose : true
+        })
+      }
+    }
+  })
+  .component("templatesDialog", {
+    templateUrl : "templates-modal.html",
+    controller : function($mdDialog, $scope, SessionService) {
+      var $ctrl = this;
+      $scope.building = false;
+	  $scope.templates = SessionService.getAvailableTemplates();
+      $ctrl.close = function() {
+        $mdDialog.cancel();
+      }
+	  $ctrl.setupSession = function(setup) {
+		$scope.building = true;
+		SessionService.setup(setup, function(err) {
+            $scope.building = false;
+			if (err) {
+				$scope.errorMessage = err;
+				return;
+			}
+			$ctrl.close();
+		});
+	  }
     }
   })
   .component("settingsDialog", {
@@ -417,6 +453,58 @@
       $ctrl.close = function() {
         $mdDialog.cancel();
       }
+    }
+  })
+  .service("SessionService", function($http) {
+	var templates = [
+		{
+			title: '3 Managers and 2 Workers',
+			icon: '/assets/swarm.png',
+			setup: {
+				instances: [
+					{hostname: 'manager1', is_swarm_manager: true},
+					{hostname: 'manager2', is_swarm_manager: true},
+					{hostname: 'manager3', is_swarm_manager: true},
+					{hostname: 'worker1', is_swarm_worker: true},
+					{hostname: 'worker2', is_swarm_worker: true}
+				]
+			}
+		},
+		{
+			title: '5 Managers and no workers',
+			icon: '/assets/swarm.png',
+			setup: {
+				instances: [
+					{hostname: 'manager1', is_swarm_manager: true},
+					{hostname: 'manager2', is_swarm_manager: true},
+					{hostname: 'manager3', is_swarm_manager: true},
+					{hostname: 'manager4', is_swarm_manager: true},
+					{hostname: 'manager5', is_swarm_manager: true}
+				]
+			}
+		}
+	];
+
+    return {
+      getAvailableTemplates: getAvailableTemplates,
+	  getCurrentSessionId: getCurrentSessionId,
+	  setup: setup,
+    };
+
+	function getCurrentSessionId() {
+	  return window.location.pathname.replace('/p/', '');
+    }
+    function getAvailableTemplates() {
+      return templates;
+    }
+    function setup(plan, cb) {
+      return $http
+      .post("/sessions/" + getCurrentSessionId() + "/setup", plan)
+      .then(function(response) {
+		if (cb) cb();
+      }, function(response) {
+		if (cb) cb(response.data);
+	  });
     }
   })
   .service("InstanceService", function($http) {
