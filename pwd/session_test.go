@@ -84,8 +84,6 @@ func TestSessionNew(t *testing.T) {
 }
 
 func TestSessionSetup(t *testing.T) {
-	ips := []string{"10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4", "10.0.0.5"}
-	nextIp := 0
 	swarmInitOnMaster1 := false
 	manager2JoinedHasManager := false
 	manager3JoinedHasManager := false
@@ -93,9 +91,20 @@ func TestSessionSetup(t *testing.T) {
 
 	dock := &mockDocker{}
 	dock.createContainer = func(opts docker.CreateContainerOpts) (string, error) {
-		ip := ips[nextIp]
-		nextIp++
-		return ip, nil
+		if opts.Hostname == "manager1" {
+			return "10.0.0.1", nil
+		} else if opts.Hostname == "manager2" {
+			return "10.0.0.2", nil
+		} else if opts.Hostname == "manager3" {
+			return "10.0.0.3", nil
+		} else if opts.Hostname == "worker1" {
+			return "10.0.0.4", nil
+		} else if opts.Hostname == "other" {
+			return "10.0.0.5", nil
+		} else {
+			assert.Fail(t, "Should not have reached here")
+		}
+		return "", nil
 	}
 	dock.new = func(ip string, cert, key []byte) (docker.DockerApi, error) {
 		if ip == "10.0.0.1" {

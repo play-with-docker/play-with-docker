@@ -225,18 +225,17 @@ func (p *pwd) SessionSetup(session *Session, conf SessionSetupConf) error {
 	var tokens *docker.SwarmTokens = nil
 	var firstSwarmManager *Instance = nil
 
-	// First create all instances and record who is a swarm manager and who is a swarm worker
+	// first look for a swarm manager and create it
 	for _, conf := range conf.Instances {
-		instanceConf := InstanceConfig{
-			ImageName: conf.Image,
-			Hostname:  conf.Hostname,
-		}
-		i, err := p.InstanceNew(session, instanceConf)
-		if err != nil {
-			return err
-		}
-		if conf.IsSwarmManager || conf.IsSwarmWorker {
-			// check if we have connection to the daemon, if not, create it
+		if conf.IsSwarmManager {
+			instanceConf := InstanceConfig{
+				ImageName: conf.Image,
+				Hostname:  conf.Hostname,
+			}
+			i, err := p.InstanceNew(session, instanceConf)
+			if err != nil {
+				return err
+			}
 			if i.docker == nil {
 				dock, err := p.docker.New(i.IP, i.Cert, i.Key)
 				if err != nil {
@@ -244,33 +243,68 @@ func (p *pwd) SessionSetup(session *Session, conf SessionSetupConf) error {
 				}
 				i.docker = dock
 			}
-		}
-		if conf.IsSwarmManager {
-			// this is a swarm manager
-			// if no swarm cluster has been initiated, then initiate it!
-			if firstSwarmManager == nil {
-				tkns, err := i.docker.SwarmInit()
-				if err != nil {
-					return err
-				}
-				tokens = tkns
-				firstSwarmManager = i
-			} else {
-				// cluster has already been initiated, join as manager
-				err := i.docker.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Manager)
-				if err != nil {
-					return err
-				}
-			}
-		}
-		if conf.IsSwarmWorker {
-			// this is a swarm worker
-			err := i.docker.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Worker)
+			tkns, err := i.docker.SwarmInit()
 			if err != nil {
 				return err
 			}
+			tokens = tkns
+			firstSwarmManager = i
+			break
 		}
 	}
+
+	// now create the rest in parallel
+
+	wg := sync.WaitGroup{}
+	for _, c := range conf.Instances {
+		if firstSwarmManager != nil && c.Hostname != firstSwarmManager.Hostname {
+			wg.Add(1)
+			go func(c SessionSetupInstanceConf) {
+				defer wg.Done()
+				instanceConf := InstanceConfig{
+					ImageName: c.Image,
+					Hostname:  c.Hostname,
+				}
+				i, err := p.InstanceNew(session, instanceConf)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				if c.IsSwarmManager || c.IsSwarmWorker {
+					// check if we have connection to the daemon, if not, create it
+					if i.docker == nil {
+						dock, err := p.docker.New(i.IP, i.Cert, i.Key)
+						if err != nil {
+							log.Println(err)
+							return
+						}
+						i.docker = dock
+					}
+				}
+
+				if firstSwarmManager != nil {
+					if c.IsSwarmManager {
+						// this is a swarm manager
+						// cluster has already been initiated, join as manager
+						err := i.docker.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Manager)
+						if err != nil {
+							log.Println(err)
+							return
+						}
+					}
+					if c.IsSwarmWorker {
+						// this is a swarm worker
+						err := i.docker.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Worker)
+						if err != nil {
+							log.Println(err)
+							return
+						}
+					}
+				}
+			}(c)
+		}
+	}
+	wg.Wait()
 
 	return nil
 }
