@@ -148,9 +148,6 @@ func (p *pwd) SessionGetSmallestViewPort(s *Session) ViewPort {
 }
 
 func (p *pwd) SessionDeployStack(s *Session) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
 	if s.Ready {
 		// a stack was already deployed on this session, just ignore
 		return nil
