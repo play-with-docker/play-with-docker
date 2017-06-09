@@ -192,6 +192,9 @@ func (p *pwd) checkHostnameExists(session *Session, hostname string) bool {
 }
 
 func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, error) {
+	session.rw.Lock()
+	defer session.rw.Unlock()
+
 	if conf.ImageName == "" {
 		conf.ImageName = config.GetDindImageName()
 	}

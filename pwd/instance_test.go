@@ -2,6 +2,7 @@ package pwd
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -84,6 +85,48 @@ func TestInstanceNew(t *testing.T) {
 		Privileged:    true,
 	}
 	assert.Equal(t, expectedContainerOpts, containerOpts)
+}
+
+func TestInstanceNew_Concurrency(t *testing.T) {
+	i := 0
+	dock := &mockDocker{}
+	dock.createContainer = func(opts docker.CreateContainerOpts) (string, error) {
+		time.Sleep(time.Second)
+		i++
+		return fmt.Sprintf("10.0.0.%d", i), nil
+	}
+
+	tasks := &mockTasks{}
+	broadcast := &mockBroadcast{}
+	storage := &mockStorage{}
+
+	p := NewPWD(dock, tasks, broadcast, storage)
+
+	session, err := p.SessionNew(time.Hour, "", "")
+
+	assert.Nil(t, err)
+
+	var instance1 *Instance
+	var instance2 *Instance
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		instance, err := p.InstanceNew(session, InstanceConfig{})
+		assert.Nil(t, err)
+		instance1 = instance
+	}()
+	go func() {
+		defer wg.Done()
+		instance, err := p.InstanceNew(session, InstanceConfig{})
+		assert.Nil(t, err)
+		instance2 = instance
+	}()
+	wg.Wait()
+
+	assert.Subset(t, []string{"node1", "node2"}, []string{instance1.Hostname, instance2.Hostname})
 }
 
 func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
