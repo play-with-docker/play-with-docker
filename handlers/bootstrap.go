@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/docker/docker/client"
 	"github.com/play-with-docker/play-with-docker/docker"
@@ -31,7 +32,11 @@ func Bootstrap() {
 
 	core = pwd.NewPWD(d, t, Broadcast, s)
 
+	loadStart := time.Now()
 	err = core.SessionLoadAndPrepare()
+	loadElapsed := time.Since(loadStart)
+	log.Printf("***************** Loading stored sessions took %s\n", loadElapsed)
+
 	if err != nil && !os.IsNotExist(err) {
 		log.Fatal("Error decoding sessions from disk ", err)
 	}
