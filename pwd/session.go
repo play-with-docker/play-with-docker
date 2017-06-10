@@ -323,7 +323,7 @@ func (p *pwd) prepareSession(session *Session) error {
 
 	// Connect PWD daemon to the new network
 	if err := p.connectToNetwork(session); err != nil {
-		return nil
+		return err
 	}
 
 	// Schedule periodic tasks
