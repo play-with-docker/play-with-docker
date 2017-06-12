@@ -52,6 +52,9 @@ type Session struct {
 }
 
 func (p *pwd) SessionNew(duration time.Duration, stack, stackName string) (*Session, error) {
+	sessionsMutex.Lock()
+	defer sessionsMutex.Unlock()
+
 	s := &Session{}
 	s.Id = uuid.NewV4().String()
 	s.Instances = map[string]*Instance{}

@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"sync"
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/docker"
@@ -23,6 +24,7 @@ var (
 )
 
 var sessions map[string]*Session
+var sessionsMutex sync.Mutex
 
 func init() {
 	prometheus.MustRegister(sessionsGauge)
