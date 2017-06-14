@@ -21,7 +21,17 @@ var (
 		Name: "instances",
 		Help: "Instances",
 	})
+
+	latencyHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "pwd_action_duration_ms",
+		Help:    "How long it took to process a specific action, in a specific host",
+		Buckets: []float64{300, 1200, 5000},
+	}, []string{"action"})
 )
+
+func observeAction(action string, start time.Time) {
+	latencyHistogramVec.WithLabelValues(action).Observe(float64(time.Since(start).Nanoseconds()) / 1000000)
+}
 
 var sessions map[string]*Session
 var sessionsMutex sync.Mutex
@@ -30,6 +40,7 @@ func init() {
 	prometheus.MustRegister(sessionsGauge)
 	prometheus.MustRegister(clientsGauge)
 	prometheus.MustRegister(instancesGauge)
+	prometheus.MustRegister(latencyHistogramVec)
 
 	sessions = make(map[string]*Session)
 }

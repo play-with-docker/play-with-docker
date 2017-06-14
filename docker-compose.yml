@@ -39,5 +39,18 @@ services:
             - sessions:/pwd
         environment:
             GOOGLE_RECAPTCHA_DISABLED: "true"
+    prometheus:
+        container_name: prometheus
+        image: prom/prometheus
+        volumes:
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    grafana:
+        container_name: grafana
+        image: grafana/grafana
+        ports:
+            - "3000:3000"
+        volumes:
+            - grafana:/var/lib/grafana
 volumes:
     sessions:
+    grafana:

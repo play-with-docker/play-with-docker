@@ -52,6 +52,8 @@ type Session struct {
 }
 
 func (p *pwd) SessionNew(duration time.Duration, stack, stackName string) (*Session, error) {
+	defer observeAction("SessionNew", time.Now())
+
 	sessionsMutex.Lock()
 	defer sessionsMutex.Unlock()
 
@@ -151,6 +153,7 @@ func (p *pwd) SessionGetSmallestViewPort(s *Session) ViewPort {
 }
 
 func (p *pwd) SessionDeployStack(s *Session) error {
+	defer observeAction("SessionDeployStack", time.Now())
 	if s.Ready {
 		// a stack was already deployed on this session, just ignore
 		return nil
@@ -190,11 +193,13 @@ func (p *pwd) SessionDeployStack(s *Session) error {
 }
 
 func (p *pwd) SessionGet(sessionId string) *Session {
+	defer observeAction("SessionGet", time.Now())
 	s := sessions[sessionId]
 	return s
 }
 
 func (p *pwd) SessionLoadAndPrepare() error {
+	defer observeAction("SessionLoadAndPrepare", time.Now())
 	err := p.storage.Load()
 	if err != nil {
 		return err
@@ -232,6 +237,7 @@ func (p *pwd) SessionLoadAndPrepare() error {
 }
 
 func (p *pwd) SessionSetup(session *Session, conf SessionSetupConf) error {
+	defer observeAction("SessionSetup", time.Now())
 	var tokens *docker.SwarmTokens = nil
 	var firstSwarmManager *Instance = nil
 

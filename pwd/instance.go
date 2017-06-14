@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
@@ -90,6 +91,7 @@ func (i *Instance) SetSession(s *Session) {
 }
 
 func (p *pwd) InstanceResizeTerminal(instance *Instance, rows, cols uint) error {
+	defer observeAction("InstanceResizeTerminal", time.Now())
 	return p.docker.ContainerResize(instance.Name, rows, cols)
 }
 
@@ -109,6 +111,7 @@ func (p *pwd) InstanceAttachTerminal(instance *Instance) error {
 }
 
 func (p *pwd) InstanceUploadFromUrl(instance *Instance, url string) error {
+	defer observeAction("InstanceUploadFromUrl", time.Now())
 	log.Printf("Downloading file [%s]\n", url)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -131,10 +134,12 @@ func (p *pwd) InstanceUploadFromUrl(instance *Instance, url string) error {
 }
 
 func (p *pwd) InstanceGet(session *Session, name string) *Instance {
+	defer observeAction("InstanceGet", time.Now())
 	return session.Instances[name]
 }
 
 func (p *pwd) InstanceFindByIP(ip string) *Instance {
+	defer observeAction("InstanceFindByIP", time.Now())
 	for _, s := range sessions {
 		for _, i := range s.Instances {
 			if i.IP == ip {
@@ -146,6 +151,7 @@ func (p *pwd) InstanceFindByIP(ip string) *Instance {
 }
 
 func (p *pwd) InstanceFindByAlias(sessionPrefix, alias string) *Instance {
+	defer observeAction("InstanceFindByAlias", time.Now())
 	for id, s := range sessions {
 		if strings.HasPrefix(id, sessionPrefix) {
 			for _, i := range s.Instances {
@@ -159,6 +165,7 @@ func (p *pwd) InstanceFindByAlias(sessionPrefix, alias string) *Instance {
 }
 
 func (p *pwd) InstanceDelete(session *Session, instance *Instance) error {
+	defer observeAction("InstanceDelete", time.Now())
 	if instance.conn != nil {
 		instance.conn.Close()
 	}
@@ -193,6 +200,7 @@ func (p *pwd) checkHostnameExists(session *Session, hostname string) bool {
 }
 
 func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, error) {
+	defer observeAction("InstanceNew", time.Now())
 	session.rw.Lock()
 	defer session.rw.Unlock()
 
@@ -274,12 +282,14 @@ func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, err
 }
 
 func (p *pwd) InstanceWriteToTerminal(instance *Instance, data string) {
+	defer observeAction("InstanceWriteToTerminal", time.Now())
 	if instance != nil && instance.conn != nil && len(data) > 0 {
 		instance.conn.Write([]byte(data))
 	}
 }
 
 func (p *pwd) InstanceAllowedImages() []string {
+	defer observeAction("InstanceAllowedImages", time.Now())
 
 	return []string{
 		config.GetDindImageName(),
@@ -289,5 +299,6 @@ func (p *pwd) InstanceAllowedImages() []string {
 }
 
 func (p *pwd) InstanceExec(instance *Instance, cmd []string) (int, error) {
+	defer observeAction("InstanceExec", time.Now())
 	return p.docker.Exec(instance.Name, cmd)
 }
