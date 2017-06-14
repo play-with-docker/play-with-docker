@@ -1,19 +1,17 @@
 package pwd
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 
 	"golang.org/x/text/encoding"
 )
@@ -29,35 +27,6 @@ func (s *sessionWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-type UInt16Slice []uint16
-
-func (p UInt16Slice) Len() int           { return len(p) }
-func (p UInt16Slice) Less(i, j int) bool { return p[i] < p[j] }
-func (p UInt16Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-
-type Instance struct {
-	Image        string           `json:"image"`
-	Name         string           `json:"name"`
-	Hostname     string           `json:"hostname"`
-	IP           string           `json:"ip"`
-	IsManager    *bool            `json:"is_manager"`
-	Mem          string           `json:"mem"`
-	Cpu          string           `json:"cpu"`
-	Alias        string           `json:"alias"`
-	ServerCert   []byte           `json:"server_cert"`
-	ServerKey    []byte           `json:"server_key"`
-	CACert       []byte           `json:"ca_cert"`
-	Cert         []byte           `json:"cert"`
-	Key          []byte           `json:"key"`
-	IsDockerHost bool             `json:"is_docker_host"`
-	session      *Session         `json:"-"`
-	conn         net.Conn         `json:"-"`
-	ctx          context.Context  `json:"-"`
-	docker       docker.DockerApi `json:"-"`
-	tempPorts    []uint16         `json:"-"`
-	Ports        UInt16Slice
-	rw           sync.Mutex
-}
 type InstanceConfig struct {
 	ImageName  string
 	Alias      string
@@ -70,32 +39,12 @@ type InstanceConfig struct {
 	Host       string
 }
 
-func (i *Instance) setUsedPort(port uint16) {
-	i.rw.Lock()
-	defer i.rw.Unlock()
-
-	for _, p := range i.tempPorts {
-		if p == port {
-			return
-		}
-	}
-	i.tempPorts = append(i.tempPorts, port)
-}
-func (i *Instance) IsConnected() bool {
-	return i.conn != nil
-
-}
-
-func (i *Instance) SetSession(s *Session) {
-	i.session = s
-}
-
-func (p *pwd) InstanceResizeTerminal(instance *Instance, rows, cols uint) error {
+func (p *pwd) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) error {
 	defer observeAction("InstanceResizeTerminal", time.Now())
 	return p.docker.ContainerResize(instance.Name, rows, cols)
 }
 
-func (p *pwd) InstanceAttachTerminal(instance *Instance) error {
+func (p *pwd) InstanceAttachTerminal(instance *types.Instance) error {
 	conn, err := p.docker.CreateAttachConnection(instance.Name)
 
 	if err != nil {
@@ -103,14 +52,14 @@ func (p *pwd) InstanceAttachTerminal(instance *Instance) error {
 	}
 
 	encoder := encoding.Replacement.NewEncoder()
-	sw := &sessionWriter{sessionId: instance.session.Id, instanceName: instance.Name, broadcast: p.broadcast}
-	instance.conn = conn
+	sw := &sessionWriter{sessionId: instance.Session.Id, instanceName: instance.Name, broadcast: p.broadcast}
+	instance.Terminal = conn
 	io.Copy(encoder.Writer(sw), conn)
 
 	return nil
 }
 
-func (p *pwd) InstanceUploadFromUrl(instance *Instance, url string) error {
+func (p *pwd) InstanceUploadFromUrl(instance *types.Instance, url string) error {
 	defer observeAction("InstanceUploadFromUrl", time.Now())
 	log.Printf("Downloading file [%s]\n", url)
 	resp, err := http.Get(url)
@@ -133,41 +82,34 @@ func (p *pwd) InstanceUploadFromUrl(instance *Instance, url string) error {
 	return nil
 }
 
-func (p *pwd) InstanceGet(session *Session, name string) *Instance {
+func (p *pwd) InstanceGet(session *types.Session, name string) *types.Instance {
 	defer observeAction("InstanceGet", time.Now())
 	return session.Instances[name]
 }
 
-func (p *pwd) InstanceFindByIP(ip string) *Instance {
+func (p *pwd) InstanceFindByIP(ip string) *types.Instance {
 	defer observeAction("InstanceFindByIP", time.Now())
-	for _, s := range sessions {
-		for _, i := range s.Instances {
-			if i.IP == ip {
-				return i
-			}
-		}
+	i, err := p.storage.InstanceFindByIP(ip)
+	if err != nil {
+		return nil
 	}
-	return nil
+
+	return i
 }
 
-func (p *pwd) InstanceFindByAlias(sessionPrefix, alias string) *Instance {
+func (p *pwd) InstanceFindByAlias(sessionPrefix, alias string) *types.Instance {
 	defer observeAction("InstanceFindByAlias", time.Now())
-	for id, s := range sessions {
-		if strings.HasPrefix(id, sessionPrefix) {
-			for _, i := range s.Instances {
-				if i.Alias == alias {
-					return i
-				}
-			}
-		}
+	i, err := p.storage.InstanceFindByAlias(sessionPrefix, alias)
+	if err != nil {
+		return nil
 	}
-	return nil
+	return i
 }
 
-func (p *pwd) InstanceDelete(session *Session, instance *Instance) error {
+func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) error {
 	defer observeAction("InstanceDelete", time.Now())
-	if instance.conn != nil {
-		instance.conn.Close()
+	if instance.Terminal != nil {
+		instance.Terminal.Close()
 	}
 	err := p.docker.DeleteContainer(instance.Name)
 	if err != nil && !strings.Contains(err.Error(), "No such container") {
@@ -178,16 +120,16 @@ func (p *pwd) InstanceDelete(session *Session, instance *Instance) error {
 	p.broadcast.BroadcastTo(session.Id, "delete instance", instance.Name)
 
 	delete(session.Instances, instance.Name)
-	if err := p.storage.Save(); err != nil {
+	if err := p.storage.SessionPut(session); err != nil {
 		return err
 	}
 
-	setGauges()
+	p.setGauges()
 
 	return nil
 }
 
-func (p *pwd) checkHostnameExists(session *Session, hostname string) bool {
+func (p *pwd) checkHostnameExists(session *types.Session, hostname string) bool {
 	containerName := fmt.Sprintf("%s_%s", session.Id[:8], hostname)
 	exists := false
 	for _, instance := range session.Instances {
@@ -199,10 +141,10 @@ func (p *pwd) checkHostnameExists(session *Session, hostname string) bool {
 	return exists
 }
 
-func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, error) {
+func (p *pwd) InstanceNew(session *types.Session, conf InstanceConfig) (*types.Instance, error) {
 	defer observeAction("InstanceNew", time.Now())
-	session.rw.Lock()
-	defer session.rw.Unlock()
+	session.Lock()
+	defer session.Unlock()
 
 	if conf.ImageName == "" {
 		conf.ImageName = config.GetDindImageName()
@@ -247,7 +189,7 @@ func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, err
 		return nil, err
 	}
 
-	instance := &Instance{}
+	instance := &types.Instance{}
 	instance.Image = opts.Image
 	instance.IP = ip
 	instance.Name = containerName
@@ -258,33 +200,33 @@ func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, err
 	instance.ServerCert = conf.ServerCert
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
-	instance.session = session
+	instance.Session = session
 	// For now this condition holds through. In the future we might need a more complex logic.
 	instance.IsDockerHost = opts.Privileged
 
 	if session.Instances == nil {
-		session.Instances = make(map[string]*Instance)
+		session.Instances = make(map[string]*types.Instance)
 	}
 	session.Instances[instance.Name] = instance
 
 	go p.InstanceAttachTerminal(instance)
 
-	err = p.storage.Save()
+	err = p.storage.SessionPut(session)
 	if err != nil {
 		return nil, err
 	}
 
 	p.broadcast.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP, instance.Hostname)
 
-	setGauges()
+	p.setGauges()
 
 	return instance, nil
 }
 
-func (p *pwd) InstanceWriteToTerminal(instance *Instance, data string) {
+func (p *pwd) InstanceWriteToTerminal(instance *types.Instance, data string) {
 	defer observeAction("InstanceWriteToTerminal", time.Now())
-	if instance != nil && instance.conn != nil && len(data) > 0 {
-		instance.conn.Write([]byte(data))
+	if instance != nil && instance.Terminal != nil && len(data) > 0 {
+		instance.Terminal.Write([]byte(data))
 	}
 }
 
@@ -298,7 +240,7 @@ func (p *pwd) InstanceAllowedImages() []string {
 
 }
 
-func (p *pwd) InstanceExec(instance *Instance, cmd []string) (int, error) {
+func (p *pwd) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
 	defer observeAction("InstanceExec", time.Now())
 	return p.docker.Exec(instance.Name, cmd)
 }

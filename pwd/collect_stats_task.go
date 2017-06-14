@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/docker/docker/api/types"
+	dockerTypes "github.com/docker/docker/api/types"
 	units "github.com/docker/go-units"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
 type collectStatsTask struct {
@@ -22,14 +23,14 @@ type collectStatsTask struct {
 	docker docker.DockerApi
 }
 
-func (c collectStatsTask) Run(i *Instance) error {
+func (c collectStatsTask) Run(i *types.Instance) error {
 	reader, err := c.docker.GetContainerStats(i.Name)
 	if err != nil {
 		log.Println("Error while trying to collect instance stats", err)
 		return err
 	}
 	dec := json.NewDecoder(reader)
-	var v *types.StatsJSON
+	var v *dockerTypes.StatsJSON
 	e := dec.Decode(&v)
 	if e != nil {
 		log.Println("Error while trying to collect instance stats", e)
@@ -53,7 +54,7 @@ func (c collectStatsTask) Run(i *Instance) error {
 	return nil
 }
 
-func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *types.StatsJSON) float64 {
+func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *dockerTypes.StatsJSON) float64 {
 	var (
 		cpuPercent = 0.0
 		// calculate the change for the cpu usage of the container in between readings

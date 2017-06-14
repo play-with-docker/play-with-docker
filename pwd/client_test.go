@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,8 +21,8 @@ func TestClientNew(t *testing.T) {
 
 	client := p.ClientNew("foobar", session)
 
-	assert.Equal(t, Client{Id: "foobar", session: session, viewPort: ViewPort{Cols: 0, Rows: 0}}, *client)
-	assert.Contains(t, session.clients, client)
+	assert.Equal(t, types.Client{Id: "foobar", Session: session, ViewPort: types.ViewPort{Cols: 0, Rows: 0}}, *client)
+	assert.Contains(t, session.Clients, client)
 }
 
 func TestClientResizeViewPort(t *testing.T) {
@@ -49,7 +50,7 @@ func TestClientResizeViewPort(t *testing.T) {
 
 	p.ClientResizeViewPort(client, 80, 24)
 
-	assert.Equal(t, ViewPort{Cols: 80, Rows: 24}, client.viewPort)
+	assert.Equal(t, types.ViewPort{Cols: 80, Rows: 24}, client.ViewPort)
 	assert.Equal(t, session.Id, broadcastedSessionId)
 	assert.Equal(t, "viewport resize", broadcastedEventName)
 	assert.Equal(t, uint(80), broadcastedArgs[0])

@@ -15,15 +15,16 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
 type periodicTask interface {
-	Run(i *Instance) error
+	Run(i *types.Instance) error
 }
 
 type SchedulerApi interface {
-	Schedule(session *Session)
-	Unschedule(session *Session)
+	Schedule(session *types.Session)
+	Unschedule(session *types.Session)
 }
 
 type scheduler struct {
@@ -31,21 +32,20 @@ type scheduler struct {
 	periodicTasks []periodicTask
 }
 
-func (sch *scheduler) Schedule(s *Session) {
-	if s.scheduled {
+func (sch *scheduler) Schedule(s *types.Session) {
+	if s.IsPrepared() {
 		return
 	}
 
 	go func() {
-		s.scheduled = true
-
-		s.ticker = time.NewTicker(1 * time.Second)
-		for range s.ticker.C {
+		t := time.NewTicker(1 * time.Second)
+		s.SetTicker(t)
+		for range t.C {
 			var wg = sync.WaitGroup{}
 			wg.Add(len(s.Instances))
 			for _, ins := range s.Instances {
-				var i *Instance = ins
-				if i.docker == nil && i.IsDockerHost {
+				var i *types.Instance = ins
+				if i.Docker == nil && i.IsDockerHost {
 					// Need to create client to the DinD docker daemon
 
 					// We check if the client needs to use TLS
@@ -76,7 +76,7 @@ func (sch *scheduler) Schedule(s *Session) {
 					if err != nil {
 						log.Println("Could not connect to DinD docker daemon", err)
 					} else {
-						i.docker = docker.NewDocker(c)
+						i.Docker = docker.NewDocker(c)
 					}
 				}
 				go func() {
@@ -98,17 +98,17 @@ func (sch *scheduler) Schedule(s *Session) {
 			wg.Wait()
 			// broadcast all information
 			for _, ins := range s.Instances {
-				ins.Ports = UInt16Slice(ins.tempPorts)
+				ins.Ports = types.UInt16Slice(ins.GetUsedPorts())
 				sort.Sort(ins.Ports)
-				ins.tempPorts = []uint16{}
+				ins.CleanUsedPorts()
 
-				sch.broadcast.BroadcastTo(ins.session.Id, "instance stats", ins.Name, ins.Mem, ins.Cpu, ins.IsManager, ins.Ports)
+				sch.broadcast.BroadcastTo(ins.Session.Id, "instance stats", ins.Name, ins.Mem, ins.Cpu, ins.IsManager, ins.Ports)
 			}
 		}
 	}()
 }
 
-func (sch *scheduler) Unschedule(s *Session) {
+func (sch *scheduler) Unschedule(s *types.Session) {
 }
 
 func NewScheduler(b BroadcastApi, d docker.DockerApi) *scheduler {

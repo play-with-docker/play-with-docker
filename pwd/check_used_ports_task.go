@@ -1,17 +1,21 @@
 package pwd
 
-import "log"
+import (
+	"log"
+
+	"github.com/play-with-docker/play-with-docker/pwd/types"
+)
 
 type checkUsedPortsTask struct {
 }
 
-func (c checkUsedPortsTask) Run(i *Instance) error {
-	if i.docker == nil {
+func (c checkUsedPortsTask) Run(i *types.Instance) error {
+	if i.Docker == nil {
 		return nil
 	}
-	if ports, err := i.docker.GetPorts(); err == nil {
+	if ports, err := i.Docker.GetPorts(); err == nil {
 		for _, p := range ports {
-			i.setUsedPort(uint16(p))
+			i.SetUsedPort(uint16(p))
 		}
 	} else {
 		log.Println(err)
