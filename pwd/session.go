@@ -52,6 +52,9 @@ type Session struct {
 }
 
 func (p *pwd) SessionNew(duration time.Duration, stack, stackName string) (*Session, error) {
+	sessionsMutex.Lock()
+	defer sessionsMutex.Unlock()
+
 	s := &Session{}
 	s.Id = uuid.NewV4().String()
 	s.Instances = map[string]*Instance{}
@@ -197,22 +200,31 @@ func (p *pwd) SessionLoadAndPrepare() error {
 		return err
 	}
 
+	wg := sync.WaitGroup{}
 	for _, s := range sessions {
-		err := p.prepareSession(s)
-		if err != nil {
-			return err
-		}
-		for _, i := range s.Instances {
-			// wire the session back to the instance
-			i.session = s
-			go p.InstanceAttachTerminal(i)
-		}
 		// Connect PWD daemon to the new network
 		if s.PwdIpAddress == "" {
 			return fmt.Errorf("Cannot load stored sessions as they don't have the pwd ip address stored with them")
 		}
+		wg.Add(1)
+		go func(s *Session) {
+			s.rw.Lock()
+			defer s.rw.Unlock()
+			defer wg.Done()
+
+			err := p.prepareSession(s)
+			if err != nil {
+				log.Println(err)
+			}
+			for _, i := range s.Instances {
+				// wire the session back to the instance
+				i.session = s
+				go p.InstanceAttachTerminal(i)
+			}
+		}(s)
 	}
 
+	wg.Wait()
 	setGauges()
 
 	return nil
@@ -314,7 +326,7 @@ func (p *pwd) prepareSession(session *Session) error {
 
 	// Connect PWD daemon to the new network
 	if err := p.connectToNetwork(session); err != nil {
-		return nil
+		return err
 	}
 
 	// Schedule periodic tasks

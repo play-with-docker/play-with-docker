@@ -10,14 +10,15 @@ import (
 )
 
 type mockDocker struct {
-	createNetwork   func(string) error
-	connectNetwork  func(container, network, ip string) (string, error)
-	containerResize func(string, uint, uint) error
-	createContainer func(opts docker.CreateContainerOpts) (string, error)
-	execAttach      func(instanceName string, command []string, out io.Writer) (int, error)
-	new             func(ip string, cert, key []byte) (docker.DockerApi, error)
-	swarmInit       func() (*docker.SwarmTokens, error)
-	swarmJoin       func(addr, token string) error
+	createNetwork          func(string) error
+	connectNetwork         func(container, network, ip string) (string, error)
+	containerResize        func(string, uint, uint) error
+	createContainer        func(opts docker.CreateContainerOpts) (string, error)
+	execAttach             func(instanceName string, command []string, out io.Writer) (int, error)
+	new                    func(ip string, cert, key []byte) (docker.DockerApi, error)
+	swarmInit              func() (*docker.SwarmTokens, error)
+	swarmJoin              func(addr, token string) error
+	createAttachConnection func(name string) (net.Conn, error)
 }
 
 func (m *mockDocker) CreateNetwork(id string) error {
@@ -53,6 +54,9 @@ func (m *mockDocker) ContainerResize(name string, rows, cols uint) error {
 	return nil
 }
 func (m *mockDocker) CreateAttachConnection(name string) (net.Conn, error) {
+	if m.createAttachConnection != nil {
+		return m.createAttachConnection(name)
+	}
 	return &mockConn{}, nil
 }
 func (m *mockDocker) CopyToContainer(containerName, destination, fileName string, content io.Reader) error {

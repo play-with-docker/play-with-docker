@@ -2,6 +2,8 @@ package pwd
 
 import (
 	"fmt"
+	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -277,4 +279,101 @@ func TestSessionSetup(t *testing.T) {
 	assert.True(t, manager2JoinedHasManager)
 	assert.True(t, manager3JoinedHasManager)
 	assert.True(t, worker1JoinedHasWorker)
+}
+
+func TestSessionLoadAndPrepare(t *testing.T) {
+	config.PWDContainerName = "pwd"
+	lock := sync.Mutex{}
+	var s1NetworkConnect []string
+	var s2NetworkConnect []string
+
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+	connectedInstances := []string{}
+	sessions = map[string]*Session{}
+	i1 := &Instance{
+		Image:        "dind",
+		Name:         "session1_i1",
+		Hostname:     "i1",
+		IP:           "10.0.0.10",
+		IsDockerHost: true,
+	}
+	i2 := &Instance{
+		Image:        "dind",
+		Name:         "session1_i2",
+		Hostname:     "i1",
+		IP:           "10.0.0.11",
+		IsDockerHost: true,
+	}
+	i3 := &Instance{
+		Image:        "dind",
+		Name:         "session1_i3",
+		Hostname:     "i1",
+		IP:           "10.0.0.12",
+		IsDockerHost: true,
+	}
+	s1 := &Session{
+		Id:           "session1",
+		Instances:    map[string]*Instance{"session1_i1": i1},
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(time.Hour),
+		PwdIpAddress: "10.0.0.1",
+		Ready:        true,
+		Stack:        "",
+		StackName:    "",
+	}
+	s2 := &Session{
+		Id:           "session2",
+		Instances:    map[string]*Instance{"session1_i2": i2, "session1_i3": i3},
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(time.Hour),
+		PwdIpAddress: "10.0.0.2",
+		Ready:        true,
+		Stack:        "",
+		StackName:    "",
+	}
+
+	dock := &mockDocker{}
+	dock.createAttachConnection = func(instanceName string) (net.Conn, error) {
+		lock.Lock()
+		defer lock.Unlock()
+		connectedInstances = append(connectedInstances, instanceName)
+		wg.Done()
+		return &mockConn{}, nil
+	}
+	dock.connectNetwork = func(container, network, ip string) (string, error) {
+		if s1.Id == network {
+			s1NetworkConnect = []string{container, network, ip}
+		} else if s2.Id == network {
+			s2NetworkConnect = []string{container, network, ip}
+		}
+		return ip, nil
+	}
+	tasks := &mockTasks{}
+	tasks.schedule = func(s *Session) {
+		s.ticker = time.NewTicker(1 * time.Second)
+	}
+	broadcast := &mockBroadcast{}
+	storage := &mockStorage{}
+
+	storage.load = func() error {
+		sessions = map[string]*Session{"session1": s1, "session2": s2}
+		return nil
+	}
+
+	p := NewPWD(dock, tasks, broadcast, storage)
+
+	err := p.SessionLoadAndPrepare()
+	assert.Nil(t, err)
+	assert.Len(t, sessions, 2)
+	assert.NotNil(t, s1.closingTimer)
+	assert.NotNil(t, s2.closingTimer)
+	assert.NotNil(t, s1.ticker)
+	assert.NotNil(t, s2.ticker)
+
+	assert.Equal(t, []string{"pwd", s1.Id, s1.PwdIpAddress}, s1NetworkConnect)
+	assert.Equal(t, []string{"pwd", s2.Id, s2.PwdIpAddress}, s2NetworkConnect)
+
+	wg.Wait()
+	assert.Subset(t, connectedInstances, []string{i1.Name, i2.Name, i3.Name})
 }
