@@ -66,6 +66,7 @@ type InstanceConfig struct {
 	CACert     []byte
 	Cert       []byte
 	Key        []byte
+	Host       string
 }
 
 func (i *Instance) setUsedPort(port uint16) {
@@ -223,6 +224,7 @@ func (p *pwd) InstanceNew(session *Session, conf InstanceConfig) (*Instance, err
 		ServerKey:     conf.ServerKey,
 		CACert:        conf.CACert,
 		Privileged:    false,
+		HostFQDN:      conf.Host,
 	}
 
 	for _, imageName := range p.InstanceAllowedImages() {

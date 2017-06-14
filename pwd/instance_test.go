@@ -57,7 +57,7 @@ func TestInstanceNew(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	instance, err := p.InstanceNew(session, InstanceConfig{})
+	instance, err := p.InstanceNew(session, InstanceConfig{Host: "something.play-with-docker.com"})
 
 	assert.Nil(t, err)
 
@@ -83,6 +83,7 @@ func TestInstanceNew(t *testing.T) {
 		ServerKey:     nil,
 		CACert:        nil,
 		Privileged:    true,
+		HostFQDN:      "something.play-with-docker.com",
 	}
 	assert.Equal(t, expectedContainerOpts, containerOpts)
 }

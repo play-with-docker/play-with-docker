@@ -13,7 +13,7 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
 
-	body := pwd.InstanceConfig{}
+	body := pwd.InstanceConfig{Host: req.Host}
 
 	json.NewDecoder(req.Body).Decode(&body)
 

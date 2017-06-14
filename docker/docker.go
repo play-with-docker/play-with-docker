@@ -206,6 +206,7 @@ type CreateContainerOpts struct {
 	ServerKey     []byte
 	CACert        []byte
 	Privileged    bool
+	HostFQDN      string
 }
 
 func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
@@ -256,6 +257,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 	h.Resources.OomKillDisable = &t
 
 	env = append(env, fmt.Sprintf("PWD_IP_ADDRESS=%s", opts.PwdIpAddress))
+	env = append(env, fmt.Sprintf("PWD_HOST_FQDN=%s", opts.HostFQDN))
 	cf := &container.Config{Hostname: opts.Hostname,
 		Image:        opts.Image,
 		Tty:          true,
