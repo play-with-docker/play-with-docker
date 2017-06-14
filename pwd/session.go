@@ -204,7 +204,7 @@ func (p *pwd) SessionLoadAndPrepare() error {
 	for _, s := range sessions {
 		// Connect PWD daemon to the new network
 		if s.PwdIpAddress == "" {
-			log.Printf("Cannot load store session [%s] as they don't have the pwd ip address stored with them\n", s.PwdIpAddress)
+			log.Printf("Cannot load store session [%s] as they don't have the pwd ip address stored with them\n", s.Id)
 			continue
 		}
 		wg.Add(1)
