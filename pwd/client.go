@@ -1,6 +1,9 @@
 package pwd
 
-import "log"
+import (
+	"log"
+	"time"
+)
 
 type Client struct {
 	Id       string
@@ -14,12 +17,14 @@ type ViewPort struct {
 }
 
 func (p *pwd) ClientNew(id string, session *Session) *Client {
+	defer observeAction("ClientNew", time.Now())
 	c := &Client{Id: id, session: session}
 	session.clients = append(session.clients, c)
 	return c
 }
 
 func (p *pwd) ClientResizeViewPort(c *Client, cols, rows uint) {
+	defer observeAction("ClientResizeViewPort", time.Now())
 	c.viewPort.Rows = rows
 	c.viewPort.Cols = cols
 
@@ -27,6 +32,7 @@ func (p *pwd) ClientResizeViewPort(c *Client, cols, rows uint) {
 }
 
 func (p *pwd) ClientClose(client *Client) {
+	defer observeAction("ClientClose", time.Now())
 	// Client has disconnected. Remove from session and recheck terminal sizes.
 	session := client.session
 	for i, cl := range session.clients {
