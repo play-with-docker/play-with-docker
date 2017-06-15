@@ -45,13 +45,14 @@ type Session struct {
 	Ready        bool                 `json:"ready"`
 	Stack        string               `json:"stack"`
 	StackName    string               `json:"stack_name"`
+	ImageName    string               `json:"image_name"`
 	closingTimer *time.Timer          `json:"-"`
 	scheduled    bool                 `json:"-"`
 	clients      []*Client            `json:"-"`
 	ticker       *time.Ticker         `json:"-"`
 }
 
-func (p *pwd) SessionNew(duration time.Duration, stack, stackName string) (*Session, error) {
+func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName string) (*Session, error) {
 	defer observeAction("SessionNew", time.Now())
 
 	sessionsMutex.Lock()
@@ -72,6 +73,7 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName string) (*Sess
 		stackName = "pwd"
 	}
 	s.StackName = stackName
+	s.ImageName = imageName
 
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
@@ -161,7 +163,7 @@ func (p *pwd) SessionDeployStack(s *Session) error {
 
 	s.Ready = false
 	p.broadcast.BroadcastTo(s.Id, "session ready", false)
-	i, err := p.InstanceNew(s, InstanceConfig{})
+	i, err := p.InstanceNew(s, InstanceConfig{ImageName: s.ImageName})
 	if err != nil {
 		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
 		return err

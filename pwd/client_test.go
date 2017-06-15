@@ -15,7 +15,7 @@ func TestClientNew(t *testing.T) {
 
 	p := NewPWD(docker, tasks, broadcast, storage)
 
-	session, err := p.SessionNew(time.Hour, "", "")
+	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	client := p.ClientNew("foobar", session)
@@ -43,7 +43,7 @@ func TestClientResizeViewPort(t *testing.T) {
 
 	p := NewPWD(docker, tasks, broadcast, storage)
 
-	session, err := p.SessionNew(time.Hour, "", "")
+	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
 	client := p.ClientNew("foobar", session)
 
