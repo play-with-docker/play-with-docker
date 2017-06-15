@@ -26,6 +26,7 @@ func SessionSetup(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	s.Host = req.Host
 	err := core.SessionSetup(s, body)
 	if err != nil {
 		log.Println(err)

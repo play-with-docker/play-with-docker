@@ -234,7 +234,7 @@ func TestInstanceAllowedImages(t *testing.T) {
 
 	p := NewPWD(dock, tasks, broadcast, storage)
 
-	expectedImages := []string{config.GetDindImageName(), "franela/dind:overlay2-dev"}
+	expectedImages := []string{config.GetDindImageName(), "franela/dind:overlay2-dev", "franela/ucp:2.4.1"}
 
 	assert.Equal(t, expectedImages, p.InstanceAllowedImages())
 }

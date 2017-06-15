@@ -46,6 +46,7 @@ type Session struct {
 	Stack        string               `json:"stack"`
 	StackName    string               `json:"stack_name"`
 	ImageName    string               `json:"image_name"`
+	Host         string               `json:"host"`
 	closingTimer *time.Timer          `json:"-"`
 	scheduled    bool                 `json:"-"`
 	clients      []*Client            `json:"-"`
@@ -163,7 +164,7 @@ func (p *pwd) SessionDeployStack(s *Session) error {
 
 	s.Ready = false
 	p.broadcast.BroadcastTo(s.Id, "session ready", false)
-	i, err := p.InstanceNew(s, InstanceConfig{ImageName: s.ImageName})
+	i, err := p.InstanceNew(s, InstanceConfig{ImageName: s.ImageName, Host: s.Host})
 	if err != nil {
 		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
 		return err
@@ -249,6 +250,7 @@ func (p *pwd) SessionSetup(session *Session, conf SessionSetupConf) error {
 			instanceConf := InstanceConfig{
 				ImageName: conf.Image,
 				Hostname:  conf.Hostname,
+				Host:      session.Host,
 			}
 			i, err := p.InstanceNew(session, instanceConf)
 			if err != nil {
