@@ -50,7 +50,7 @@ func TestSessionNew(t *testing.T) {
 
 	before := time.Now()
 
-	s, e := p.SessionNew(time.Hour, "", "")
+	s, e := p.SessionNew(time.Hour, "", "", "")
 	expectedSessions[s.Id] = s
 
 	assert.Nil(t, e)
@@ -64,11 +64,12 @@ func TestSessionNew(t *testing.T) {
 	assert.Equal(t, s.Id, createdNetworkId)
 	assert.True(t, s.Ready)
 
-	s, _ = p.SessionNew(time.Hour, "stackPath", "stackName")
+	s, _ = p.SessionNew(time.Hour, "stackPath", "stackName", "imageName")
 	expectedSessions[s.Id] = s
 
 	assert.Equal(t, "stackPath", s.Stack)
 	assert.Equal(t, "stackName", s.StackName)
+	assert.Equal(t, "imageName", s.ImageName)
 	assert.False(t, s.Ready)
 
 	assert.NotNil(t, s.closingTimer)
@@ -173,7 +174,7 @@ func TestSessionSetup(t *testing.T) {
 	storage := &mockStorage{}
 
 	p := NewPWD(dock, tasks, broadcast, storage)
-	s, e := p.SessionNew(time.Hour, "", "")
+	s, e := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, e)
 
 	err := p.SessionSetup(s, SessionSetupConf{

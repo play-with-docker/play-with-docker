@@ -28,6 +28,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 	reqDur := req.Form.Get("session-duration")
 	stack := req.Form.Get("stack")
 	stackName := req.Form.Get("stack_name")
+	imageName := req.Form.Get("image_name")
 
 	if stack != "" {
 		stack = formatStack(stack)
@@ -43,7 +44,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 
 	}
 	duration := config.GetDuration(reqDur)
-	s, err := core.SessionNew(duration, stack, stackName)
+	s, err := core.SessionNew(duration, stack, stackName, imageName)
 	if err != nil {
 		log.Println(err)
 		//TODO: Return some error code

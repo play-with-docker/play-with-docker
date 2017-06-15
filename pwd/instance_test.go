@@ -53,7 +53,7 @@ func TestInstanceNew(t *testing.T) {
 
 	p := NewPWD(dock, tasks, broadcast, storage)
 
-	session, err := p.SessionNew(time.Hour, "", "")
+	session, err := p.SessionNew(time.Hour, "", "", "")
 
 	assert.Nil(t, err)
 
@@ -103,7 +103,7 @@ func TestInstanceNew_Concurrency(t *testing.T) {
 
 	p := NewPWD(dock, tasks, broadcast, storage)
 
-	session, err := p.SessionNew(time.Hour, "", "")
+	session, err := p.SessionNew(time.Hour, "", "", "")
 
 	assert.Nil(t, err)
 
@@ -144,7 +144,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 
 	p := NewPWD(dock, tasks, broadcast, storage)
 
-	session, err := p.SessionNew(time.Hour, "", "")
+	session, err := p.SessionNew(time.Hour, "", "", "")
 
 	assert.Nil(t, err)
 
@@ -192,7 +192,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 
 	p := NewPWD(dock, tasks, broadcast, storage)
 
-	session, err := p.SessionNew(time.Hour, "", "")
+	session, err := p.SessionNew(time.Hour, "", "", "")
 
 	assert.Nil(t, err)
 

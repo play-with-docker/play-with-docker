@@ -53,7 +53,7 @@ type pwd struct {
 }
 
 type PWDApi interface {
-	SessionNew(duration time.Duration, stack string, stackName string) (*Session, error)
+	SessionNew(duration time.Duration, stack string, stackName, imageName string) (*Session, error)
 	SessionClose(session *Session) error
 	SessionGetSmallestViewPort(session *Session) ViewPort
 	SessionDeployStack(session *Session) error
