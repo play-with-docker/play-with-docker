@@ -15,6 +15,7 @@ type Session struct {
 	Stack        string               `json:"stack"`
 	StackName    string               `json:"stack_name"`
 	ImageName    string               `json:"image_name"`
+	Host         string               `json:"host"`
 	Clients      []*Client            `json:"-"`
 	closingTimer *time.Timer          `json:"-"`
 	scheduled    bool                 `json:"-"`

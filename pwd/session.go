@@ -147,7 +147,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 
 	s.Ready = false
 	p.broadcast.BroadcastTo(s.Id, "session ready", false)
-	i, err := p.InstanceNew(s, InstanceConfig{ImageName: s.ImageName})
+	i, err := p.InstanceNew(s, InstanceConfig{ImageName: s.ImageName, Host: s.Host})
 	if err != nil {
 		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
 		return err
@@ -201,6 +201,7 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 			instanceConf := InstanceConfig{
 				ImageName: conf.Image,
 				Hostname:  conf.Hostname,
+				Host:      session.Host,
 			}
 			i, err := p.InstanceNew(session, instanceConf)
 			if err != nil {
