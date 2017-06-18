@@ -60,6 +60,14 @@ func (p *tcpProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logFunc = p.ErrorLog.Printf
 	}
 
+	vars := mux.Vars(r)
+	instanceIP := vars["node"]
+
+	if i := core.InstanceFindByIP(strings.Replace(instanceIP, "-", ".", -1)); i == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
 	outreq := new(http.Request)
 	// shallow copying
 	*outreq = *r
