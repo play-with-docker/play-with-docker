@@ -19,9 +19,11 @@ RUN pip install docker-compose==${COMPOSE_VERSION}
 RUN curl -L https://github.com/docker/machine/releases/download/${MACHINE_VERSION}/docker-machine-Linux-x86_64 \
     -o /usr/bin/docker-machine && chmod +x /usr/bin/docker-machine
 
-# Add bash completion
-RUN mkdir /etc/bash_completion.d && curl https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker
-
+# Add bash completion and set bash as default shell
+RUN mkdir /etc/bash_completion.d \
+    && curl https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker \
+    && sed -i "s/ash/bash/" /etc/passwd
+ 
 # Replace modprobe with a no-op to get rid of spurious warnings
 # (note: we can't just symlink to /bin/true because it might be busybox)
 RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/modprobe
@@ -52,7 +54,7 @@ CMD cat /etc/hosts >/etc/hosts.bak && \
     sed -i "s/\DOCKER_TLSKEY/$DOCKER_TLSKEY/" /etc/docker/daemon.json && \
     umount /var/lib/docker && mount -t securityfs none /sys/kernel/security && \
     echo "root:root" | chpasswd &> /dev/null && ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null && \
-    /usr/sbin/sshd -o PermitRootLogin=yes 2>/dev/null && \
+    /usr/sbin/sshd -o PermitRootLogin=yes -o PrintMotd=no 2>/dev/null && \
     dockerd &>/docker.log & \
     while true ; do script -q -c "/bin/bash -l" /dev/null ; done
 # ... and then put a shell in the foreground, restarting it if it exits
