@@ -150,6 +150,20 @@ func (p *pwd) InstanceFindByIP(ip string) *Instance {
 	return nil
 }
 
+func (p *pwd) InstanceFindByIPAndSession(sessionPrefix, ip string) *Instance {
+	defer observeAction("InstanceFindByIPAndSession", time.Now())
+	for id, s := range sessions {
+		if strings.HasPrefix(id, sessionPrefix) {
+			for _, i := range s.Instances {
+				if i.IP == ip {
+					return i
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (p *pwd) InstanceFindByAlias(sessionPrefix, alias string) *Instance {
 	defer observeAction("InstanceFindByAlias", time.Now())
 	for id, s := range sessions {
