@@ -1,7 +1,7 @@
 ARG VERSION=docker:17.05.0-ce-dind
 FROM ${VERSION}
 
-RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq
+RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh
 
 
 # Compile and install httping
@@ -20,7 +20,7 @@ RUN curl -L https://github.com/docker/machine/releases/download/${MACHINE_VERSIO
     -o /usr/bin/docker-machine && chmod +x /usr/bin/docker-machine
 
 # Add bash completion
-RUN mkdir /etc/bash_completion.d && curl https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker
+RUN mkdir /etc/bash_completion.d && curl https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker
 
 # Replace modprobe with a no-op to get rid of spurious warnings
 # (note: we can't just symlink to /bin/true because it might be busybox)
@@ -51,6 +51,8 @@ CMD cat /etc/hosts >/etc/hosts.bak && \
     sed -i "s/\DOCKER_TLSCERT/$DOCKER_TLSCERT/" /etc/docker/daemon.json && \
     sed -i "s/\DOCKER_TLSKEY/$DOCKER_TLSKEY/" /etc/docker/daemon.json && \
     umount /var/lib/docker && mount -t securityfs none /sys/kernel/security && \
+    echo "root:root" | chpasswd &> /dev/null && ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null && \
+    /usr/sbin/sshd -o PermitRootLogin=yes 2>/dev/null && \
     dockerd &>/docker.log & \
     while true ; do script -q -c "/bin/bash -l" /dev/null ; done
 # ... and then put a shell in the foreground, restarting it if it exits
