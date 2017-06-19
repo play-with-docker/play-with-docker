@@ -111,6 +111,8 @@ func main() {
 		log.Fatal(httpServer.ListenAndServe())
 	}()
 
+	go handlers.ListenSSHProxy("0.0.0.0:1022")
+
 	// Now listen for TLS connections that need to be proxied
 	handlers.StartTLSProxy(config.SSLPortNumber)
 }

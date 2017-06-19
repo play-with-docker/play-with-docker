@@ -68,6 +68,7 @@ type PWDApi interface {
 	InstanceGet(session *Session, name string) *Instance
 	InstanceFindByIP(ip string) *Instance
 	InstanceFindByAlias(sessionPrefix, alias string) *Instance
+	InstanceFindByIPAndSession(sessionPrefix, ip string) *Instance
 	InstanceDelete(session *Session, instance *Instance) error
 	InstanceWriteToTerminal(instance *Instance, data string)
 	InstanceAllowedImages() []string
