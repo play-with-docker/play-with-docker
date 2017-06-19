@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,7 +8,6 @@ import (
 
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/miekg/dns"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/handlers"
 	"github.com/play-with-docker/play-with-docker/templates"
@@ -18,28 +16,10 @@ import (
 )
 
 func main() {
-
 	config.ParseFlags()
 	handlers.Bootstrap()
 
 	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
-
-	// Start the DNS server
-	dns.HandleFunc(".", handlers.DnsRequest)
-	udpDnsServer := &dns.Server{Addr: ":53", Net: "udp"}
-	go func() {
-		err := udpDnsServer.ListenAndServe()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-	tcpDnsServer := &dns.Server{Addr: ":53", Net: "tcp"}
-	go func() {
-		err := tcpDnsServer.ListenAndServe()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 
 	server := handlers.Broadcast.GetHandler()
 
@@ -55,10 +35,6 @@ func main() {
 	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))
 
 	// Specific routes
-	r.Host(fmt.Sprintf("{subdomain:.*}pwd{node:%s}-{port:%s}.{tld:.*}", config.PWDHostnameRegex, config.PortRegex)).Handler(tcpHandler)
-	r.Host(fmt.Sprintf("{subdomain:.*}pwd{node:%s}.{tld:.*}", config.PWDHostnameRegex)).Handler(tcpHandler)
-	r.Host(fmt.Sprintf("pwd{alias:%s}-{session:%s}-{port:%s}.{tld:.*}", config.AliasnameRegex, config.AliasSessionRegex, config.PortRegex)).Handler(tcpHandler)
-	r.Host(fmt.Sprintf("pwd{alias:%s}-{session:%s}.{tld:.*}", config.AliasnameRegex, config.AliasSessionRegex)).Handler(tcpHandler)
 	r.HandleFunc("/ping", handlers.Ping).Methods("GET")
 	corsRouter.HandleFunc("/instances/images", handlers.GetInstanceImages).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}", handlers.GetSession).Methods("GET")
@@ -106,13 +82,11 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	go func() {
-		log.Println("Listening on port " + config.PortNumber)
-		log.Fatal(httpServer.ListenAndServe())
-	}()
-
 	go handlers.ListenSSHProxy("0.0.0.0:1022")
 
 	// Now listen for TLS connections that need to be proxied
 	handlers.StartTLSProxy(config.SSLPortNumber)
+
+	log.Println("Listening on port " + config.PortNumber)
+	log.Fatal(httpServer.ListenAndServe())
 }
