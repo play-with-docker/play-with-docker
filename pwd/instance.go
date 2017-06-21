@@ -133,6 +133,18 @@ func (p *pwd) InstanceUploadFromUrl(instance *Instance, url string) error {
 	return nil
 }
 
+func (p *pwd) InstanceUploadFromReader(instance *Instance, fileName string, reader io.Reader) error {
+	defer observeAction("InstanceUploadFromReader", time.Now())
+
+	copyErr := p.docker.CopyToContainer(instance.Name, "/var/run/pwd/uploads", fileName, reader)
+
+	if copyErr != nil {
+		return fmt.Errorf("Error while uploading file [%s]. Error: %s\n", fileName, copyErr)
+	}
+
+	return nil
+}
+
 func (p *pwd) InstanceGet(session *Session, name string) *Instance {
 	defer observeAction("InstanceGet", time.Now())
 	return session.Instances[name]
