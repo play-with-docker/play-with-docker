@@ -63,6 +63,7 @@ type PWDApi interface {
 	InstanceGet(session *types.Session, name string) *types.Instance
 	InstanceFindByIP(ip string) *types.Instance
 	InstanceFindByAlias(sessionPrefix, alias string) *types.Instance
+	InstanceFindByIPAndSession(sessionPrefix, ip string) *types.Instance
 	InstanceDelete(session *types.Session, instance *types.Instance) error
 	InstanceWriteToTerminal(instance *types.Instance, data string)
 	InstanceAllowedImages() []string

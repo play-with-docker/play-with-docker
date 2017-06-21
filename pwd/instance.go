@@ -97,6 +97,16 @@ func (p *pwd) InstanceFindByIP(ip string) *types.Instance {
 	return i
 }
 
+func (p *pwd) InstanceFindByIPAndSession(sessionPrefix, ip string) *types.Instance {
+	defer observeAction("InstanceFindByIPAndSession", time.Now())
+	i, err := p.storage.InstanceFindByIPAndSession(sessionPrefix, ip)
+	if err != nil {
+		return nil
+	}
+
+	return i
+}
+
 func (p *pwd) InstanceFindByAlias(sessionPrefix, alias string) *types.Instance {
 	defer observeAction("InstanceFindByAlias", time.Now())
 	i, err := p.storage.InstanceFindByAlias(sessionPrefix, alias)

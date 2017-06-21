@@ -51,6 +51,23 @@ func (store *storage) InstanceFindByIP(ip string) (*types.Instance, error) {
 	return nil, fmt.Errorf("%s", notFound)
 }
 
+func (store *storage) InstanceFindByIPAndSession(sessionPrefix, ip string) (*types.Instance, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	for id, s := range store.db {
+		if strings.HasPrefix(id, sessionPrefix) {
+			for _, i := range s.Instances {
+				if i.IP == ip {
+					return i, nil
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("%s", notFound)
+}
+
 func (store *storage) InstanceFindByAlias(sessionPrefix, alias string) (*types.Instance, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()

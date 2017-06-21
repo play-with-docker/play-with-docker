@@ -3,14 +3,15 @@ package pwd
 import "github.com/play-with-docker/play-with-docker/pwd/types"
 
 type mockStorage struct {
-	sessionGet          func(sessionId string) (*types.Session, error)
-	sessionPut          func(s *types.Session) error
-	sessionCount        func() (int, error)
-	sessionDelete       func(sessionId string) error
-	instanceFindByAlias func(sessionPrefix, alias string) (*types.Instance, error)
-	instanceFindByIP    func(ip string) (*types.Instance, error)
-	instanceCount       func() (int, error)
-	clientCount         func() (int, error)
+	sessionGet                 func(sessionId string) (*types.Session, error)
+	sessionPut                 func(s *types.Session) error
+	sessionCount               func() (int, error)
+	sessionDelete              func(sessionId string) error
+	instanceFindByAlias        func(sessionPrefix, alias string) (*types.Instance, error)
+	instanceFindByIP           func(ip string) (*types.Instance, error)
+	instanceFindByIPAndSession func(sessionPrefix, ip string) (*types.Instance, error)
+	instanceCount              func() (int, error)
+	clientCount                func() (int, error)
 }
 
 func (m *mockStorage) SessionGet(sessionId string) (*types.Session, error) {
@@ -46,6 +47,12 @@ func (m *mockStorage) InstanceFindByAlias(sessionPrefix, alias string) (*types.I
 func (m *mockStorage) InstanceFindByIP(ip string) (*types.Instance, error) {
 	if m.instanceFindByIP != nil {
 		return m.instanceFindByIP(ip)
+	}
+	return nil, nil
+}
+func (m *mockStorage) InstanceFindByIPAndSession(sessionPrefix, ip string) (*types.Instance, error) {
+	if m.instanceFindByIPAndSession != nil {
+		return m.instanceFindByIPAndSession(sessionPrefix, ip)
 	}
 	return nil, nil
 }

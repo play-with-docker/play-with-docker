@@ -109,6 +109,49 @@ func TestInstanceFindByIP(t *testing.T) {
 	assert.Nil(t, foundInstance)
 }
 
+func TestInstanceFindByIPAndSession(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("", "pwd")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpfile.Close()
+	os.Remove(tmpfile.Name())
+	defer os.Remove(tmpfile.Name())
+
+	storage, err := NewFileStorage(tmpfile.Name())
+
+	assert.Nil(t, err)
+
+	i1 := &types.Instance{Name: "i1", IP: "10.0.0.1"}
+	i2 := &types.Instance{Name: "i2", IP: "10.1.0.1"}
+	s1 := &types.Session{Id: "session1", Instances: map[string]*types.Instance{"i1": i1}}
+	s2 := &types.Session{Id: "session2", Instances: map[string]*types.Instance{"i2": i2}}
+	err = storage.SessionPut(s1)
+	assert.Nil(t, err)
+	err = storage.SessionPut(s2)
+	assert.Nil(t, err)
+
+	foundInstance, err := storage.InstanceFindByIPAndSession("session1", "10.0.0.1")
+	assert.Nil(t, err)
+	assert.Equal(t, i1, foundInstance)
+
+	foundInstance, err = storage.InstanceFindByIPAndSession("session2", "10.1.0.1")
+	assert.Nil(t, err)
+	assert.Equal(t, i2, foundInstance)
+
+	foundInstance, err = storage.InstanceFindByIPAndSession("session3", "10.1.0.1")
+	assert.True(t, NotFound(err))
+	assert.Nil(t, foundInstance)
+
+	foundInstance, err = storage.InstanceFindByIPAndSession("session1", "10.1.0.1")
+	assert.True(t, NotFound(err))
+	assert.Nil(t, foundInstance)
+
+	foundInstance, err = storage.InstanceFindByIPAndSession("session1", "192.168.0.1")
+	assert.True(t, NotFound(err))
+	assert.Nil(t, foundInstance)
+}
+
 func TestInstanceFindByAlias(t *testing.T) {
 	tmpfile, err := ioutil.TempFile("", "pwd")
 	if err != nil {
