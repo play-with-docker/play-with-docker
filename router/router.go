@@ -1,10 +1,12 @@
 package router
 
 import (
-	"fmt"
+	"bufio"
 	"io"
 	"log"
 	"net"
+	"net/http"
+	"sync"
 
 	vhost "github.com/inconshreveable/go-vhost"
 )
@@ -12,66 +14,105 @@ import (
 type Director func(host string) (*net.TCPAddr, error)
 
 type proxyRouter struct {
+	sync.Mutex
+
 	director Director
+	listener net.Listener
+	closed   bool
 }
 
 func (r *proxyRouter) Listen(laddr string) {
 	l, err := net.Listen("tcp", laddr)
-	defer l.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			log.Println(err)
-			continue
+	r.listener = l
+	go func() {
+		for !r.closed {
+			conn, err := r.listener.Accept()
+			if err != nil {
+				continue
+			}
+			go r.handleConnection(conn)
 		}
-		go r.handleConnection(conn)
+	}()
+}
+
+func (r *proxyRouter) Close() {
+	r.Lock()
+	defer r.Unlock()
+
+	if r.listener != nil {
+		r.listener.Close()
 	}
+	r.closed = true
+}
+
+func (r *proxyRouter) ListenAddress() string {
+	if r.listener != nil {
+		return r.listener.Addr().String()
+	}
+	return ""
 }
 
 func (r *proxyRouter) handleConnection(c net.Conn) {
 	defer c.Close()
 	// first try tls
 	vhostConn, err := vhost.TLS(c)
-	if err != nil {
-		log.Printf("Incoming TLS connection produced an error. Error: %s", err)
-		return
-	}
-	defer vhostConn.Close()
 
-	host := vhostConn.ClientHelloMsg.ServerName
-	c.LocalAddr()
-	dstHost, err := r.director(fmt.Sprintf("%s:%d", host, 12))
-	if err != nil {
-		log.Printf("Error directing request: %v\n", err)
-		return
-	}
+	if err == nil {
+		// It is a TLS connection
+		defer vhostConn.Close()
+		host := vhostConn.ClientHelloMsg.ServerName
+		dstHost, err := r.director(host)
+		if err != nil {
+			log.Printf("Error directing request: %v\n", err)
+			return
+		}
+		d, err := net.Dial("tcp", dstHost.String())
+		if err != nil {
+			log.Printf("Error dialing backend %s: %v\n", dstHost.String(), err)
+			return
+		}
 
-	d, err := net.Dial("tcp", dstHost.String())
-	if err != nil {
-		log.Printf("Error dialing backend %s: %v\n", dstHost.String(), err)
-		return
-	}
+		proxy(vhostConn, d)
+	} else {
+		// it is not TLS
+		// treat it as an http connection
 
+		req, err := http.ReadRequest(bufio.NewReader(vhostConn))
+		if err != nil {
+			// It is not http neither. So just close the connection.
+			return
+		}
+		dstHost, err := r.director(req.Host)
+		if err != nil {
+			log.Printf("Error directing request: %v\n", err)
+			return
+		}
+		d, err := net.Dial("tcp", dstHost.String())
+		if err != nil {
+			log.Printf("Error dialing backend %s: %v\n", dstHost.String(), err)
+			return
+		}
+		err = req.Write(d)
+		if err != nil {
+			log.Printf("Error requesting backend %s: %v\n", dstHost.String(), err)
+			return
+		}
+		proxy(c, d)
+	}
+}
+
+func proxy(src, dst net.Conn) {
 	errc := make(chan error, 2)
 	cp := func(dst io.Writer, src io.Reader) {
 		_, err := io.Copy(dst, src)
 		errc <- err
 	}
-	go cp(d, vhostConn)
-	go cp(vhostConn, d)
+	go cp(src, dst)
+	go cp(dst, src)
 	<-errc
-	/*
-		req, err := http.ReadRequest(bufio.NewReader(c))
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		log.Println(req.Header)
-	*/
 }
 
 func NewRouter(director Director) *proxyRouter {
