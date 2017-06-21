@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"io"
 	"sync"
 	"time"
 
@@ -65,6 +66,7 @@ type PWDApi interface {
 	InstanceResizeTerminal(instance *Instance, cols, rows uint) error
 	InstanceAttachTerminal(instance *Instance) error
 	InstanceUploadFromUrl(instance *Instance, url string) error
+	InstanceUploadFromReader(instance *Instance, filename string, reader io.Reader) error
 	InstanceGet(session *Session, name string) *Instance
 	InstanceFindByIP(ip string) *Instance
 	InstanceFindByAlias(sessionPrefix, alias string) *Instance
