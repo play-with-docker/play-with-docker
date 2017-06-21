@@ -1,8 +1,15 @@
 ARG VERSION=docker:17.05.0-ce-dind
 FROM ${VERSION}
 
-RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh
+RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh go \
+    && mkdir /root/go 
 
+ENV GOPATH /root/go
+ENV PATH $PATH:$GOPATH
+
+# Download moby and linuxkit
+
+RUN go get -u github.com/moby/tool/cmd/moby github.com/linuxkit/linuxkit/src/cmd/linuxkit
 
 # Compile and install httping
 # (used in orchestration workshop, and very useful anyway)
