@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"log"
 	"net/http"
 
@@ -28,18 +29,34 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 		return
 	} else {
-		// This is for multipart upload
-		log.Println("Not implemented yet")
-
-		/*
-			err := req.ParseMultipartForm(32 << 20)
+		red, err := req.MultipartReader()
+		if err != nil {
+			log.Println(err)
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		for {
+			p, err := red.NextPart()
+			if err == io.EOF {
+				break
+			}
 			if err != nil {
 				log.Println(err)
-				rw.WriteHeader(http.StatusBadRequest)
+				continue
+			}
+
+			if p.FileName() == "" {
+				continue
+			}
+			err = core.InstanceUploadFromReader(i, p.FileName(), p)
+			if err != nil {
+				log.Println(err)
+				rw.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-		*/
-		rw.WriteHeader(http.StatusInternalServerError)
+			log.Printf("Uploaded [%s] to [%s]\n", p.FileName(), i.Name)
+		}
+		rw.WriteHeader(http.StatusOK)
 		return
 	}
 

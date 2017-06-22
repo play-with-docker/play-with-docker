@@ -209,10 +209,10 @@ func TestSessionSetup(t *testing.T) {
 		Image:        "franela/dind",
 		Hostname:     "manager1",
 		IP:           "10.0.0.1",
+		SessionId:    s.Id,
 		Alias:        "",
 		IsDockerHost: true,
 		Session:      s,
-		Terminal:     manager1Received.Terminal,
 		Docker:       manager1Received.Docker,
 	}, manager1Received)
 
@@ -225,8 +225,8 @@ func TestSessionSetup(t *testing.T) {
 		IP:           "10.0.0.2",
 		Alias:        "",
 		IsDockerHost: true,
+		SessionId:    s.Id,
 		Session:      s,
-		Terminal:     manager2Received.Terminal,
 		Docker:       manager2Received.Docker,
 	}, manager2Received)
 
@@ -238,9 +238,9 @@ func TestSessionSetup(t *testing.T) {
 		Hostname:     "manager3",
 		IP:           "10.0.0.3",
 		Alias:        "",
+		SessionId:    s.Id,
 		IsDockerHost: true,
 		Session:      s,
-		Terminal:     manager3Received.Terminal,
 		Docker:       manager3Received.Docker,
 	}, manager3Received)
 
@@ -252,9 +252,9 @@ func TestSessionSetup(t *testing.T) {
 		Hostname:     "worker1",
 		IP:           "10.0.0.4",
 		Alias:        "",
+		SessionId:    s.Id,
 		IsDockerHost: true,
 		Session:      s,
-		Terminal:     worker1Received.Terminal,
 		Docker:       worker1Received.Docker,
 	}, worker1Received)
 
@@ -266,9 +266,9 @@ func TestSessionSetup(t *testing.T) {
 		Hostname:     "other",
 		IP:           "10.0.0.5",
 		Alias:        "",
+		SessionId:    s.Id,
 		IsDockerHost: true,
 		Session:      s,
-		Terminal:     otherReceived.Terminal,
 		Docker:       otherReceived.Docker,
 	}, otherReceived)
 
@@ -276,4 +276,21 @@ func TestSessionSetup(t *testing.T) {
 	assert.True(t, manager2JoinedHasManager)
 	assert.True(t, manager3JoinedHasManager)
 	assert.True(t, worker1JoinedHasWorker)
+}
+
+func TestSessionPrepareOnce(t *testing.T) {
+	dock := &mockDocker{}
+	tasks := &mockTasks{}
+	broadcast := &mockBroadcast{}
+	storage := &mockStorage{}
+
+	p := NewPWD(dock, tasks, broadcast, storage)
+	session := &types.Session{Id: "1234"}
+	prepared, err := p.prepareSession(session)
+	assert.True(t, preparedSessions[session.Id])
+	assert.True(t, prepared)
+
+	prepared, err = p.prepareSession(session)
+	assert.Nil(t, err)
+	assert.False(t, prepared)
 }

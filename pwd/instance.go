@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -21,6 +22,8 @@ type sessionWriter struct {
 	instanceName string
 	broadcast    BroadcastApi
 }
+
+var terms = make(map[string]map[string]net.Conn)
 
 func (s *sessionWriter) Write(p []byte) (n int, err error) {
 	s.broadcast.BroadcastTo(s.sessionId, "terminal out", s.instanceName, string(p))
@@ -45,6 +48,10 @@ func (p *pwd) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) 
 }
 
 func (p *pwd) InstanceAttachTerminal(instance *types.Instance) error {
+	// already have a connection for this instance
+	if getInstanceTermConn(instance.SessionId, instance.Name) != nil {
+		return nil
+	}
 	conn, err := p.docker.CreateAttachConnection(instance.Name)
 
 	if err != nil {
@@ -53,9 +60,12 @@ func (p *pwd) InstanceAttachTerminal(instance *types.Instance) error {
 
 	encoder := encoding.Replacement.NewEncoder()
 	sw := &sessionWriter{sessionId: instance.Session.Id, instanceName: instance.Name, broadcast: p.broadcast}
-	instance.Terminal = conn
+	if terms[instance.SessionId] == nil {
+		terms[instance.SessionId] = map[string]net.Conn{instance.Name: conn}
+	} else {
+		terms[instance.SessionId][instance.Name] = conn
+	}
 	io.Copy(encoder.Writer(sw), conn)
-
 	return nil
 }
 
@@ -77,6 +87,18 @@ func (p *pwd) InstanceUploadFromUrl(instance *types.Instance, url string) error 
 
 	if copyErr != nil {
 		return fmt.Errorf("Error while downloading file [%s]. Error: %s\n", url, copyErr)
+	}
+
+	return nil
+}
+
+func (p *pwd) InstanceUploadFromReader(instance *types.Instance, fileName string, reader io.Reader) error {
+	defer observeAction("InstanceUploadFromReader", time.Now())
+
+	copyErr := p.docker.CopyToContainer(instance.Name, "/var/run/pwd/uploads", fileName, reader)
+
+	if copyErr != nil {
+		return fmt.Errorf("Error while uploading file [%s]. Error: %s\n", fileName, copyErr)
 	}
 
 	return nil
@@ -118,8 +140,10 @@ func (p *pwd) InstanceFindByAlias(sessionPrefix, alias string) *types.Instance {
 
 func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) error {
 	defer observeAction("InstanceDelete", time.Now())
-	if instance.Terminal != nil {
-		instance.Terminal.Close()
+	conn := getInstanceTermConn(session.Id, instance.Name)
+	if conn != nil {
+		conn.Close()
+		delete(terms[instance.SessionId], instance.Name)
 	}
 	err := p.docker.DeleteContainer(instance.Name)
 	if err != nil && !strings.Contains(err.Error(), "No such container") {
@@ -130,7 +154,7 @@ func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) e
 	p.broadcast.BroadcastTo(session.Id, "delete instance", instance.Name)
 
 	delete(session.Instances, instance.Name)
-	if err := p.storage.SessionPut(session); err != nil {
+	if err := p.storage.InstanceDelete(session.Id, instance.Name); err != nil {
 		return err
 	}
 
@@ -202,6 +226,7 @@ func (p *pwd) InstanceNew(session *types.Session, conf InstanceConfig) (*types.I
 	instance := &types.Instance{}
 	instance.Image = opts.Image
 	instance.IP = ip
+	instance.SessionId = session.Id
 	instance.Name = containerName
 	instance.Hostname = conf.Hostname
 	instance.Alias = conf.Alias
@@ -221,7 +246,7 @@ func (p *pwd) InstanceNew(session *types.Session, conf InstanceConfig) (*types.I
 
 	go p.InstanceAttachTerminal(instance)
 
-	err = p.storage.SessionPut(session)
+	err = p.storage.InstanceCreate(session.Id, instance)
 	if err != nil {
 		return nil, err
 	}
@@ -233,10 +258,11 @@ func (p *pwd) InstanceNew(session *types.Session, conf InstanceConfig) (*types.I
 	return instance, nil
 }
 
-func (p *pwd) InstanceWriteToTerminal(instance *types.Instance, data string) {
+func (p *pwd) InstanceWriteToTerminal(sessionId, instanceName string, data string) {
 	defer observeAction("InstanceWriteToTerminal", time.Now())
-	if instance != nil && instance.Terminal != nil && len(data) > 0 {
-		instance.Terminal.Write([]byte(data))
+	conn := getInstanceTermConn(sessionId, instanceName)
+	if conn != nil && len(data) > 0 {
+		conn.Write([]byte(data))
 	}
 }
 
@@ -254,4 +280,8 @@ func (p *pwd) InstanceAllowedImages() []string {
 func (p *pwd) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
 	defer observeAction("InstanceExec", time.Now())
 	return p.docker.Exec(instance.Name, cmd)
+}
+
+func getInstanceTermConn(sessionId, instanceName string) net.Conn {
+	return terms[sessionId][instanceName]
 }

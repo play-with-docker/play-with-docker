@@ -34,8 +34,7 @@ func WS(so socketio.Socket) {
 
 	so.On("terminal in", func(name, data string) {
 		// User wrote something on the terminal. Need to write it to the instance terminal
-		instance := core.InstanceGet(session, name)
-		core.InstanceWriteToTerminal(instance, data)
+		core.InstanceWriteToTerminal(session.Id, name, data)
 	})
 
 	so.On("viewport resize", func(cols, rows uint) {

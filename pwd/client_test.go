@@ -24,6 +24,21 @@ func TestClientNew(t *testing.T) {
 	assert.Equal(t, types.Client{Id: "foobar", Session: session, ViewPort: types.ViewPort{Cols: 0, Rows: 0}}, *client)
 	assert.Contains(t, session.Clients, client)
 }
+func TestClientCount(t *testing.T) {
+	docker := &mockDocker{}
+	tasks := &mockTasks{}
+	broadcast := &mockBroadcast{}
+	storage := &mockStorage{}
+
+	p := NewPWD(docker, tasks, broadcast, storage)
+
+	session, err := p.SessionNew(time.Hour, "", "", "")
+	assert.Nil(t, err)
+
+	p.ClientNew("foobar", session)
+
+	assert.Equal(t, 1, p.ClientCount())
+}
 
 func TestClientResizeViewPort(t *testing.T) {
 	docker := &mockDocker{}

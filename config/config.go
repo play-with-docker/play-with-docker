@@ -20,7 +20,7 @@ const (
 var NameFilter = regexp.MustCompile(PWDHostPortGroupRegex)
 var AliasFilter = regexp.MustCompile(AliasPortGroupRegex)
 
-var SSLPortNumber, PortNumber, Key, Cert, SessionsFile, PWDContainerName, PWDCName, HashKey string
+var SSLPortNumber, PortNumber, Key, Cert, SessionsFile, PWDContainerName, PWDCName, HashKey
 var MaxLoadAvg float64
 
 func ParseFlags() {

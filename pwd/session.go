@@ -15,6 +15,8 @@ import (
 	"github.com/twinj/uuid"
 )
 
+var preparedSessions = map[string]bool{}
+
 type sessionBuilderWriter struct {
 	sessionId string
 	broadcast BroadcastApi
@@ -64,7 +66,7 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 	}
 	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
 
-	if err := p.prepareSession(s); err != nil {
+	if _, err := p.prepareSession(s); err != nil {
 		log.Println(err)
 		return nil, err
 	}
@@ -183,7 +185,7 @@ func (p *pwd) SessionGet(sessionId string) *types.Session {
 
 	s, _ := p.storage.SessionGet(sessionId)
 
-	if err := p.prepareSession(s); err != nil {
+	if _, err := p.prepareSession(s); err != nil {
 		log.Println(err)
 		return nil
 	}
@@ -280,22 +282,27 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 	return nil
 }
 
+func isSessionPrepared(sessionId string) bool {
+	_, ok := preparedSessions[sessionId]
+	return ok
+}
+
 // This function should be called any time a session needs to be prepared:
 // 1. Like when it is created
 // 2. When it was loaded from storage
-func (p *pwd) prepareSession(session *types.Session) error {
+func (p *pwd) prepareSession(session *types.Session) (bool, error) {
 	session.Lock()
 	defer session.Unlock()
 
-	if session.IsPrepared() {
-		return nil
+	if isSessionPrepared(session.Id) {
+		return false, nil
 	}
 
 	p.scheduleSessionClose(session)
 
 	// Connect PWD daemon to the new network
 	if err := p.connectToNetwork(session); err != nil {
-		return err
+		return false, err
 	}
 
 	// Schedule periodic tasks
@@ -306,9 +313,9 @@ func (p *pwd) prepareSession(session *types.Session) error {
 		i.Session = session
 		go p.InstanceAttachTerminal(i)
 	}
-	session.SetPrepared()
+	preparedSessions[session.Id] = true
 
-	return nil
+	return true, nil
 }
 
 func (p *pwd) scheduleSessionClose(s *types.Session) {
