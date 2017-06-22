@@ -26,12 +26,6 @@ func main() {
 	r := mux.NewRouter()
 	corsRouter := mux.NewRouter()
 
-	// Reverse proxy (needs to be the first route, to make sure it is the first thing we check)
-	//proxyHandler := handlers.NewMultipleHostReverseProxy()
-	//websocketProxyHandler := handlers.NewMultipleHostWebsocketReverseProxy()
-
-	tcpHandler := handlers.NewTCPProxy()
-
 	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedOrigins([]string{"*"}))
 
 	// Specific routes
@@ -83,9 +77,6 @@ func main() {
 	}
 
 	go handlers.ListenSSHProxy("0.0.0.0:1022")
-
-	// Now listen for TLS connections that need to be proxied
-	handlers.StartTLSProxy(config.SSLPortNumber)
 
 	log.Println("Listening on port " + config.PortNumber)
 	log.Fatal(httpServer.ListenAndServe())
