@@ -19,5 +19,6 @@ func GetSession(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	rw.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(rw).Encode(session)
 }
