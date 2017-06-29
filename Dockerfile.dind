@@ -1,4 +1,4 @@
-ARG VERSION=docker:17.05.0-ce-dind
+ARG VERSION=docker:17.06.0-ce-dind
 FROM ${VERSION}
 
 RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh
