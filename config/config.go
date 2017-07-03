@@ -13,8 +13,8 @@ const (
 	AliasnameRegex        = "[0-9|a-z|A-Z|-]*"
 	AliasSessionRegex     = "[0-9|a-z|A-Z]{8}"
 	AliasGroupRegex       = "(" + AliasnameRegex + ")-(" + AliasSessionRegex + ")"
-	PWDHostPortGroupRegex = "^.*pwd(" + PWDHostnameRegex + ")(?:-?(" + PortRegex + "))?\\..*$"
-	AliasPortGroupRegex   = "^.*pwd" + AliasGroupRegex + "(?:-?(" + PortRegex + "))?\\..*$"
+	PWDHostPortGroupRegex = "^.*ip(" + PWDHostnameRegex + ")(?:-?(" + PortRegex + "))?\\..*$"
+	AliasPortGroupRegex   = "^.*ip" + AliasGroupRegex + "(?:-?(" + PortRegex + "))?\\..*$"
 )
 
 var NameFilter = regexp.MustCompile(PWDHostPortGroupRegex)
