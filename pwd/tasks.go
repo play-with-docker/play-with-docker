@@ -1,19 +1,16 @@
 package pwd
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
-	"net"
-	"net/http"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api"
-	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/tlsconfig"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
 	"github.com/play-with-docker/play-with-docker/docker"
 )
 
@@ -45,39 +42,13 @@ func (sch *scheduler) Schedule(s *Session) {
 			wg.Add(len(s.Instances))
 			for _, ins := range s.Instances {
 				var i *Instance = ins
-				if i.docker == nil && i.IsDockerHost {
-					// Need to create client to the DinD docker daemon
-
-					// We check if the client needs to use TLS
-					var tlsConfig *tls.Config
-					if len(i.Cert) > 0 && len(i.Key) > 0 {
-						tlsConfig = tlsconfig.ClientDefault()
-						tlsConfig.InsecureSkipVerify = true
-						tlsCert, err := tls.X509KeyPair(i.Cert, i.Key)
-						if err != nil {
-							log.Println("Could not load X509 key pair: %v. Make sure the key is not encrypted", err)
-							continue
-						}
-						tlsConfig.Certificates = []tls.Certificate{tlsCert}
-					}
-
-					transport := &http.Transport{
-						DialContext: (&net.Dialer{
-							Timeout:   1 * time.Second,
-							KeepAlive: 30 * time.Second,
-						}).DialContext}
-					if tlsConfig != nil {
-						transport.TLSClientConfig = tlsConfig
-					}
-					cli := &http.Client{
-						Transport: transport,
-					}
-					c, err := client.NewClient(fmt.Sprintf("http://%s:2375", i.IP), api.DefaultVersion, cli, nil)
+				if i.k8s == nil {
+					c := rest.Config{Host: fmt.Sprintf("%s:6443", i.IP), TLSClientConfig: rest.TLSClientConfig{Insecure: true}, BearerToken: "system:admin/system:masters"}
+					client, err := kubernetes.NewForConfig(&c)
 					if err != nil {
-						log.Println("Could not connect to DinD docker daemon", err)
-					} else {
-						i.docker = docker.NewDocker(c)
+						log.Println("Could not connect to k8s server api", err)
 					}
+					i.k8s = client
 				}
 				go func() {
 					defer wg.Done()
@@ -113,6 +84,6 @@ func (sch *scheduler) Unschedule(s *Session) {
 
 func NewScheduler(b BroadcastApi, d docker.DockerApi) *scheduler {
 	s := &scheduler{broadcast: b}
-	s.periodicTasks = []periodicTask{&collectStatsTask{docker: d}, &checkSwarmStatusTask{}, &checkUsedPortsTask{}, &checkSwarmUsedPortsTask{}}
+	s.periodicTasks = []periodicTask{&collectStatsTask{docker: d}, &checkK8sClusterStatusTask{}, &checkK8sClusterExposedPortsTask{}}
 	return s
 }

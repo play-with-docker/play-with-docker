@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
@@ -36,25 +39,26 @@ func (p UInt16Slice) Less(i, j int) bool { return p[i] < p[j] }
 func (p UInt16Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 type Instance struct {
-	Image        string           `json:"image"`
-	Name         string           `json:"name"`
-	Hostname     string           `json:"hostname"`
-	IP           string           `json:"ip"`
-	IsManager    *bool            `json:"is_manager"`
-	Mem          string           `json:"mem"`
-	Cpu          string           `json:"cpu"`
-	Alias        string           `json:"alias"`
-	ServerCert   []byte           `json:"server_cert"`
-	ServerKey    []byte           `json:"server_key"`
-	CACert       []byte           `json:"ca_cert"`
-	Cert         []byte           `json:"cert"`
-	Key          []byte           `json:"key"`
-	IsDockerHost bool             `json:"is_docker_host"`
-	session      *Session         `json:"-"`
-	conn         net.Conn         `json:"-"`
-	ctx          context.Context  `json:"-"`
-	docker       docker.DockerApi `json:"-"`
-	tempPorts    []uint16         `json:"-"`
+	Image        string                `json:"image"`
+	Name         string                `json:"name"`
+	Hostname     string                `json:"hostname"`
+	IP           string                `json:"ip"`
+	IsManager    *bool                 `json:"is_manager"`
+	Mem          string                `json:"mem"`
+	Cpu          string                `json:"cpu"`
+	Alias        string                `json:"alias"`
+	ServerCert   []byte                `json:"server_cert"`
+	ServerKey    []byte                `json:"server_key"`
+	CACert       []byte                `json:"ca_cert"`
+	Cert         []byte                `json:"cert"`
+	Key          []byte                `json:"key"`
+	IsDockerHost bool                  `json:"is_docker_host"`
+	session      *Session              `json:"-"`
+	conn         net.Conn              `json:"-"`
+	ctx          context.Context       `json:"-"`
+	docker       docker.DockerApi      `json:"-"`
+	k8s          *kubernetes.Clientset `json:"-"`
+	tempPorts    []uint16              `json:"-"`
 	Ports        UInt16Slice
 	rw           sync.Mutex
 }
@@ -321,11 +325,16 @@ func (p *pwd) InstanceAllowedImages() []string {
 		config.GetDindImageName(),
 		"franela/dind:overlay2-dev",
 		"franela/ucp:2.4.1",
+		"franela/kind",
+		"franela/dind",
 	}
 
 }
 
-func (p *pwd) InstanceExec(instance *Instance, cmd []string) (int, error) {
+func (p *pwd) InstanceExec(instance *Instance, cmd []string) (int, string, error) {
 	defer observeAction("InstanceExec", time.Now())
-	return p.docker.Exec(instance.Name, cmd)
+	var b bytes.Buffer
+	status, err := p.docker.ExecAttach(instance.Name, cmd, &b)
+
+	return status, string(b.Bytes()), err
 }

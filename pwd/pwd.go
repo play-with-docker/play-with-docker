@@ -74,7 +74,7 @@ type PWDApi interface {
 	InstanceDelete(session *Session, instance *Instance) error
 	InstanceWriteToTerminal(instance *Instance, data string)
 	InstanceAllowedImages() []string
-	InstanceExec(instance *Instance, cmd []string) (int, error)
+	InstanceExec(instance *Instance, cmd []string) (int, string, error)
 
 	ClientNew(id string, session *Session) *Client
 	ClientResizeViewPort(client *Client, cols, rows uint)
@@ -82,7 +82,8 @@ type PWDApi interface {
 }
 
 func NewPWD(d docker.DockerApi, t SchedulerApi, b BroadcastApi, s StorageApi) *pwd {
-	return &pwd{docker: d, tasks: t, broadcast: b, storage: s}
+	p := &pwd{docker: d, tasks: t, broadcast: b, storage: s}
+	return p
 }
 
 func setGauges() {

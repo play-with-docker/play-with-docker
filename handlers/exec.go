@@ -39,7 +39,7 @@ func Exec(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	code, err := core.InstanceExec(i, er.Cmd)
+	code, _, err := core.InstanceExec(i, er.Cmd)
 
 	if err != nil {
 		log.Println(err)

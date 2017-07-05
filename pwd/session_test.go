@@ -224,7 +224,7 @@ func TestSessionSetup(t *testing.T) {
 	manager2Received := *s.Instances[manager2]
 	assert.Equal(t, Instance{
 		Name:         manager2,
-		Image:        "franela/dind",
+		Image:        "franela/kind",
 		Hostname:     "manager2",
 		IP:           "10.0.0.2",
 		Alias:        "",
@@ -252,7 +252,7 @@ func TestSessionSetup(t *testing.T) {
 	worker1Received := *s.Instances[worker1]
 	assert.Equal(t, Instance{
 		Name:         worker1,
-		Image:        "franela/dind",
+		Image:        "franela/kind",
 		Hostname:     "worker1",
 		IP:           "10.0.0.4",
 		Alias:        "",
@@ -266,7 +266,7 @@ func TestSessionSetup(t *testing.T) {
 	otherReceived := *s.Instances[other]
 	assert.Equal(t, Instance{
 		Name:         other,
-		Image:        "franela/dind",
+		Image:        "franela/kind",
 		Hostname:     "other",
 		IP:           "10.0.0.5",
 		Alias:        "",
