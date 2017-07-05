@@ -358,9 +358,15 @@
       }
     }
   }])
-  .config(['$mdIconProvider', '$locationProvider', function($mdIconProvider, $locationProvider) {
+  .config(['$mdIconProvider', '$locationProvider', '$mdThemingProvider', function($mdIconProvider, $locationProvider, $mdThemingProvider) {
     $locationProvider.html5Mode({enabled: true, requireBase: false});
     $mdIconProvider.defaultIconSet('../assets/social-icons.svg', 24);
+    let kubePalette = $mdThemingProvider.extendPalette('blue', {
+    '500': '326de6',
+    });
+    $mdThemingProvider.definePalette('kube', kubePalette);
+    $mdThemingProvider.theme('default')
+      .primaryPalette('kube');
   }])
   .component('settingsIcon', {
     template : "<md-button class='md-mini' ng-click='$ctrl.onClick()'><md-icon class='material-icons'>settings</md-icon></md-button>",
