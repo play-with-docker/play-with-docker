@@ -1,0 +1,4 @@
+FROM franela/kind
+
+CMD systemctl start docker && systemctl start kubelet \
+    && bash

@@ -1,0 +1,281 @@
+#!/bin/bash
+
+function get_unit_file(){
+    
+     local UNIT=$1
+
+     for DIR in ${UNIT_PATHS[@]} ; do
+         if [ -f "${DIR}${UNIT}" ] ; then
+             echo "${DIR}${UNIT}"
+             break
+         fi
+     done
+
+}
+
+function read_option(){
+     local OPTION="$1"
+     local UNIT_FILE="$2"
+     local UNIT_INSTANCE="$3"
+
+     local UNIT=`basename $UNIT_FILE`
+     local UNIT_FULL=`echo $UNIT | sed "s/@/@$UNIT_INSTANCE/"`
+
+     VALUE="$(grep '^'$OPTION'[= ]' "$UNIT_FILE" | cut -d '=' -f2- | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+     VALUE="`
+         echo $VALUE |
+         sed -e "s/%[i]/$UNIT_INSTANCE/g" \
+             -e "s/%[I]/\"$UNIT_INSTANCE\"/g" \
+             -e "s/%[n]/$UNIT_FULL/g" \
+             -e "s/%[N]/\"$UNIT_FULL\"/g"
+     `"
+     # TODO: Add more options from:
+     # https://www.freedesktop.org/software/systemd/man/systemd.unit.html#Specifiers
+
+     echo $VALUE
+}
+
+function get_unit_wants() {
+
+     local UNIT_FILE=$1
+     local UNIT=`basename $UNIT_FILE`
+
+     sort -u <<< `(
+         # Print wants from UNIT_PATHS
+         for DIR in ${UNIT_PATHS[@]} ; do
+             if [ -d "${DIR}${UNIT}.wants" ] ; then
+                 ls -1 "${DIR}${UNIT}.wants/" | tr '\n' ' '
+             fi
+         done
+    
+         # Print wants from unit-file
+         read_option Wants $UNIT_FILE
+     )`
+}
+
+function action_start(){
+
+    # Find depended services
+    local UNIT_FILE=$1
+    local UNIT_WANTS=(`get_unit_wants $1`)
+    local UNIT_INSTANCE=$2
+
+    # Start depended services
+    for UNIT in ${UNIT_WANTS[@]}; do
+        exec_action start $UNIT
+    done
+
+    # Load options 
+    local User=`read_option User $UNIT_FILE $UNIT_INSTANCE`
+    local Type=`read_option Type $UNIT_FILE $UNIT_INSTANCE`
+    local EnvironmentFile=`read_option EnvironmentFile $UNIT_FILE $UNIT_INSTANCE`
+    local ExecStartPre=(`read_option ExecStartPre $UNIT_FILE $UNIT_INSTANCE`)
+    local ExecStart=`read_option ExecStart $UNIT_FILE $UNIT_INSTANCE`
+    local ExecStartPost=(`read_option ExecStartPost $UNIT_FILE $UNIT_INSTANCE`)
+    local Restart=(`read_option Restart $UNIT_FILE $UNIT_INSTANCE`)
+    local RestartSec=(`read_option RestartSec $UNIT_FILE $UNIT_INSTANCE`)
+	RestartSec=${RestartSec:=5}
+
+    [ -f "$EnvironmentFile" ] && source "$EnvironmentFile"
+
+    # Start service 
+    if [ -z $Type ] || [[ "${Type,,}" == *"simple"* ]] ; then
+		if [ "$Restart" == "always" ]; then
+			COMMAND='nohup bash -c "while true ; do '"$ExecStart"'; sleep $RestartSec; done" &>/dev/null &'
+		else
+			COMMAND='nohup '"$ExecStart"' >>/dev/null 2>&1 &'
+		fi
+    elif [[ "${Type,,}" == *"forking"* ]] || [[ "${Type,,}" == *"oneshot"* ]] ; then
+        COMMAND="$ExecStart"
+    else
+        >&2 echo "Unknown service type $Type"
+    fi
+
+    #[ -z $User ] || COMMAND="su $User -c \"$COMMAND\""
+
+    while IFS=$'\n' read -a i; do
+        eval $i
+    done  <<< "${ExecStartPre[@]}"
+
+    eval "$COMMAND"
+
+    while IFS=$'\n' read -a i; do
+        eval $i
+    done  <<< "${ExecStartPost[@]}"
+}
+
+function action_stop(){
+
+    # Find depended services
+    local UNIT_FILE=$1
+    local UNIT_WANTS=(`get_unit_wants $1`)
+    local UNIT_INSTANCE=$2
+
+    # Load options 
+    local User=`read_option User $UNIT_FILE $UNIT_INSTANCE`
+    local Type=`read_option Type $UNIT_FILE $UNIT_INSTANCE`
+    local EnvironmentFile=`read_option EnvironmentFile $UNIT_FILE $UNIT_INSTANCE`
+    local ExecStopPre=(`read_option ExecStartPre $UNIT_FILE $UNIT_INSTANCE`)
+    local ExecStop=`read_option ExecStop $UNIT_FILE $UNIT_INSTANCE`
+    local ExecStopPost=(`read_option ExecStartPost $UNIT_FILE $UNIT_INSTANCE`)
+    local ExecStart=`read_option ExecStart $UNIT_FILE $UNIT_INSTANCE`
+
+    [ -f "$EnvironmentFile" ] && source "$EnvironmentFile"
+
+    # Stop service 
+    if [ -z $ExecStop ] ; then
+        COMMAND="kill -TERM \$(pgrep -f \"$ExecStart\")"
+    else
+        COMMAND="$ExecStop"
+    fi
+
+    #[ -z $User ] || COMMAND="su $User -c \"$COMMAND\""
+
+    while IFS=$'\n' read -a i; do
+        eval $i
+    done  <<< "${ExecStopPre[@]}"
+
+    eval "$COMMAND"
+
+    while IFS=$'\n' read -a i; do
+        eval $i
+    done  <<< "${ExecStopPost[@]}"
+}
+
+function action_restart(){
+    local UNIT_FILE=$1
+    local UNIT_INSTANCE=$2
+
+    action_start $UNIT_FILE $UNIT_INSTANCE
+    action_stop $UNIT_FILE $UNIT_INSTANCE
+}
+
+
+function action_enable(){
+
+    local UNIT_FILE=$1
+    local UNIT=`basename $UNIT_FILE`
+    local UNIT_INSTANCE=$2
+    local UNIT_FULL=`echo $UNIT | sed "s/@/@$UNIT_INSTANCE/"`
+
+    local WantedBy=`read_option WantedBy $UNIT_FILE`
+
+    if [ -z $WantedBy ] ; then
+        >&2 echo "Unit $UNIT have no WantedBy option."
+        exit 1
+    fi
+    
+    local WANTEDBY_DIR="/etc/systemd/system/$WantedBy.wants"
+
+    if [ ! -f "$WANTEDBY_DIR/$UNIT_FULL" ] ; then
+        mkdir -p $WANTEDBY_DIR
+        echo Created symlink from $WANTEDBY_DIR/$UNIT_FULL to $UNIT_FILE.
+        ln -s $WANTEDBY_DIR/$UNIT_FULL $UNIT_FILE
+    fi
+    
+}
+    
+function action_disable(){
+
+    local UNIT_FILE=$1
+    local UNIT=`basename $UNIT_FILE`
+    local UNIT_INSTANCE=$2
+    local UNIT_FULL=`echo $UNIT | sed "s/@/@$UNIT_INSTANCE/"`
+
+    local WantedBy=`read_option WantedBy $UNIT_FILE`
+
+    if [ -z $WantedBy ] ; then
+        >&2 echo "Unit $UNIT have no WantedBy option."
+        exit 1
+    fi
+
+    local WANTEDBY_DIR="/etc/systemd/system/$WantedBy.wants"
+
+    if [ -f "$WANTEDBY_DIR/$UNIT_FULL" ] ; then
+        echo Removed $WANTEDBY_DIR/$UNIT_FULL.
+        rm -f $WANTEDBY_DIR/$UNIT_FULL.
+        rmdir --ignore-fail-on-non-empty $WANTEDBY_DIR
+    fi
+    
+}
+
+function action_status(){
+
+    # Find depended services
+    local UNIT_FILE=$1
+    local UNIT_WANTS=(`get_unit_wants $1`)
+    local UNIT_INSTANCE=$2
+
+    local ExecStart=`read_option ExecStart $UNIT_FILE $UNIT_INSTANCE`
+
+
+    COMMAND="pgrep -f \"$ExecStart\" &>/dev/null"
+
+
+    if eval "$COMMAND"; then
+     exit 0
+    fi
+
+    >&2 echo "Loaded: not-found"
+    exit 1
+}
+
+function action_is_enabled(){
+	exit 0
+}
+
+function action_is_active(){
+	local UNIT=`basename $1`
+	if systemctl status $UNIT ; then
+		>&2 echo "active"
+		exit 0
+	fi
+
+	exit 1
+
+}
+
+function exec_action(){
+
+    local ACTION=$1
+    local UNIT=$2
+    
+    [[ $UNIT =~ '.' ]] || UNIT="$UNIT.service"
+
+    if [[ $UNIT =~ '@' ]] ; then
+        local UNIT_INSTANCE=`echo $UNIT | cut -d'@' -f2- | cut -d. -f1`
+        local UNIT=`echo $UNIT | sed "s/$UNIT_INSTANCE//"`
+    fi
+
+    UNIT_FILE=`get_unit_file $UNIT`
+
+    if [ -z $UNIT_FILE ] ; then
+        >&2 echo "Failed to $ACTION $UNIT: Unit $UNIT not found."
+        exit 1
+    else
+        case "$ACTION" in
+            start )      action_start $UNIT_FILE $UNIT_INSTANCE ;;
+            stop )       action_stop $UNIT_FILE $UNIT_INSTANCE ;;
+            restart )    action_restart $UNIT_FILE $UNIT_INSTANCE ;;
+            enable )     action_enable $UNIT_FILE $UNIT_INSTANCE ;;
+            disable )    action_disable $UNIT_FILE $UNIT_INSTANCE ;;
+            status )     action_status $UNIT_FILE $UNIT_INSTANCE ;;
+            is-enabled ) action_is_enabled $UNIT_FILE $UNIT_INSTANCE ;;
+            is-active )  action_is_active $UNIT_FILE $UNIT_INSTANCE ;;
+            * ) >&2 echo "Unknown operation $ACTION." ; exit 1 ;;
+        esac
+    fi
+}
+
+ACTION="$1"
+UNITS="${@:2}"
+UNIT_PATHS=(
+    /etc/systemd/system/
+    /usr/lib/systemd/system/
+)
+
+
+for UNIT in ${UNITS[@]}; do
+    exec_action $ACTION $UNIT
+done
