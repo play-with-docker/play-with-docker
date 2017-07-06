@@ -3,51 +3,42 @@ package pwd
 import (
 	"log"
 	"time"
+
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
-type Client struct {
-	Id       string
-	viewPort ViewPort
-	session  *Session
-}
-
-type ViewPort struct {
-	Rows uint
-	Cols uint
-}
-
-func (p *pwd) ClientNew(id string, session *Session) *Client {
+func (p *pwd) ClientNew(id string, session *types.Session) *types.Client {
 	defer observeAction("ClientNew", time.Now())
-	c := &Client{Id: id, session: session}
-	session.clients = append(session.clients, c)
+	c := &types.Client{Id: id, Session: session}
+	session.Clients = append(session.Clients, c)
 	return c
 }
 
-func (p *pwd) ClientResizeViewPort(c *Client, cols, rows uint) {
+func (p *pwd) ClientResizeViewPort(c *types.Client, cols, rows uint) {
 	defer observeAction("ClientResizeViewPort", time.Now())
-	c.viewPort.Rows = rows
-	c.viewPort.Cols = cols
+	c.ViewPort.Rows = rows
+	c.ViewPort.Cols = cols
 
-	p.notifyClientSmallestViewPort(c.session)
+	p.notifyClientSmallestViewPort(c.Session)
 }
 
-func (p *pwd) ClientClose(client *Client) {
+func (p *pwd) ClientClose(client *types.Client) {
 	defer observeAction("ClientClose", time.Now())
 	// Client has disconnected. Remove from session and recheck terminal sizes.
-	session := client.session
-	for i, cl := range session.clients {
+	session := client.Session
+	for i, cl := range session.Clients {
 		if cl.Id == client.Id {
-			session.clients = append(session.clients[:i], session.clients[i+1:]...)
+			session.Clients = append(session.Clients[:i], session.Clients[i+1:]...)
 			break
 		}
 	}
-	if len(session.clients) > 0 {
+	if len(session.Clients) > 0 {
 		p.notifyClientSmallestViewPort(session)
 	}
-	setGauges()
+	p.setGauges()
 }
 
-func (p *pwd) notifyClientSmallestViewPort(session *Session) {
+func (p *pwd) notifyClientSmallestViewPort(session *types.Session) {
 	vp := p.SessionGetSmallestViewPort(session)
 	// Resize all terminals in the session
 	p.broadcast.BroadcastTo(session.Id, "viewport resize", vp.Cols, vp.Rows)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,7 @@ func TestInstanceResizeTerminal(t *testing.T) {
 
 	p := NewPWD(docker, tasks, broadcast, storage)
 
-	err := p.InstanceResizeTerminal(&Instance{Name: "foobar"}, 24, 80)
+	err := p.InstanceResizeTerminal(&types.Instance{Name: "foobar"}, 24, 80)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "foobar", resizedInstanceName)
@@ -61,14 +62,14 @@ func TestInstanceNew(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	expectedInstance := Instance{
+	expectedInstance := types.Instance{
 		Name:         fmt.Sprintf("%s_node1", session.Id[:8]),
 		Hostname:     "node1",
 		IP:           "10.0.0.1",
 		Alias:        "",
 		Image:        config.GetDindImageName(),
 		IsDockerHost: true,
-		session:      session,
+		Session:      session,
 	}
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -107,8 +108,8 @@ func TestInstanceNew_Concurrency(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	var instance1 *Instance
-	var instance2 *Instance
+	var instance1 *types.Instance
+	var instance2 *types.Instance
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
@@ -152,14 +153,14 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	expectedInstance := Instance{
+	expectedInstance := types.Instance{
 		Name:         fmt.Sprintf("%s_node1", session.Id[:8]),
 		Hostname:     "node1",
 		IP:           "10.0.0.1",
 		Alias:        "",
 		Image:        "redis",
 		IsDockerHost: false,
-		session:      session,
+		Session:      session,
 	}
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -200,14 +201,14 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	expectedInstance := Instance{
+	expectedInstance := types.Instance{
 		Name:         fmt.Sprintf("%s_redis-master", session.Id[:8]),
 		Hostname:     "redis-master",
 		IP:           "10.0.0.1",
 		Alias:        "",
 		Image:        "redis",
 		IsDockerHost: false,
-		session:      session,
+		Session:      session,
 	}
 
 	assert.Equal(t, expectedInstance, *instance)

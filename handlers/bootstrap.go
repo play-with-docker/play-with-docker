@@ -3,11 +3,12 @@ package handlers
 import (
 	"log"
 	"os"
-	"time"
 
 	"github.com/docker/docker/client"
+	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/pwd"
+	"github.com/play-with-docker/play-with-docker/storage"
 )
 
 var core pwd.PWDApi
@@ -28,16 +29,11 @@ func Bootstrap() {
 
 	t := pwd.NewScheduler(Broadcast, d)
 
-	s := pwd.NewStorage()
-
-	core = pwd.NewPWD(d, t, Broadcast, s)
-
-	loadStart := time.Now()
-	err = core.SessionLoadAndPrepare()
-	loadElapsed := time.Since(loadStart)
-	log.Printf("***************** Loading stored sessions took %s\n", loadElapsed)
+	s, err := storage.NewFileStorage(config.SessionsFile)
 
 	if err != nil && !os.IsNotExist(err) {
 		log.Fatal("Error decoding sessions from disk ", err)
 	}
+	core = pwd.NewPWD(d, t, Broadcast, s)
+
 }
