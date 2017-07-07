@@ -62,3 +62,7 @@ md-input-container .md-errors-spacer {
 .md-mini {
     min-width: 24px;
 }
+
+.dragover {
+    opacity: 0.5;
+}

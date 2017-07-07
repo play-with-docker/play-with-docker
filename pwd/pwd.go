@@ -61,7 +61,8 @@ type PWDApi interface {
 	InstanceResizeTerminal(instance *types.Instance, cols, rows uint) error
 	InstanceAttachTerminal(instance *types.Instance) error
 	InstanceUploadFromUrl(instance *types.Instance, url string) error
-	InstanceUploadFromReader(instance *types.Instance, filename string, reader io.Reader) error
+	InstanceUploadFromReader(instance *types.Instance, filename, dest string, reader io.Reader) error
+	InstanceUploadToCWDFromReader(instance *types.Instance, fileName string, reader io.Reader) error
 	InstanceGet(session *types.Session, name string) *types.Instance
 	InstanceFindByIP(ip string) *types.Instance
 	InstanceFindByAlias(sessionPrefix, alias string) *types.Instance

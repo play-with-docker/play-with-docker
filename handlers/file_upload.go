@@ -35,6 +35,8 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		r := req.URL.Query().Get("relative")
+
 		for {
 			p, err := red.NextPart()
 			if err == io.EOF {
@@ -48,12 +50,23 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 			if p.FileName() == "" {
 				continue
 			}
-			err = core.InstanceUploadFromReader(i, p.FileName(), p)
-			if err != nil {
-				log.Println(err)
-				rw.WriteHeader(http.StatusInternalServerError)
-				return
+
+			if r != "" {
+				err = core.InstanceUploadToCWDFromReader(i, p.FileName(), p)
+				if err != nil {
+					log.Println(err)
+					rw.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+			} else {
+				err = core.InstanceUploadFromReader(i, p.FileName(), "/var/run/pwd/uploads", p)
+				if err != nil {
+					log.Println(err)
+					rw.WriteHeader(http.StatusInternalServerError)
+					return
+				}
 			}
+
 			log.Printf("Uploaded [%s] to [%s]\n", p.FileName(), i.Name)
 		}
 		rw.WriteHeader(http.StatusOK)

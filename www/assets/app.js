@@ -1,7 +1,7 @@
 (function() {
   'use strict';
 
-  var app = angular.module('DockerPlay', ['ngMaterial']);
+  var app = angular.module('DockerPlay', ['ngMaterial', 'ngFileUpload']);
 
   // Automatically redirects user to a new session when bypassing captcha.
   // Controller keeps code/logic separate from the HTML
@@ -19,7 +19,7 @@
     }
   }
 
-  app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', 'SessionService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService, SessionService) {
+  app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', 'SessionService', 'Upload', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService, SessionService, Upload) {
     $scope.sessionId = SessionService.getCurrentSessionId();
     $scope.instances = [];
     $scope.idx = {};
@@ -31,6 +31,14 @@
     $scope.newInstanceBtnText = '+ Add new instance';
     $scope.deleteInstanceBtnText = 'Delete';
     $scope.isInstanceBeingDeleted = false;
+
+    $scope.uploadFiles = function (files) {
+        if (files && files.length) {
+            for (var i = 0; i < files.length; i++) {
+                Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $scope.selectedInstance.name + '/uploads?relative=true', data: {file: files[i]}, method: 'POST'});
+            }
+        }
+    }
 
     var selectedKeyboardShortcuts = KeyboardShortcutService.getCurrentShortcuts();
 

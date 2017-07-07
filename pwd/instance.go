@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -82,10 +83,41 @@ func (p *pwd) InstanceUploadFromUrl(instance *types.Instance, url string) error 
 	return nil
 }
 
-func (p *pwd) InstanceUploadFromReader(instance *types.Instance, fileName string, reader io.Reader) error {
+func (p *pwd) getInstanceCWD(instance *types.Instance) (string, error) {
+	b := bytes.NewBufferString("")
+
+	if c, err := p.docker.ExecAttach(instance.Name, []string{"bash", "-c", `pwdx $(</var/run/cwd)`}, b); c > 0 {
+		log.Println(b.String())
+		return "", fmt.Errorf("Error %d trying to get CWD", c)
+	} else if err != nil {
+		return "", err
+	}
+
+	cwd := strings.TrimSpace(strings.Split(b.String(), ":")[1])
+
+	return cwd, nil
+}
+
+func (p *pwd) InstanceUploadToCWDFromReader(instance *types.Instance, fileName string, reader io.Reader) error {
+	defer observeAction("InstanceUploadToCWDFromReader", time.Now())
+
+	var cwd string
+	var err error
+	if cwd, err = p.getInstanceCWD(instance); err != nil {
+		return err
+	}
+
+	if err = p.InstanceUploadFromReader(instance, fileName, cwd, reader); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *pwd) InstanceUploadFromReader(instance *types.Instance, fileName, dest string, reader io.Reader) error {
 	defer observeAction("InstanceUploadFromReader", time.Now())
 
-	copyErr := p.docker.CopyToContainer(instance.Name, "/var/run/pwd/uploads", fileName, reader)
+	copyErr := p.docker.CopyToContainer(instance.Name, dest, fileName, reader)
 
 	if copyErr != nil {
 		return fmt.Errorf("Error while uploading file [%s]. Error: %s\n", fileName, copyErr)
