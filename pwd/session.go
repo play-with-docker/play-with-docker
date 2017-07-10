@@ -155,7 +155,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 	}
 
 	_, fileName := filepath.Split(s.Stack)
-	err = p.InstanceUploadFromUrl(i, fileName, "", s.Stack)
+	err = p.InstanceUploadFromUrl(i, fileName, "/var/run/pwd/uploads", s.Stack)
 	if err != nil {
 		log.Printf("Error uploading stack file [%s]: %s\n", s.Stack, err)
 		return err
