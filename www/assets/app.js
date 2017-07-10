@@ -105,7 +105,7 @@
 
       if (!state) {
         $mdDialog.show({
-          controller: SessionBuilderModalController,
+          onComplete: function(){SessionBuilderModalController($mdDialog, $scope)},
           contentElement: '#builderDialog',
           parent: angular.element(document.body),
           clickOutsideToClose: false,
