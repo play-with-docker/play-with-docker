@@ -72,7 +72,7 @@
 
                 <div flex></div>
               </md-content>
-              <md-content flex layout="column" ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name">
+              <md-content flex layout="column" ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name" ngf-drop="uploadFiles($files)" class="drop-box" ngf-drag-over-class="'dragover'" ngf-multiple="true">
                   <md-card class="stats" md-theme="default" md-theme-watch>
                       <md-card-title>
                           <md-card-title-text>
@@ -271,6 +271,9 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/danialfarid-angular-file-upload/12.2.13/ng-file-upload-all.min.js" integrity="sha256-LrZq3efIkFX0BooX7x/rjWyYDvMKfFV2HJpy6HBw7cE=" crossorigin="anonymous"></script>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
         <script src="/assets/app.js"></script>

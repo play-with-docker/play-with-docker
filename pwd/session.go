@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -152,13 +153,15 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
 		return err
 	}
-	err = p.InstanceUploadFromUrl(i, s.Stack)
+
+	_, fileName := filepath.Split(s.Stack)
+	err = p.InstanceUploadFromUrl(i, fileName, "/var/run/pwd/uploads", s.Stack)
 	if err != nil {
 		log.Printf("Error uploading stack file [%s]: %s\n", s.Stack, err)
 		return err
 	}
 
-	fileName := path.Base(s.Stack)
+	fileName = path.Base(s.Stack)
 	file := fmt.Sprintf("/var/run/pwd/uploads/%s", fileName)
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr eth0 && docker-compose -f %s pull && docker stack deploy -c %s %s", file, file, s.StackName)
 
