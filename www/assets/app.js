@@ -35,7 +35,7 @@
     $scope.uploadFiles = function (files) {
         if (files && files.length) {
             for (var i = 0; i < files.length; i++) {
-                Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $scope.selectedInstance.name + '/uploads?relative=true', data: {file: files[i]}, method: 'POST'});
+                Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $scope.selectedInstance.name + '/uploads', data: {file: files[i]}, method: 'POST'});
             }
         }
     }

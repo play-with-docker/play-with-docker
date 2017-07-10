@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 )
@@ -20,7 +21,10 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 
 	// has a url query parameter, ignore body
 	if url := req.URL.Query().Get("url"); url != "" {
-		err := core.InstanceUploadFromUrl(i, req.URL.Query().Get("url"))
+
+		_, fileName := filepath.Split(url)
+
+		err := core.InstanceUploadFromUrl(i, fileName, "", req.URL.Query().Get("url"))
 		if err != nil {
 			log.Println(err)
 			rw.WriteHeader(http.StatusInternalServerError)
@@ -35,7 +39,7 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		r := req.URL.Query().Get("relative")
+		path := req.URL.Query().Get("path")
 
 		for {
 			p, err := red.NextPart()
@@ -50,21 +54,11 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 			if p.FileName() == "" {
 				continue
 			}
-
-			if r != "" {
-				err = core.InstanceUploadToCWDFromReader(i, p.FileName(), p)
-				if err != nil {
-					log.Println(err)
-					rw.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-			} else {
-				err = core.InstanceUploadFromReader(i, p.FileName(), "/var/run/pwd/uploads", p)
-				if err != nil {
-					log.Println(err)
-					rw.WriteHeader(http.StatusInternalServerError)
-					return
-				}
+			err = core.InstanceUploadFromReader(i, p.FileName(), path, p)
+			if err != nil {
+				log.Println(err)
+				rw.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 
 			log.Printf("Uploaded [%s] to [%s]\n", p.FileName(), i.Name)

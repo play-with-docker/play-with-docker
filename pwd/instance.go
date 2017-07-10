@@ -60,7 +60,7 @@ func (p *pwd) InstanceAttachTerminal(instance *types.Instance) error {
 	return nil
 }
 
-func (p *pwd) InstanceUploadFromUrl(instance *types.Instance, url string) error {
+func (p *pwd) InstanceUploadFromUrl(instance *types.Instance, fileName, dest string, url string) error {
 	defer observeAction("InstanceUploadFromUrl", time.Now())
 	log.Printf("Downloading file [%s]\n", url)
 	resp, err := http.Get(url)
@@ -72,9 +72,7 @@ func (p *pwd) InstanceUploadFromUrl(instance *types.Instance, url string) error 
 		return fmt.Errorf("Could not download file [%s]. Status code: %d\n", url, resp.StatusCode)
 	}
 
-	_, fileName := filepath.Split(url)
-
-	copyErr := p.docker.CopyToContainer(instance.Name, "/var/run/pwd/uploads", fileName, resp.Body)
+	copyErr := p.docker.CopyToContainer(instance.Name, dest, fileName, resp.Body)
 
 	if copyErr != nil {
 		return fmt.Errorf("Error while downloading file [%s]. Error: %s\n", url, copyErr)
@@ -98,26 +96,21 @@ func (p *pwd) getInstanceCWD(instance *types.Instance) (string, error) {
 	return cwd, nil
 }
 
-func (p *pwd) InstanceUploadToCWDFromReader(instance *types.Instance, fileName string, reader io.Reader) error {
-	defer observeAction("InstanceUploadToCWDFromReader", time.Now())
-
-	var cwd string
-	var err error
-	if cwd, err = p.getInstanceCWD(instance); err != nil {
-		return err
-	}
-
-	if err = p.InstanceUploadFromReader(instance, fileName, cwd, reader); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (p *pwd) InstanceUploadFromReader(instance *types.Instance, fileName, dest string, reader io.Reader) error {
 	defer observeAction("InstanceUploadFromReader", time.Now())
 
-	copyErr := p.docker.CopyToContainer(instance.Name, dest, fileName, reader)
+	var finalDest string
+	if filepath.IsAbs(dest) {
+		finalDest = dest
+	} else {
+		if cwd, err := p.getInstanceCWD(instance); err != nil {
+			return err
+		} else {
+			finalDest = fmt.Sprintf("%s/%s", cwd, dest)
+		}
+	}
+
+	copyErr := p.docker.CopyToContainer(instance.Name, finalDest, fileName, reader)
 
 	if copyErr != nil {
 		return fmt.Errorf("Error while uploading file [%s]. Error: %s\n", fileName, copyErr)
