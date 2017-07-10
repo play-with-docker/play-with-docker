@@ -273,11 +273,6 @@
 
     $scope.createBuilderTerminal = function() {
       var builderTerminalContainer = document.getElementById('builder-terminal');
-      // For some reason the dialog DOM might not be ready, so we just keep trying
-      if (!builderTerminalContainer) {
-        setTimeout($scope.createBuilderTerminal, 100);
-        return;
-      }
       let term = new Terminal({
         cursorBlink: false
       });
