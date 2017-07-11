@@ -33,11 +33,14 @@ type proxyRouter struct {
 }
 
 func (r *proxyRouter) Listen(httpAddr, dnsAddr, sshAddr string) {
+	listenWG := sync.WaitGroup{}
+
 	l, err := net.Listen("tcp", httpAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	r.httpListener = l
+	listenWG.Add(1)
 	go func() {
 		for !r.closed {
 			conn, err := r.httpListener.Accept()
@@ -46,6 +49,7 @@ func (r *proxyRouter) Listen(httpAddr, dnsAddr, sshAddr string) {
 			}
 			go r.handleConnection(conn)
 		}
+		listenWG.Done()
 	}()
 
 	dnsMux := dns.NewServeMux()
@@ -71,6 +75,7 @@ func (r *proxyRouter) Listen(httpAddr, dnsAddr, sshAddr string) {
 		log.Fatal("failed to listen for connection: ", err)
 	}
 	r.sshListener = lssh
+	listenWG.Add(1)
 	go func() {
 		for {
 			nConn, err := lssh.Accept()
@@ -80,7 +85,9 @@ func (r *proxyRouter) Listen(httpAddr, dnsAddr, sshAddr string) {
 
 			go r.sshHandle(nConn)
 		}
+		listenWG.Done()
 	}()
+	listenWG.Wait()
 }
 
 func (r *proxyRouter) sshHandle(nConn net.Conn) {

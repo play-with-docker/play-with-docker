@@ -76,8 +76,6 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	go handlers.ListenSSHProxy("0.0.0.0:1022")
-
 	log.Println("Listening on port " + config.PortNumber)
 	log.Fatal(httpServer.ListenAndServe())
 }
