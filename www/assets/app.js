@@ -31,11 +31,15 @@
     $scope.newInstanceBtnText = '+ Add new instance';
     $scope.deleteInstanceBtnText = 'Delete';
     $scope.isInstanceBeingDeleted = false;
+    $scope.uploadProgress = 0;
 
     $scope.uploadFiles = function (files) {
         if (files && files.length) {
             for (var i = 0; i < files.length; i++) {
-                Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $scope.selectedInstance.name + '/uploads', data: {file: files[i]}, method: 'POST'});
+                Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $scope.selectedInstance.name + '/uploads', data: {file: files[i]}, method: 'POST'})
+                  .then(function(){}, function(){}, function(evt) {
+                    $scope.uploadProgress = parseInt(100.0 * evt.loaded / evt.total);
+                  });
             }
         }
     }
