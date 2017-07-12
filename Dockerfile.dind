@@ -1,7 +1,7 @@
 ARG VERSION=docker:17.06.0-ce-dind
 FROM ${VERSION}
 
-RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh
+RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh qemu-img qemu-system-x86_64
 
 ENV GOPATH /root/go
 ENV PATH $PATH:$GOPATH
