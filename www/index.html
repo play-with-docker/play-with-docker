@@ -72,7 +72,7 @@
 
                 <div flex></div>
               </md-content>
-              <md-content flex layout="column" ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name" ngf-drop="uploadFiles($files)" class="drop-box" ngf-drag-over-class="'dragover'" ngf-multiple="true">
+              <md-content flex layout="column" ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name" ngf-drop class="drop-box" ngf-drag-over-class="'dragover'" ngf-max-size="100000000" ngf-change="uploadFiles($files, $invalidFiles)" ngf-multiple="true">
                   <md-card class="stats" md-theme="default" md-theme-watch>
                       <md-card-title>
                           <md-card-title-text>
@@ -106,8 +106,13 @@
                           <md-button class="md-warn md-raised" ng-click="deleteInstance(instance)" ng-disabled="isInstanceBeingDeleted">{{deleteInstanceBtnText}}</md-button>
                           </md-card-actions>
                   </md-card>
-                  <md-progress-linear md-mode="determinate" ng-hide="uploadProgress == 0 || uploadProgress == 100" value="{{uploadProgress}}"></md-progress-linear>
                   <md-card flex md-theme="default" md-theme-watch >
+                      <div ng-show="uploadMessage" class="uploadStatus">
+                          <md-progress-linear  md-mode="determinate" value="{{uploadProgress}}"></md-progress-linear>
+                           <div class="bottom-block">
+                               <span>{{uploadMessage}}</span>
+                           </div>
+                      </div>
                       <md-card-content flex id="terminal-{{instance.name}}" class="terminal-container">
                       </md-card-content>
                   </md-card>

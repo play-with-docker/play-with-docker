@@ -33,15 +33,27 @@
     $scope.isInstanceBeingDeleted = false;
     $scope.uploadProgress = 0;
 
-    $scope.uploadFiles = function (files) {
-        if (files && files.length) {
-            for (var i = 0; i < files.length; i++) {
-                Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $scope.selectedInstance.name + '/uploads', data: {file: files[i]}, method: 'POST'})
-                  .then(function(){}, function(){}, function(evt) {
-                    $scope.uploadProgress = parseInt(100.0 * evt.loaded / evt.total);
-                  });
-            }
+
+    $scope.uploadFiles = function (files, invalidFiles) {
+        let total = files.length;
+        let uploadFile = function() {
+          let file = files.shift();
+          if (!file){
+            $scope.uploadMessage = "";
+            $scope.uploadProgress = 0;
+            return
+          }
+          $scope.uploadMessage = "Uploading file(s) " + (total - files.length) + "/"+ total + " : " + file.name;
+          let upload = Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $scope.selectedInstance.name + '/uploads', data: {file: file}, method: 'POST'})
+            .then(function(){}, function(){}, function(evt) {
+              $scope.uploadProgress = parseInt(100.0 * evt.loaded / evt.total);
+            });
+
+          // process next file
+          upload.finally(uploadFile);
         }
+
+        uploadFile();
     }
 
     var selectedKeyboardShortcuts = KeyboardShortcutService.getCurrentShortcuts();
