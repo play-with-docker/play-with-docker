@@ -32,7 +32,7 @@ func Bootstrap() {
 	s, err := storage.NewFileStorage(config.SessionsFile)
 
 	if err != nil && !os.IsNotExist(err) {
-		log.Fatal("Error decoding sessions from disk ", err)
+		log.Fatal("Error initializing StorageAPI: ", err)
 	}
 	core = pwd.NewPWD(d, t, Broadcast, s)
 

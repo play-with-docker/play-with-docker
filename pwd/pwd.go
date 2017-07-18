@@ -43,10 +43,11 @@ func init() {
 }
 
 type pwd struct {
-	docker    docker.DockerApi
-	tasks     SchedulerApi
-	broadcast BroadcastApi
-	storage   storage.StorageApi
+	docker      docker.DockerApi
+	tasks       SchedulerApi
+	broadcast   BroadcastApi
+	storage     storage.StorageApi
+	clientCount int32
 }
 
 type PWDApi interface {
@@ -63,17 +64,19 @@ type PWDApi interface {
 	InstanceUploadFromUrl(instance *types.Instance, fileName, dest, url string) error
 	InstanceUploadFromReader(instance *types.Instance, fileName, dest string, reader io.Reader) error
 	InstanceGet(session *types.Session, name string) *types.Instance
+	// TODO remove this function when we add the session prefix to the PWD url
 	InstanceFindByIP(ip string) *types.Instance
 	InstanceFindByAlias(sessionPrefix, alias string) *types.Instance
 	InstanceFindByIPAndSession(sessionPrefix, ip string) *types.Instance
 	InstanceDelete(session *types.Session, instance *types.Instance) error
-	InstanceWriteToTerminal(instance *types.Instance, data string)
+	InstanceWriteToTerminal(sessionId, instanceName string, data string)
 	InstanceAllowedImages() []string
 	InstanceExec(instance *types.Instance, cmd []string) (int, error)
 
 	ClientNew(id string, session *types.Session) *types.Client
 	ClientResizeViewPort(client *types.Client, cols, rows uint)
 	ClientClose(client *types.Client)
+	ClientCount() int
 }
 
 func NewPWD(d docker.DockerApi, t SchedulerApi, b BroadcastApi, s storage.StorageApi) *pwd {
@@ -85,7 +88,7 @@ func (p *pwd) setGauges() {
 	ses := float64(s)
 	i, _ := p.storage.InstanceCount()
 	ins := float64(i)
-	c, _ := p.storage.ClientCount()
+	c := p.ClientCount()
 	cli := float64(c)
 
 	clientsGauge.Set(cli)

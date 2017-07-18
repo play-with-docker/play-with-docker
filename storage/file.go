@@ -31,6 +31,10 @@ func (store *storage) SessionPut(s *types.Session) error {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
+	// Initialize instances map if nil
+	if s.Instances == nil {
+		s.Instances = map[string]*types.Instance{}
+	}
 	store.db[s.Id] = s
 
 	return store.save()
@@ -83,6 +87,24 @@ func (store *storage) InstanceFindByAlias(sessionPrefix, alias string) (*types.I
 	}
 
 	return nil, fmt.Errorf("%s", notFound)
+}
+
+func (store *storage) InstanceCreate(sessionId string, instance *types.Instance) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	s, found := store.db[sessionId]
+	if !found {
+		return fmt.Errorf("Session %s", notFound)
+	}
+
+	s.Instances[instance.Name] = instance
+
+	return store.save()
+}
+
+func (store *storage) InstanceDelete(sessionId, name string) error {
+	panic("not implemented")
 }
 
 func (store *storage) SessionCount() (int, error) {

@@ -2,6 +2,7 @@ package pwd
 
 import (
 	"log"
+	"sync/atomic"
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -11,6 +12,7 @@ func (p *pwd) ClientNew(id string, session *types.Session) *types.Client {
 	defer observeAction("ClientNew", time.Now())
 	c := &types.Client{Id: id, Session: session}
 	session.Clients = append(session.Clients, c)
+	p.clientCount = atomic.AddInt32(&p.clientCount, 1)
 	return c
 }
 
@@ -29,6 +31,7 @@ func (p *pwd) ClientClose(client *types.Client) {
 	for i, cl := range session.Clients {
 		if cl.Id == client.Id {
 			session.Clients = append(session.Clients[:i], session.Clients[i+1:]...)
+			p.clientCount = atomic.AddInt32(&p.clientCount, -1)
 			break
 		}
 	}
@@ -36,6 +39,10 @@ func (p *pwd) ClientClose(client *types.Client) {
 		p.notifyClientSmallestViewPort(session)
 	}
 	p.setGauges()
+}
+
+func (p *pwd) ClientCount() int {
+	return int(atomic.LoadInt32(&p.clientCount))
 }
 
 func (p *pwd) notifyClientSmallestViewPort(session *types.Session) {

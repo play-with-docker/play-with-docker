@@ -191,6 +191,33 @@ func TestInstanceFindByAlias(t *testing.T) {
 	assert.Nil(t, foundInstance)
 }
 
+func TestInstanceCreate(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("", "pwd")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpfile.Close()
+	os.Remove(tmpfile.Name())
+	defer os.Remove(tmpfile.Name())
+
+	storage, err := NewFileStorage(tmpfile.Name())
+
+	assert.Nil(t, err)
+
+	i1 := &types.Instance{Name: "i1", Alias: "foo", IP: "10.0.0.1"}
+	s1 := &types.Session{Id: "session1"}
+	err = storage.SessionPut(s1)
+	assert.Nil(t, err)
+	err = storage.InstanceCreate(s1.Id, i1)
+	assert.Nil(t, err)
+
+	loadedSession, err := storage.SessionGet("session1")
+	assert.Nil(t, err)
+
+	assert.Equal(t, i1, loadedSession.Instances["i1"])
+
+}
+
 func TestCounts(t *testing.T) {
 	tmpfile, err := ioutil.TempFile("", "pwd")
 	if err != nil {
@@ -226,9 +253,6 @@ func TestCounts(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, num)
 
-	num, err = storage.ClientCount()
-	assert.Nil(t, err)
-	assert.Equal(t, 1, num)
 }
 
 func TestSessionDelete(t *testing.T) {

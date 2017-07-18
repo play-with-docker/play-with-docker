@@ -10,6 +10,8 @@ type mockStorage struct {
 	instanceFindByAlias        func(sessionPrefix, alias string) (*types.Instance, error)
 	instanceFindByIP           func(ip string) (*types.Instance, error)
 	instanceFindByIPAndSession func(sessionPrefix, ip string) (*types.Instance, error)
+	instanceCreate             func(string, *types.Instance) error
+	instanceDelete             func(sessionId string, instanceName string) error
 	instanceCount              func() (int, error)
 	clientCount                func() (int, error)
 }
@@ -55,6 +57,18 @@ func (m *mockStorage) InstanceFindByIPAndSession(sessionPrefix, ip string) (*typ
 		return m.instanceFindByIPAndSession(sessionPrefix, ip)
 	}
 	return nil, nil
+}
+func (m *mockStorage) InstanceCreate(sessionId string, instance *types.Instance) error {
+	if m.instanceCreate != nil {
+		return m.instanceCreate(sessionId, instance)
+	}
+	return nil
+}
+func (m *mockStorage) InstanceDelete(sessionId, instanceName string) error {
+	if m.instanceDelete != nil {
+		return m.instanceDelete(sessionId, instanceName)
+	}
+	return nil
 }
 func (m *mockStorage) InstanceCount() (int, error) {
 	if m.instanceCount != nil {

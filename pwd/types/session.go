@@ -7,7 +7,7 @@ import (
 
 type Session struct {
 	Id           string               `json:"id"`
-	Instances    map[string]*Instance `json:"instances"`
+	Instances    map[string]*Instance `json:"instances" bson:"-"`
 	CreatedAt    time.Time            `json:"created_at"`
 	ExpiresAt    time.Time            `json:"expires_at"`
 	PwdIpAddress string               `json:"pwd_ip_address"`
@@ -16,12 +16,11 @@ type Session struct {
 	StackName    string               `json:"stack_name"`
 	ImageName    string               `json:"image_name"`
 	Host         string               `json:"host"`
-	Clients      []*Client            `json:"-"`
+	Clients      []*Client            `json:"-" bson:"-"`
 	closingTimer *time.Timer          `json:"-"`
 	scheduled    bool                 `json:"-"`
 	ticker       *time.Ticker         `json:"-"`
 	rw           sync.Mutex           `json:"-"`
-	prepared     bool                 `json:"-"`
 }
 
 func (s *Session) Lock() {
@@ -45,12 +44,4 @@ func (s *Session) SetClosingTimer(t *time.Timer) {
 }
 func (s *Session) ClosingTimer() *time.Timer {
 	return s.closingTimer
-}
-
-func (s *Session) IsPrepared() bool {
-	return s.prepared
-}
-
-func (s *Session) SetPrepared() {
-	s.prepared = true
 }

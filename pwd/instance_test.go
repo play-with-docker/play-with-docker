@@ -1,7 +1,9 @@
 package pwd
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"testing"
 	"time"
@@ -69,6 +71,7 @@ func TestInstanceNew(t *testing.T) {
 		Alias:        "",
 		Image:        config.GetDindImageName(),
 		IsDockerHost: true,
+		SessionId:    session.Id,
 		Session:      session,
 	}
 
@@ -159,6 +162,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		IP:           "10.0.0.1",
 		Alias:        "",
 		Image:        "redis",
+		SessionId:    session.Id,
 		IsDockerHost: false,
 		Session:      session,
 	}
@@ -209,6 +213,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		Image:        "redis",
 		IsDockerHost: false,
 		Session:      session,
+		SessionId:    session.Id,
 	}
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -238,4 +243,40 @@ func TestInstanceAllowedImages(t *testing.T) {
 	expectedImages := []string{config.GetDindImageName(), "franela/dind:overlay2-dev", "franela/ucp:2.4.1"}
 
 	assert.Equal(t, expectedImages, p.InstanceAllowedImages())
+}
+
+type errConn struct {
+	*mockConn
+}
+
+func (ec errConn) Read(b []byte) (int, error) {
+	return 0, errors.New("Error")
+}
+
+func TestTermConnAssignment(t *testing.T) {
+	dock := &mockDocker{}
+	tasks := &mockTasks{}
+	broadcast := &mockBroadcast{}
+	storage := &mockStorage{}
+
+	dock.createAttachConnection = func(name string) (net.Conn, error) {
+		// return error connection to unlock the goroutine
+		return errConn{}, nil
+	}
+
+	p := NewPWD(dock, tasks, broadcast, storage)
+	session, _ := p.SessionNew(time.Hour, "", "", "")
+	mockInstance := &types.Instance{
+		Name:         fmt.Sprintf("%s_redis-master", session.Id[:8]),
+		Hostname:     "redis-master",
+		IP:           "10.0.0.1",
+		Alias:        "",
+		SessionId:    session.Id,
+		Image:        "redis",
+		IsDockerHost: false,
+		Session:      session,
+	}
+	p.InstanceAttachTerminal(mockInstance)
+	assert.NotNil(t, getInstanceTermConn(session.Id, mockInstance.Name))
+
 }

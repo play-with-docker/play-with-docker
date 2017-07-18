@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"net"
 	"sync"
 
 	"github.com/play-with-docker/play-with-docker/docker"
@@ -15,27 +14,28 @@ func (p UInt16Slice) Less(i, j int) bool { return p[i] < p[j] }
 func (p UInt16Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 type Instance struct {
-	Image        string           `json:"image"`
-	Name         string           `json:"name"`
-	Hostname     string           `json:"hostname"`
-	IP           string           `json:"ip"`
-	IsManager    *bool            `json:"is_manager"`
-	Mem          string           `json:"mem"`
-	Cpu          string           `json:"cpu"`
-	Alias        string           `json:"alias"`
-	ServerCert   []byte           `json:"server_cert"`
-	ServerKey    []byte           `json:"server_key"`
-	CACert       []byte           `json:"ca_cert"`
-	Cert         []byte           `json:"cert"`
-	Key          []byte           `json:"key"`
-	IsDockerHost bool             `json:"is_docker_host"`
-	Docker       docker.DockerApi `json:"-"`
-	Session      *Session         `json:"-"`
-	Terminal     net.Conn         `json:"-"`
-	ctx          context.Context  `json:"-"`
-	tempPorts    []uint16         `json:"-"`
-	Ports        UInt16Slice
-	rw           sync.Mutex
+	Image         string           `json:"image" bson:"image"`
+	Name          string           `json:"name" bson:"name"`
+	Hostname      string           `json:"hostname" bson:"hostname"`
+	IP            string           `json:"ip" bson:"ip"`
+	IsManager     *bool            `json:"is_manager" bson:"is_manager"`
+	Mem           string           `json:"mem" bson:"mem"`
+	Cpu           string           `json:"cpu" bson:"cpu"`
+	Alias         string           `json:"alias" bson:"alias"`
+	ServerCert    []byte           `json:"server_cert" bson:"server_cert"`
+	ServerKey     []byte           `json:"server_key" bson:"server_key"`
+	CACert        []byte           `json:"ca_cert" bson:"ca_cert"`
+	Cert          []byte           `json:"cert" bson:"cert"`
+	Key           []byte           `json:"key" bson:"key"`
+	IsDockerHost  bool             `json:"is_docker_host" bson:"is_docker_host"`
+	SessionId     string           `json:"session_id" bson:"session_id"`
+	SessionPrefix string           `json:"session_prefix" bson:"session_prefix"`
+	Docker        docker.DockerApi `json:"-"`
+	Session       *Session         `json:"-" bson:"-"`
+	ctx           context.Context  `json:"-" bson:"-"`
+	tempPorts     []uint16         `json:"-" bson:"-"`
+	Ports         UInt16Slice
+	rw            sync.Mutex
 }
 
 func (i *Instance) SetUsedPort(port uint16) {

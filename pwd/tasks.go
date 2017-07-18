@@ -33,7 +33,7 @@ type scheduler struct {
 }
 
 func (sch *scheduler) Schedule(s *types.Session) {
-	if s.IsPrepared() {
+	if isSessionPrepared(s.Id) {
 		return
 	}
 
