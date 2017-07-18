@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/googollee/go-socket.io"
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/config"
@@ -21,7 +22,14 @@ func main() {
 
 	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
 
-	server := handlers.Broadcast.GetHandler()
+	server, err := socketio.NewServer(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	server.On("connection", handlers.WS)
+	server.On("error", handlers.WSError)
+
+	handlers.RegisterEvents(server)
 
 	r := mux.NewRouter()
 	corsRouter := mux.NewRouter()

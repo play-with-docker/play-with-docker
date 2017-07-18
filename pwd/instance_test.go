@@ -8,6 +8,7 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,10 +28,10 @@ func TestInstanceResizeTerminal(t *testing.T) {
 	}
 
 	tasks := &mockTasks{}
-	broadcast := &mockBroadcast{}
+	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(docker, tasks, broadcast, storage)
+	p := NewPWD(docker, tasks, e, storage)
 
 	err := p.InstanceResizeTerminal(&types.Instance{Name: "foobar"}, 24, 80)
 
@@ -49,10 +50,10 @@ func TestInstanceNew(t *testing.T) {
 	}
 
 	tasks := &mockTasks{}
-	broadcast := &mockBroadcast{}
+	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, broadcast, storage)
+	p := NewPWD(dock, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 
@@ -99,10 +100,10 @@ func TestInstanceNew_Concurrency(t *testing.T) {
 	}
 
 	tasks := &mockTasks{}
-	broadcast := &mockBroadcast{}
+	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, broadcast, storage)
+	p := NewPWD(dock, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 
@@ -140,10 +141,10 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	}
 
 	tasks := &mockTasks{}
-	broadcast := &mockBroadcast{}
+	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, broadcast, storage)
+	p := NewPWD(dock, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 
@@ -188,10 +189,10 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	}
 
 	tasks := &mockTasks{}
-	broadcast := &mockBroadcast{}
+	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, broadcast, storage)
+	p := NewPWD(dock, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 
@@ -230,10 +231,10 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 func TestInstanceAllowedImages(t *testing.T) {
 	dock := &mockDocker{}
 	tasks := &mockTasks{}
-	broadcast := &mockBroadcast{}
+	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, broadcast, storage)
+	p := NewPWD(dock, tasks, e, storage)
 
 	expectedImages := []string{config.GetDindImageName(), "franela/dind:overlay2-dev", "franela/ucp:2.4.1"}
 

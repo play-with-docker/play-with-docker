@@ -131,6 +131,6 @@ func main() {
 	go monitorNetworks()
 
 	r := router.NewRouter(director, config.SSHKeyPath)
-	r.Listen(":443", ":53", ":22")
+	r.ListenAndWait(":443", ":53", ":22")
 	defer r.Close()
 }

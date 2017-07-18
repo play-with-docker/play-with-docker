@@ -11,6 +11,7 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 
 	"golang.org/x/text/encoding"
@@ -19,11 +20,11 @@ import (
 type sessionWriter struct {
 	sessionId    string
 	instanceName string
-	broadcast    BroadcastApi
+	event        event.EventApi
 }
 
 func (s *sessionWriter) Write(p []byte) (n int, err error) {
-	s.broadcast.BroadcastTo(s.sessionId, "terminal out", s.instanceName, string(p))
+	s.event.Emit(event.INSTANCE_TERMINAL_OUT, s.sessionId, s.instanceName, string(p))
 	return len(p), nil
 }
 
@@ -52,7 +53,7 @@ func (p *pwd) InstanceAttachTerminal(instance *types.Instance) error {
 	}
 
 	encoder := encoding.Replacement.NewEncoder()
-	sw := &sessionWriter{sessionId: instance.Session.Id, instanceName: instance.Name, broadcast: p.broadcast}
+	sw := &sessionWriter{sessionId: instance.Session.Id, instanceName: instance.Name, event: p.event}
 	instance.Terminal = conn
 	io.Copy(encoder.Writer(sw), conn)
 
@@ -139,7 +140,7 @@ func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) e
 		return err
 	}
 
-	p.broadcast.BroadcastTo(session.Id, "delete instance", instance.Name)
+	p.event.Emit(event.INSTANCE_DELETE, session.Id, instance.Name)
 
 	delete(session.Instances, instance.Name)
 	if err := p.storage.SessionPut(session); err != nil {
@@ -238,7 +239,7 @@ func (p *pwd) InstanceNew(session *types.Session, conf InstanceConfig) (*types.I
 		return nil, err
 	}
 
-	p.broadcast.BroadcastTo(session.Id, "new instance", instance.Name, instance.IP, instance.Hostname)
+	p.event.Emit(event.INSTANCE_NEW, session.Id, instance.Name, instance.IP, instance.Hostname)
 
 	p.setGauges()
 

@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
@@ -41,7 +42,7 @@ func (p *pwd) ClientClose(client *types.Client) {
 func (p *pwd) notifyClientSmallestViewPort(session *types.Session) {
 	vp := p.SessionGetSmallestViewPort(session)
 	// Resize all terminals in the session
-	p.broadcast.BroadcastTo(session.Id, "viewport resize", vp.Cols, vp.Rows)
+	p.event.Emit(event.INSTANCE_VIEWPORT_RESIZE, session.Id, vp.Cols, vp.Rows)
 	for _, instance := range session.Instances {
 		err := p.InstanceResizeTerminal(instance, vp.Rows, vp.Cols)
 		if err != nil {

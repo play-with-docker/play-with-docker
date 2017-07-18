@@ -33,6 +33,56 @@ type proxyRouter struct {
 }
 
 func (r *proxyRouter) Listen(httpAddr, dnsAddr, sshAddr string) {
+	l, err := net.Listen("tcp", httpAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	r.httpListener = l
+	go func() {
+		for !r.closed {
+			conn, err := r.httpListener.Accept()
+			if err != nil {
+				continue
+			}
+			go r.handleConnection(conn)
+		}
+	}()
+
+	dnsMux := dns.NewServeMux()
+	dnsMux.HandleFunc(".", r.dnsRequest)
+	r.udpDnsServer = &dns.Server{Addr: dnsAddr, Net: "udp", Handler: dnsMux}
+	r.tcpDnsServer = &dns.Server{Addr: dnsAddr, Net: "tcp", Handler: dnsMux}
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	r.udpDnsServer.NotifyStartedFunc = func() {
+		wg.Done()
+	}
+	r.tcpDnsServer.NotifyStartedFunc = func() {
+		wg.Done()
+	}
+	go r.udpDnsServer.ListenAndServe()
+	go r.tcpDnsServer.ListenAndServe()
+	wg.Wait()
+
+	lssh, err := net.Listen("tcp", sshAddr)
+	if err != nil {
+		log.Fatal("failed to listen for connection: ", err)
+	}
+	r.sshListener = lssh
+	go func() {
+		for {
+			nConn, err := lssh.Accept()
+			if err != nil {
+				log.Fatal("failed to accept incoming connection: ", err)
+			}
+
+			go r.sshHandle(nConn)
+		}
+	}()
+}
+func (r *proxyRouter) ListenAndWait(httpAddr, dnsAddr, sshAddr string) {
 	listenWG := sync.WaitGroup{}
 
 	l, err := net.Listen("tcp", httpAddr)
