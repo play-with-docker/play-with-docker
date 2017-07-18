@@ -7,6 +7,7 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,14 +37,14 @@ func TestSessionNew(t *testing.T) {
 		scheduledSession = s
 	}
 
-	broadcast := &mockBroadcast{}
+	ev := event.NewLocalBroker()
 	storage := &mockStorage{}
 	storage.sessionPut = func(s *types.Session) error {
 		saveCalled = true
 		return nil
 	}
 
-	p := NewPWD(docker, tasks, broadcast, storage)
+	p := NewPWD(docker, tasks, ev, storage)
 
 	before := time.Now()
 
@@ -166,10 +167,10 @@ func TestSessionSetup(t *testing.T) {
 		return nil, nil
 	}
 	tasks := &mockTasks{}
-	broadcast := &mockBroadcast{}
+	ev := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, broadcast, storage)
+	p := NewPWD(dock, tasks, ev, storage)
 	s, e := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, e)
 
@@ -281,10 +282,10 @@ func TestSessionSetup(t *testing.T) {
 func TestSessionPrepareOnce(t *testing.T) {
 	dock := &mockDocker{}
 	tasks := &mockTasks{}
-	broadcast := &mockBroadcast{}
+	ev := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, broadcast, storage)
+	p := NewPWD(dock, tasks, ev, storage)
 	session := &types.Session{Id: "1234"}
 	prepared, err := p.prepareSession(session)
 	assert.True(t, preparedSessions[session.Id])

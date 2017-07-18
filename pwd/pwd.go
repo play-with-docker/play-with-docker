@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/prometheus/client_golang/prometheus"
@@ -45,7 +46,7 @@ func init() {
 type pwd struct {
 	docker      docker.DockerApi
 	tasks       SchedulerApi
-	broadcast   BroadcastApi
+	event       event.EventApi
 	storage     storage.StorageApi
 	clientCount int32
 }
@@ -79,8 +80,8 @@ type PWDApi interface {
 	ClientCount() int
 }
 
-func NewPWD(d docker.DockerApi, t SchedulerApi, b BroadcastApi, s storage.StorageApi) *pwd {
-	return &pwd{docker: d, tasks: t, broadcast: b, storage: s}
+func NewPWD(d docker.DockerApi, t SchedulerApi, e event.EventApi, s storage.StorageApi) *pwd {
+	return &pwd{docker: d, tasks: t, event: e, storage: s}
 }
 
 func (p *pwd) setGauges() {

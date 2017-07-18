@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
@@ -28,7 +29,7 @@ type SchedulerApi interface {
 }
 
 type scheduler struct {
-	broadcast     BroadcastApi
+	event         event.EventApi
 	periodicTasks []periodicTask
 }
 
@@ -102,7 +103,7 @@ func (sch *scheduler) Schedule(s *types.Session) {
 				sort.Sort(ins.Ports)
 				ins.CleanUsedPorts()
 
-				sch.broadcast.BroadcastTo(ins.Session.Id, "instance stats", ins.Name, ins.Mem, ins.Cpu, ins.IsManager, ins.Ports)
+				sch.event.Emit(event.INSTANCE_STATS, ins.Session.Id, ins.Name, ins.Mem, ins.Cpu, ins.IsManager, ins.Ports)
 			}
 		}
 	}()
@@ -111,8 +112,8 @@ func (sch *scheduler) Schedule(s *types.Session) {
 func (sch *scheduler) Unschedule(s *types.Session) {
 }
 
-func NewScheduler(b BroadcastApi, d docker.DockerApi) *scheduler {
-	s := &scheduler{broadcast: b}
+func NewScheduler(e event.EventApi, d docker.DockerApi) *scheduler {
+	s := &scheduler{event: e}
 	s.periodicTasks = []periodicTask{&collectStatsTask{docker: d}, &checkSwarmStatusTask{}, &checkUsedPortsTask{}, &checkSwarmUsedPortsTask{}}
 	return s
 }

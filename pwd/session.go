@@ -12,6 +12,7 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/twinj/uuid"
 )
@@ -20,11 +21,11 @@ var preparedSessions = map[string]bool{}
 
 type sessionBuilderWriter struct {
 	sessionId string
-	broadcast BroadcastApi
+	event     event.EventApi
 }
 
 func (s *sessionBuilderWriter) Write(p []byte) (n int, err error) {
-	s.broadcast.BroadcastTo(s.sessionId, "session builder out", string(p))
+	s.event.Emit(event.SESSION_BUILDER_OUT, s.sessionId, string(p))
 	return len(p), nil
 }
 
@@ -90,8 +91,7 @@ func (p *pwd) SessionClose(s *types.Session) error {
 
 	s.StopTicker()
 
-	p.broadcast.BroadcastTo(s.Id, "session end")
-	p.broadcast.BroadcastTo(s.Id, "disconnect")
+	p.event.Emit(event.SESSION_END, s.Id)
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	for _, i := range s.Instances {
 		err := p.InstanceDelete(s, i)
@@ -149,7 +149,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 	}
 
 	s.Ready = false
-	p.broadcast.BroadcastTo(s.Id, "session ready", false)
+	p.event.Emit(event.SESSION_READY, s.Id, false)
 	i, err := p.InstanceNew(s, InstanceConfig{ImageName: s.ImageName, Host: s.Host})
 	if err != nil {
 		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
@@ -167,7 +167,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 	file := fmt.Sprintf("/var/run/pwd/uploads/%s", fileName)
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr eth0 && docker-compose -f %s pull && docker stack deploy -c %s %s", file, file, s.StackName)
 
-	w := sessionBuilderWriter{sessionId: s.Id, broadcast: p.broadcast}
+	w := sessionBuilderWriter{sessionId: s.Id, event: p.event}
 	code, err := p.docker.ExecAttach(i.Name, []string{"sh", "-c", cmd}, &w)
 	if err != nil {
 		log.Printf("Error executing stack [%s]: %s\n", s.Stack, err)
@@ -176,7 +176,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 
 	log.Printf("Stack execution finished with code %d\n", code)
 	s.Ready = true
-	p.broadcast.BroadcastTo(s.Id, "session ready", true)
+	p.event.Emit(event.SESSION_READY, s.Id, true)
 	if err := p.storage.SessionPut(s); err != nil {
 		return err
 	}
