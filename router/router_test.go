@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -434,6 +435,9 @@ func TestProxy_DNS_UDP(t *testing.T) {
 
 	expectedIps, err := net.LookupHost("www.google.com")
 	assert.Nil(t, err)
+
+	sort.Strings(expectedIps)
+	sort.Strings(ips)
 	assert.Equal(t, expectedIps, ips)
 
 	ips, err = routerLookup("udp", "localhost", r)
@@ -471,6 +475,9 @@ func TestProxy_DNS_TCP(t *testing.T) {
 
 	expectedIps, err := net.LookupHost("www.google.com")
 	assert.Nil(t, err)
+
+	sort.Strings(expectedIps)
+	sort.Strings(ips)
 	assert.Equal(t, expectedIps, ips)
 
 	ips, err = routerLookup("tcp", "localhost", r)
