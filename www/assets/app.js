@@ -1,7 +1,7 @@
 (function() {
   'use strict';
 
-  var app = angular.module('DockerPlay', ['ngMaterial']);
+  var app = angular.module('DockerPlay', ['ngMaterial', 'ngFileUpload']);
 
   // Automatically redirects user to a new session when bypassing captcha.
   // Controller keeps code/logic separate from the HTML
@@ -19,7 +19,7 @@
     }
   }
 
-  app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', 'SessionService', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService, SessionService) {
+  app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', 'SessionService', 'Upload', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService, SessionService, Upload) {
     $scope.sessionId = SessionService.getCurrentSessionId();
     $scope.instances = [];
     $scope.idx = {};
@@ -31,6 +31,30 @@
     $scope.newInstanceBtnText = '+ Add new instance';
     $scope.deleteInstanceBtnText = 'Delete';
     $scope.isInstanceBeingDeleted = false;
+    $scope.uploadProgress = 0;
+
+
+    $scope.uploadFiles = function (files, invalidFiles) {
+        let total = files.length;
+        let uploadFile = function() {
+          let file = files.shift();
+          if (!file){
+            $scope.uploadMessage = "";
+            $scope.uploadProgress = 0;
+            return
+          }
+          $scope.uploadMessage = "Uploading file(s) " + (total - files.length) + "/"+ total + " : " + file.name;
+          let upload = Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $scope.selectedInstance.name + '/uploads', data: {file: file}, method: 'POST'})
+            .then(function(){}, function(){}, function(evt) {
+              $scope.uploadProgress = parseInt(100.0 * evt.loaded / evt.total);
+            });
+
+          // process next file
+          upload.finally(uploadFile);
+        }
+
+        uploadFile();
+    }
 
     var selectedKeyboardShortcuts = KeyboardShortcutService.getCurrentShortcuts();
 
@@ -105,7 +129,7 @@
 
       if (!state) {
         $mdDialog.show({
-          controller: SessionBuilderModalController,
+          onComplete: function(){SessionBuilderModalController($mdDialog, $scope)},
           contentElement: '#builderDialog',
           parent: angular.element(document.body),
           clickOutsideToClose: false,
@@ -273,11 +297,6 @@
 
     $scope.createBuilderTerminal = function() {
       var builderTerminalContainer = document.getElementById('builder-terminal');
-      // For some reason the dialog DOM might not be ready, so we just keep trying
-      if (!builderTerminalContainer) {
-        setTimeout($scope.createBuilderTerminal, 100);
-        return;
-      }
       let term = new Terminal({
         cursorBlink: false
       });

@@ -35,6 +35,29 @@ md-card-content.terminal-container {
     margin-top: 50px;
 }
 
+.uploadStatus .bottom-block {
+    display: block;
+    position: relative;
+    background-color: rgba(255, 235, 169, 0.25);
+    height: 30px;
+    width: 100%;
+}
+
+.uploadStatus .bottom-block > span {
+    display: inline-block;
+    padding: 8px;
+    font-size: 0.9em;
+}
+
+.uploadStatus {
+    display: block;
+    position: relative;
+    width: 100%;
+    border: 2px solid #aad1f9;
+    transition: opacity  0.1s linear;
+    border-top: 0px;
+}
+
 .disconnected {
     background-color: #FDF4B6;
 }
@@ -61,4 +84,8 @@ md-input-container .md-errors-spacer {
 }
 .md-mini {
     min-width: 24px;
+}
+
+.dragover {
+    opacity: 0.5;
 }

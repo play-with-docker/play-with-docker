@@ -1,9 +1,5 @@
 FROM golang:1.8
 
-# Copy the runtime dockerfile into the context as Dockerfile
-COPY Dockerfile.run /go/bin/Dockerfile
-COPY ./www /go/bin/www
-
 COPY . /go/src/github.com/play-with-docker/play-with-docker
 
 WORKDIR /go/src/github.com/play-with-docker/play-with-docker

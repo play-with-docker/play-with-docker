@@ -72,7 +72,7 @@
 
                 <div flex></div>
               </md-content>
-              <md-content flex layout="column" ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name">
+              <md-content flex layout="column" ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name" ngf-drop class="drop-box" ngf-drag-over-class="'dragover'" ngf-max-size="100000000" ngf-change="uploadFiles($files, $invalidFiles)" ngf-multiple="true">
                   <md-card class="stats" md-theme="default" md-theme-watch>
                       <md-card-title>
                           <md-card-title-text>
@@ -107,6 +107,12 @@
                           </md-card-actions>
                   </md-card>
                   <md-card flex md-theme="default" md-theme-watch >
+                      <div ng-show="uploadMessage" class="uploadStatus">
+                          <md-progress-linear  md-mode="determinate" value="{{uploadProgress}}"></md-progress-linear>
+                           <div class="bottom-block">
+                               <span>{{uploadMessage}}</span>
+                           </div>
+                      </div>
                       <md-card-content flex id="terminal-{{instance.name}}" class="terminal-container">
                       </md-card-content>
                   </md-card>
@@ -271,6 +277,9 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/danialfarid-angular-file-upload/12.2.13/ng-file-upload-all.min.js" integrity="sha256-LrZq3efIkFX0BooX7x/rjWyYDvMKfFV2HJpy6HBw7cE=" crossorigin="anonymous"></script>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
         <script src="/assets/app.js"></script>
