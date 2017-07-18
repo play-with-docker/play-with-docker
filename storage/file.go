@@ -27,6 +27,14 @@ func (store *storage) SessionGet(sessionId string) (*types.Session, error) {
 
 	return s, nil
 }
+
+func (store *storage) SessionGetAll() (map[string]*types.Session, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	return store.db, nil
+}
+
 func (store *storage) SessionPut(s *types.Session) error {
 	store.rw.Lock()
 	defer store.rw.Unlock()

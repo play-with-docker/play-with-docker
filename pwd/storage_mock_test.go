@@ -4,6 +4,7 @@ import "github.com/play-with-docker/play-with-docker/pwd/types"
 
 type mockStorage struct {
 	sessionGet                 func(sessionId string) (*types.Session, error)
+	sessionGetAll              func() (map[string]*types.Session, error)
 	sessionPut                 func(s *types.Session) error
 	sessionCount               func() (int, error)
 	sessionDelete              func(sessionId string) error
@@ -22,6 +23,14 @@ func (m *mockStorage) SessionGet(sessionId string) (*types.Session, error) {
 	}
 	return nil, nil
 }
+
+func (m *mockStorage) SessionGetAll() (map[string]*types.Session, error) {
+	if m.sessionGetAll != nil {
+		return m.sessionGetAll()
+	}
+	return nil, nil
+}
+
 func (m *mockStorage) SessionPut(s *types.Session) error {
 	if m.sessionPut != nil {
 		return m.sessionPut(s)

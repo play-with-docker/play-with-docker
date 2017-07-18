@@ -13,6 +13,7 @@ type StorageApi interface {
 	SessionPut(*types.Session) error
 	SessionCount() (int, error)
 	SessionDelete(string) error
+	SessionGetAll() (map[string]*types.Session, error)
 
 	InstanceFindByAlias(sessionPrefix, alias string) (*types.Instance, error)
 	// Should have the session id too, soon

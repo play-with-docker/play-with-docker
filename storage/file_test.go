@@ -74,6 +74,34 @@ func TestSessionGet(t *testing.T) {
 	assert.Equal(t, expectedSession, loadedSession)
 }
 
+func TestSessionGetAll(t *testing.T) {
+	s1 := &types.Session{Id: "session1"}
+	s2 := &types.Session{Id: "session2"}
+	sessions := map[string]*types.Session{}
+	sessions[s1.Id] = s1
+	sessions[s2.Id] = s2
+
+	tmpfile, err := ioutil.TempFile("", "pwd")
+	if err != nil {
+		log.Fatal(err)
+	}
+	encoder := json.NewEncoder(tmpfile)
+	err = encoder.Encode(&sessions)
+	assert.Nil(t, err)
+	tmpfile.Close()
+	defer os.Remove(tmpfile.Name())
+
+	storage, err := NewFileStorage(tmpfile.Name())
+
+	assert.Nil(t, err)
+
+	loadedSessions, err := storage.SessionGetAll()
+	assert.Nil(t, err)
+
+	assert.Equal(t, s1, loadedSessions[s1.Id])
+	assert.Equal(t, s2, loadedSessions[s2.Id])
+}
+
 func TestInstanceFindByIP(t *testing.T) {
 	tmpfile, err := ioutil.TempFile("", "pwd")
 	if err != nil {
