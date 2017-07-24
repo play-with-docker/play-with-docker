@@ -32,12 +32,12 @@ func WS(so socketio.Socket) {
 		core.SessionClose(session)
 	})
 
-	so.On("terminal in", func(name, data string) {
+	so.On("instance terminal in", func(name, data string) {
 		// User wrote something on the terminal. Need to write it to the instance terminal
 		core.InstanceWriteToTerminal(session.Id, name, data)
 	})
 
-	so.On("viewport resize", func(cols, rows uint) {
+	so.On("instance viewport resize", func(cols, rows uint) {
 		// User resized his viewport
 		core.ClientResizeViewPort(client, cols, rows)
 	})

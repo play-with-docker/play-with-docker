@@ -12,7 +12,7 @@ import (
 
 	"github.com/gorilla/securecookie"
 	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/twinj/uuid"
+	"github.com/rs/xid"
 )
 
 func GetGoogleRecaptchaSiteKey() string {
@@ -79,7 +79,7 @@ func IsHuman(req *http.Request, rw http.ResponseWriter) bool {
 		return false
 	}
 
-	encoded, _ := s.Encode("session_id", uuid.NewV4().String())
+	encoded, _ := s.Encode("session_id", xid.New().String())
 	http.SetCookie(rw, &http.Cookie{
 		Name:    "session_id",
 		Value:   encoded,

@@ -81,7 +81,7 @@
     }
 
     $scope.resize = function(geometry) {
-      $scope.socket.emit('viewport resize', geometry.cols, geometry.rows);
+      $scope.socket.emit('instance viewport resize', geometry.cols, geometry.rows);
     }
 
     KeyboardShortcutService.setResizeFunc($scope.resize);
@@ -163,7 +163,7 @@
           $scope.builderTerminal.write(data);
         });
 
-        socket.on('terminal out', function(name, data) {
+        socket.on('instance terminal out', function(name, data) {
           var instance = $scope.idx[name];
 
           if (!instance) {
@@ -183,10 +183,7 @@
           $scope.isAlive = false;
         });
 
-        socket.on('viewport', function(rows, cols) {
-        });
-
-        socket.on('new instance', function(name, ip, hostname) {
+        socket.on('instance new', function(name, ip, hostname) {
           $scope.upsertInstance({ name: name, ip: ip, hostname: hostname });
           $scope.$apply(function() {
             if ($scope.instances.length == 1) {
@@ -195,12 +192,12 @@
           });
         });
 
-        socket.on('delete instance', function(name) {
+        socket.on('instance delete', function(name) {
           $scope.removeInstance(name);
           $scope.$apply();
         });
 
-        socket.on('viewport resize', function(cols, rows) {
+        socket.on('instance viewport resize', function(cols, rows) {
           // viewport has changed, we need to resize all terminals
 
           $scope.instances.forEach(function(instance) {
@@ -342,7 +339,7 @@
       }, 4);
 
       term.on('data', function(d) {
-        $scope.socket.emit('terminal in', instance.name, d);
+        $scope.socket.emit('instance terminal in', instance.name, d);
       });
 
       instance.term = term;

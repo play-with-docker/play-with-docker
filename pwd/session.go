@@ -14,7 +14,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/twinj/uuid"
+	"github.com/rs/xid"
 )
 
 var preparedSessions = map[string]bool{}
@@ -44,7 +44,7 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 	defer observeAction("SessionNew", time.Now())
 
 	s := &types.Session{}
-	s.Id = uuid.NewV4().String()
+	s.Id = xid.New().String()
 	s.Instances = map[string]*types.Instance{}
 	s.CreatedAt = time.Now()
 	s.ExpiresAt = s.CreatedAt.Add(duration)
@@ -186,7 +186,12 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 func (p *pwd) SessionGet(sessionId string) *types.Session {
 	defer observeAction("SessionGet", time.Now())
 
-	s, _ := p.storage.SessionGet(sessionId)
+	s, err := p.storage.SessionGet(sessionId)
+
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
 
 	if _, err := p.prepareSession(s); err != nil {
 		log.Println(err)

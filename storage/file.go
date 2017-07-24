@@ -112,7 +112,20 @@ func (store *storage) InstanceCreate(sessionId string, instance *types.Instance)
 }
 
 func (store *storage) InstanceDelete(sessionId, name string) error {
-	panic("not implemented")
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	s, found := store.db[sessionId]
+	if !found {
+		return fmt.Errorf("Session %s", notFound)
+	}
+
+	if _, found := s.Instances[name]; !found {
+		return nil
+	}
+	delete(s.Instances, name)
+
+	return store.save()
 }
 
 func (store *storage) SessionCount() (int, error) {

@@ -170,7 +170,6 @@ func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) e
 	conn := getInstanceTermConn(session.Id, instance.Name)
 	if conn != nil {
 		conn.Close()
-		delete(terms[instance.SessionId], instance.Name)
 	}
 	err := p.docker.DeleteContainer(instance.Name)
 	if err != nil && !strings.Contains(err.Error(), "No such container") {
@@ -180,7 +179,6 @@ func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) e
 
 	p.event.Emit(event.INSTANCE_DELETE, session.Id, instance.Name)
 
-	delete(session.Instances, instance.Name)
 	if err := p.storage.InstanceDelete(session.Id, instance.Name); err != nil {
 		return err
 	}
