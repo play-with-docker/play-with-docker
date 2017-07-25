@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -18,31 +17,23 @@ import (
 )
 
 func director(host string) (*net.TCPAddr, error) {
-	chunks := strings.Split(host, ":")
-	matches := config.NameFilter.FindStringSubmatch(chunks[0])
-
-	var rawHost, port string
-
-	if len(matches) == 3 {
-		rawHost = matches[1]
-		port = matches[2]
-	} else if len(matches) == 2 {
-		rawHost = matches[1]
-	} else {
-		return nil, fmt.Errorf("Couldn't find host in string")
+	info, err := router.DecodeHost(host)
+	if err != nil {
+		return nil, err
 	}
 
-	if port == "" {
-		if len(chunks) == 2 {
-			port = chunks[1]
-		} else {
-			port = "80"
-		}
+	port := info.Port
+
+	if info.EncodedPort > 0 {
+		port = info.EncodedPort
 	}
 
-	dstHost := strings.Replace(rawHost, "-", ".", -1)
+	if port == 0 {
+		// TODO: Should default depending on the protocol
+		port = 80
+	}
 
-	t, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%s", dstHost, port))
+	t, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", info.InstanceIP, port))
 	if err != nil {
 		return nil, err
 	}

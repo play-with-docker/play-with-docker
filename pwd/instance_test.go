@@ -12,6 +12,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/play-with-docker/play-with-docker/router"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,12 +29,13 @@ func TestInstanceResizeTerminal(t *testing.T) {
 
 		return nil
 	}
+	sp := &mockSessionProvider{docker: docker}
 
 	tasks := &mockTasks{}
 	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(docker, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 
 	err := p.InstanceResizeTerminal(&types.Instance{Name: "foobar"}, 24, 80)
 
@@ -50,12 +52,13 @@ func TestInstanceNew(t *testing.T) {
 		containerOpts = opts
 		return "10.0.0.1", nil
 	}
+	sp := &mockSessionProvider{docker: dock}
 
 	tasks := &mockTasks{}
 	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 
@@ -74,6 +77,7 @@ func TestInstanceNew(t *testing.T) {
 		IsDockerHost: true,
 		SessionId:    session.Id,
 		Session:      session,
+		Proxy:        router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -101,12 +105,13 @@ func TestInstanceNew_Concurrency(t *testing.T) {
 		i++
 		return fmt.Sprintf("10.0.0.%d", i), nil
 	}
+	sp := &mockSessionProvider{docker: dock}
 
 	tasks := &mockTasks{}
 	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 
@@ -142,12 +147,13 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		containerOpts = opts
 		return "10.0.0.1", nil
 	}
+	sp := &mockSessionProvider{docker: dock}
 
 	tasks := &mockTasks{}
 	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 
@@ -166,6 +172,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		SessionId:    session.Id,
 		IsDockerHost: false,
 		Session:      session,
+		Proxy:        instance.Proxy,
 	}
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -191,12 +198,13 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		containerOpts = opts
 		return "10.0.0.1", nil
 	}
+	sp := &mockSessionProvider{docker: dock}
 
 	tasks := &mockTasks{}
 	e := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 
@@ -215,6 +223,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		IsDockerHost: false,
 		Session:      session,
 		SessionId:    session.Id,
+		Proxy:        instance.Proxy,
 	}
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -238,8 +247,9 @@ func TestInstanceAllowedImages(t *testing.T) {
 	tasks := &mockTasks{}
 	e := event.NewLocalBroker()
 	storage := &mockStorage{}
+	sp := &mockSessionProvider{docker: dock}
 
-	p := NewPWD(dock, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 
 	expectedImages := []string{config.GetDindImageName(), "franela/dind:overlay2-dev", "franela/ucp:2.4.1"}
 
@@ -264,8 +274,9 @@ func TestTermConnAssignment(t *testing.T) {
 		// return error connection to unlock the goroutine
 		return errConn{}, nil
 	}
+	sp := &mockSessionProvider{docker: dock}
 
-	p := NewPWD(dock, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 	session, _ := p.SessionNew(time.Hour, "", "", "")
 	mockInstance := &types.Instance{
 		Name:         fmt.Sprintf("%s_redis-master", session.Id[:8]),

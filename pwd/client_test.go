@@ -11,12 +11,13 @@ import (
 )
 
 func TestClientNew(t *testing.T) {
-	docker := &mockDocker{}
+	d := &mockDocker{}
 	tasks := &mockTasks{}
 	e := event.NewLocalBroker()
 	storage := &mockStorage{}
+	sp := &mockSessionProvider{docker: d}
 
-	p := NewPWD(docker, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
@@ -27,12 +28,13 @@ func TestClientNew(t *testing.T) {
 	assert.Contains(t, session.Clients, client)
 }
 func TestClientCount(t *testing.T) {
-	docker := &mockDocker{}
+	d := &mockDocker{}
 	tasks := &mockTasks{}
 	e := event.NewLocalBroker()
 	storage := &mockStorage{}
+	sp := &mockSessionProvider{docker: d}
 
-	p := NewPWD(docker, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
@@ -45,9 +47,10 @@ func TestClientCount(t *testing.T) {
 func TestClientResizeViewPort(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	docker := &mockDocker{}
+	d := &mockDocker{}
 	tasks := &mockTasks{}
 	e := event.NewLocalBroker()
+	sp := &mockSessionProvider{docker: d}
 
 	broadcastedSessionId := ""
 	broadcastedArgs := []interface{}{}
@@ -60,7 +63,7 @@ func TestClientResizeViewPort(t *testing.T) {
 
 	storage := &mockStorage{}
 
-	p := NewPWD(docker, tasks, e, storage)
+	p := NewPWD(sp, tasks, e, storage)
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)

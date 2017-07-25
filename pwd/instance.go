@@ -15,6 +15,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/play-with-docker/play-with-docker/router"
 
 	"golang.org/x/text/encoding"
 )
@@ -46,7 +47,7 @@ type InstanceConfig struct {
 
 func (p *pwd) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) error {
 	defer observeAction("InstanceResizeTerminal", time.Now())
-	return p.docker.ContainerResize(instance.Name, rows, cols)
+	return p.docker(instance.SessionId).ContainerResize(instance.Name, rows, cols)
 }
 
 func (p *pwd) InstanceAttachTerminal(instance *types.Instance) error {
@@ -54,7 +55,7 @@ func (p *pwd) InstanceAttachTerminal(instance *types.Instance) error {
 	if getInstanceTermConn(instance.SessionId, instance.Name) != nil {
 		return nil
 	}
-	conn, err := p.docker.CreateAttachConnection(instance.Name)
+	conn, err := p.docker(instance.SessionId).CreateAttachConnection(instance.Name)
 
 	if err != nil {
 		return err
@@ -84,7 +85,7 @@ func (p *pwd) InstanceUploadFromUrl(instance *types.Instance, fileName, dest str
 		return fmt.Errorf("Could not download file [%s]. Status code: %d\n", url, resp.StatusCode)
 	}
 
-	copyErr := p.docker.CopyToContainer(instance.Name, dest, fileName, resp.Body)
+	copyErr := p.docker(instance.SessionId).CopyToContainer(instance.Name, dest, fileName, resp.Body)
 
 	if copyErr != nil {
 		return fmt.Errorf("Error while downloading file [%s]. Error: %s\n", url, copyErr)
@@ -96,7 +97,7 @@ func (p *pwd) InstanceUploadFromUrl(instance *types.Instance, fileName, dest str
 func (p *pwd) getInstanceCWD(instance *types.Instance) (string, error) {
 	b := bytes.NewBufferString("")
 
-	if c, err := p.docker.ExecAttach(instance.Name, []string{"bash", "-c", `pwdx $(</var/run/cwd)`}, b); c > 0 {
+	if c, err := p.docker(instance.SessionId).ExecAttach(instance.Name, []string{"bash", "-c", `pwdx $(</var/run/cwd)`}, b); c > 0 {
 		log.Println(b.String())
 		return "", fmt.Errorf("Error %d trying to get CWD", c)
 	} else if err != nil {
@@ -122,7 +123,7 @@ func (p *pwd) InstanceUploadFromReader(instance *types.Instance, fileName, dest 
 		}
 	}
 
-	copyErr := p.docker.CopyToContainer(instance.Name, finalDest, fileName, reader)
+	copyErr := p.docker(instance.SessionId).CopyToContainer(instance.Name, finalDest, fileName, reader)
 
 	if copyErr != nil {
 		return fmt.Errorf("Error while uploading file [%s]. Error: %s\n", fileName, copyErr)
@@ -171,7 +172,7 @@ func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) e
 	if conn != nil {
 		conn.Close()
 	}
-	err := p.docker.DeleteContainer(instance.Name)
+	err := p.docker(session.Id).DeleteContainer(instance.Name)
 	if err != nil && !strings.Contains(err.Error(), "No such container") {
 		log.Println(err)
 		return err
@@ -243,7 +244,7 @@ func (p *pwd) InstanceNew(session *types.Session, conf InstanceConfig) (*types.I
 		}
 	}
 
-	ip, err := p.docker.CreateContainer(opts)
+	ip, err := p.docker(session.Id).CreateContainer(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -261,6 +262,7 @@ func (p *pwd) InstanceNew(session *types.Session, conf InstanceConfig) (*types.I
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
 	instance.Session = session
+	instance.Proxy = router.EncodeHost(session.Id, ip, router.HostOpts{})
 	// For now this condition holds through. In the future we might need a more complex logic.
 	instance.IsDockerHost = opts.Privileged
 
@@ -304,7 +306,7 @@ func (p *pwd) InstanceAllowedImages() []string {
 
 func (p *pwd) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
 	defer observeAction("InstanceExec", time.Now())
-	return p.docker.Exec(instance.Name, cmd)
+	return p.docker(instance.SessionId).Exec(instance.Name, cmd)
 }
 
 func getInstanceTermConn(sessionId, instanceName string) net.Conn {

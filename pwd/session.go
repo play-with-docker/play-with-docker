@@ -62,7 +62,7 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
-	if err := p.docker.CreateNetwork(s.Id); err != nil {
+	if err := p.docker(s.Id).CreateNetwork(s.Id); err != nil {
 		log.Println("ERROR NETWORKING")
 		return nil, err
 	}
@@ -101,14 +101,14 @@ func (p *pwd) SessionClose(s *types.Session) error {
 		}
 	}
 	// Disconnect PWD daemon from the network
-	if err := p.docker.DisconnectNetwork(config.PWDContainerName, s.Id); err != nil {
+	if err := p.docker(s.Id).DisconnectNetwork(config.PWDContainerName, s.Id); err != nil {
 		if !strings.Contains(err.Error(), "is not connected to the network") {
 			log.Println("ERROR NETWORKING")
 			return err
 		}
 	}
 	log.Printf("Disconnected pwd from network [%s]\n", s.Id)
-	if err := p.docker.DeleteNetwork(s.Id); err != nil {
+	if err := p.docker(s.Id).DeleteNetwork(s.Id); err != nil {
 		if !strings.Contains(err.Error(), "not found") {
 			log.Println(err)
 			return err
@@ -168,7 +168,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr eth0 && docker-compose -f %s pull && docker stack deploy -c %s %s", file, file, s.StackName)
 
 	w := sessionBuilderWriter{sessionId: s.Id, event: p.event}
-	code, err := p.docker.ExecAttach(i.Name, []string{"sh", "-c", cmd}, &w)
+	code, err := p.docker(s.Id).ExecAttach(i.Name, []string{"sh", "-c", cmd}, &w)
 	if err != nil {
 		log.Printf("Error executing stack [%s]: %s\n", s.Stack, err)
 		return err
@@ -218,7 +218,7 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 				return err
 			}
 			if i.Docker == nil {
-				dock, err := p.docker.New(i.IP, i.Cert, i.Key)
+				dock, err := p.docker(session.Id).New(i.IP, i.Cert, i.Key)
 				if err != nil {
 					return err
 				}
@@ -254,7 +254,7 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 				if c.IsSwarmManager || c.IsSwarmWorker {
 					// check if we have connection to the daemon, if not, create it
 					if i.Docker == nil {
-						dock, err := p.docker.New(i.IP, i.Cert, i.Key)
+						dock, err := p.docker(session.Id).New(i.IP, i.Cert, i.Key)
 						if err != nil {
 							log.Println(err)
 							return
@@ -334,7 +334,7 @@ func (p *pwd) scheduleSessionClose(s *types.Session) {
 }
 
 func (p *pwd) connectToNetwork(s *types.Session) error {
-	ip, err := p.docker.ConnectNetwork(config.PWDContainerName, s.Id, s.PwdIpAddress)
+	ip, err := p.docker(s.Id).ConnectNetwork(config.PWDContainerName, s.Id, s.PwdIpAddress)
 	if err != nil {
 		log.Println("ERROR NETWORKING")
 		return err

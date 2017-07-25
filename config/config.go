@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"log"
 	"os"
 	"regexp"
 	"time"
@@ -21,7 +20,7 @@ const (
 var NameFilter = regexp.MustCompile(PWDHostPortGroupRegex)
 var AliasFilter = regexp.MustCompile(AliasPortGroupRegex)
 
-var SSLPortNumber, PortNumber, Key, Cert, SessionsFile, PWDContainerName, PWDCName, HashKey, SSHKeyPath string
+var SSLPortNumber, PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, PWDCName, HashKey, SSHKeyPath string
 var MaxLoadAvg float64
 
 func ParseFlags() {
@@ -31,13 +30,13 @@ func ParseFlags() {
 	flag.StringVar(&Cert, "cert", "./pwd/server.pem", "Give a SSL cert")
 	flag.StringVar(&SessionsFile, "save", "./pwd/sessions", "Tell where to store sessions file")
 	flag.StringVar(&PWDContainerName, "name", "pwd", "Container name used to run PWD (used to be able to connect it to the networks it creates)")
-	flag.StringVar(&PWDCName, "cname", "host1", "CNAME given to this host")
+	flag.StringVar(&L2ContainerName, "l2", "l2", "Container name used to run L2 Router")
+	flag.StringVar(&L2Subdomain, "l2-subdomain", "direct", "Subdomain to the L2 Router")
+	flag.StringVar(&PWDCName, "cname", "", "CNAME given to this host")
 	flag.StringVar(&HashKey, "hash_key", "salmonrosado", "Hash key to use for cookies")
 	flag.Float64Var(&MaxLoadAvg, "maxload", 100, "Maximum allowed load average before failing ping requests")
 	flag.StringVar(&SSHKeyPath, "ssh_key_path", "", "SSH Private Key to use")
 	flag.Parse()
-
-	log.Println("*****************************", SSHKeyPath)
 }
 func GetDindImageName() string {
 	dindImage := os.Getenv("DIND_IMAGE")

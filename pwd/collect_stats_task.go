@@ -7,7 +7,7 @@ import (
 
 	dockerTypes "github.com/docker/docker/api/types"
 	units "github.com/docker/go-units"
-	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/provider"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
@@ -20,11 +20,12 @@ type collectStatsTask struct {
 	previousCPU    uint64
 	previousSystem uint64
 
-	docker docker.DockerApi
+	sessionProvider provider.SessionProvider
 }
 
 func (c collectStatsTask) Run(i *types.Instance) error {
-	reader, err := c.docker.GetContainerStats(i.Name)
+	docker, _ := c.sessionProvider.GetDocker(i.SessionId)
+	reader, err := docker.GetContainerStats(i.Name)
 	if err != nil {
 		log.Println("Error while trying to collect instance stats", err)
 		return err

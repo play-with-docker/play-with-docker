@@ -30,6 +30,7 @@ func TestSessionNew(t *testing.T) {
 		connectIP = ip
 		return "10.0.0.1", nil
 	}
+	sp := &mockSessionProvider{docker: docker}
 
 	var scheduledSession *types.Session
 	tasks := &mockTasks{}
@@ -44,7 +45,7 @@ func TestSessionNew(t *testing.T) {
 		return nil
 	}
 
-	p := NewPWD(docker, tasks, ev, storage)
+	p := NewPWD(sp, tasks, ev, storage)
 
 	before := time.Now()
 
@@ -166,11 +167,12 @@ func TestSessionSetup(t *testing.T) {
 		assert.Fail(t, "Shouldn't have reached here.")
 		return nil, nil
 	}
+	sp := &mockSessionProvider{docker: dock}
 	tasks := &mockTasks{}
 	ev := event.NewLocalBroker()
 	storage := &mockStorage{}
 
-	p := NewPWD(dock, tasks, ev, storage)
+	p := NewPWD(sp, tasks, ev, storage)
 	s, e := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, e)
 
@@ -215,6 +217,7 @@ func TestSessionSetup(t *testing.T) {
 		IsDockerHost: true,
 		Session:      s,
 		Docker:       manager1Received.Docker,
+		Proxy:        manager1Received.Proxy,
 	}, manager1Received)
 
 	manager2 := fmt.Sprintf("%s_manager2", s.Id[:8])
@@ -229,6 +232,7 @@ func TestSessionSetup(t *testing.T) {
 		SessionId:    s.Id,
 		Session:      s,
 		Docker:       manager2Received.Docker,
+		Proxy:        manager2Received.Proxy,
 	}, manager2Received)
 
 	manager3 := fmt.Sprintf("%s_manager3", s.Id[:8])
@@ -243,6 +247,7 @@ func TestSessionSetup(t *testing.T) {
 		IsDockerHost: true,
 		Session:      s,
 		Docker:       manager3Received.Docker,
+		Proxy:        manager3Received.Proxy,
 	}, manager3Received)
 
 	worker1 := fmt.Sprintf("%s_worker1", s.Id[:8])
@@ -257,6 +262,7 @@ func TestSessionSetup(t *testing.T) {
 		IsDockerHost: true,
 		Session:      s,
 		Docker:       worker1Received.Docker,
+		Proxy:        worker1Received.Proxy,
 	}, worker1Received)
 
 	other := fmt.Sprintf("%s_other", s.Id[:8])
@@ -271,6 +277,7 @@ func TestSessionSetup(t *testing.T) {
 		IsDockerHost: true,
 		Session:      s,
 		Docker:       otherReceived.Docker,
+		Proxy:        otherReceived.Proxy,
 	}, otherReceived)
 
 	assert.True(t, swarmInitOnMaster1)
@@ -284,8 +291,9 @@ func TestSessionPrepareOnce(t *testing.T) {
 	tasks := &mockTasks{}
 	ev := event.NewLocalBroker()
 	storage := &mockStorage{}
+	sp := &mockSessionProvider{docker: dock}
 
-	p := NewPWD(dock, tasks, ev, storage)
+	p := NewPWD(sp, tasks, ev, storage)
 	session := &types.Session{Id: "1234"}
 	prepared, err := p.prepareSession(session)
 	assert.True(t, preparedSessions[session.Id])

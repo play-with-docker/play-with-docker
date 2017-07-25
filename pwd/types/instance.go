@@ -30,6 +30,7 @@ type Instance struct {
 	IsDockerHost  bool             `json:"is_docker_host" bson:"is_docker_host"`
 	SessionId     string           `json:"session_id" bson:"session_id"`
 	SessionPrefix string           `json:"session_prefix" bson:"session_prefix"`
+	Proxy         string           `json:"proxy" bson:"proxy"`
 	Docker        docker.DockerApi `json:"-"`
 	Session       *Session         `json:"-" bson:"-"`
 	ctx           context.Context  `json:"-" bson:"-"`

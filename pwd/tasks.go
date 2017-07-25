@@ -16,6 +16,7 @@ import (
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/provider"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
@@ -112,8 +113,8 @@ func (sch *scheduler) Schedule(s *types.Session) {
 func (sch *scheduler) Unschedule(s *types.Session) {
 }
 
-func NewScheduler(e event.EventApi, d docker.DockerApi) *scheduler {
+func NewScheduler(e event.EventApi, sp provider.SessionProvider) *scheduler {
 	s := &scheduler{event: e}
-	s.periodicTasks = []periodicTask{&collectStatsTask{docker: d}, &checkSwarmStatusTask{}, &checkUsedPortsTask{}, &checkSwarmUsedPortsTask{}}
+	s.periodicTasks = []periodicTask{&collectStatsTask{sessionProvider: sp}, &checkSwarmStatusTask{}, &checkUsedPortsTask{}, &checkSwarmUsedPortsTask{}}
 	return s
 }

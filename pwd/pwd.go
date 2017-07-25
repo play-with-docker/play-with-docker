@@ -6,6 +6,7 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/provider"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/prometheus/client_golang/prometheus"
@@ -44,11 +45,11 @@ func init() {
 }
 
 type pwd struct {
-	docker      docker.DockerApi
-	tasks       SchedulerApi
-	event       event.EventApi
-	storage     storage.StorageApi
-	clientCount int32
+	sessionProvider provider.SessionProvider
+	tasks           SchedulerApi
+	event           event.EventApi
+	storage         storage.StorageApi
+	clientCount     int32
 }
 
 type PWDApi interface {
@@ -80,8 +81,16 @@ type PWDApi interface {
 	ClientCount() int
 }
 
-func NewPWD(d docker.DockerApi, t SchedulerApi, e event.EventApi, s storage.StorageApi) *pwd {
-	return &pwd{docker: d, tasks: t, event: e, storage: s}
+func NewPWD(sp provider.SessionProvider, t SchedulerApi, e event.EventApi, s storage.StorageApi) *pwd {
+	return &pwd{sessionProvider: sp, tasks: t, event: e, storage: s}
+}
+
+func (p *pwd) docker(sessionId string) docker.DockerApi {
+	d, err := p.sessionProvider.GetDocker(sessionId)
+	if err != nil {
+		panic("Should not have got here. Session always need to be validated before calling this.")
+	}
+	return d
 }
 
 func (p *pwd) setGauges() {
