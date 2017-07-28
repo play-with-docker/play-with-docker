@@ -283,12 +283,19 @@ func (p *pwd) InstanceAllowedImages() []string {
 	return []string{
 		config.GetDindImageName(),
 		"franela/dind:overlay2-dev",
-		"franela/ucp:2.4.1",
+		"franela/ucp:2.1.5",
 	}
 
 }
 
 func (p *pwd) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
 	defer observeAction("InstanceExec", time.Now())
-	return p.docker.Exec(instance.Name, cmd)
+	b := bytes.NewBufferString("")
+	if c, err := p.docker.ExecAttach(instance.Name, cmd, b); c > 0 {
+		log.Println(b.String())
+		return c, fmt.Errorf("Error %d running command [%s]", c, cmd)
+	} else if err != nil {
+		return -1, err
+	}
+	return 0, nil
 }
