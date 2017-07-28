@@ -102,7 +102,7 @@ func TestSessionGetAll(t *testing.T) {
 	assert.Equal(t, s2, loadedSessions[s2.Id])
 }
 
-func TestInstanceFindByIP(t *testing.T) {
+func TestInstanceFind(t *testing.T) {
 	tmpfile, err := ioutil.TempFile("", "pwd")
 	if err != nil {
 		log.Fatal(err)
@@ -124,97 +124,23 @@ func TestInstanceFindByIP(t *testing.T) {
 	err = storage.SessionPut(s2)
 	assert.Nil(t, err)
 
-	foundInstance, err := storage.InstanceFindByIP("10.0.0.1")
+	foundInstance, err := storage.InstanceFind("session1", "10.0.0.1")
 	assert.Nil(t, err)
 	assert.Equal(t, i1, foundInstance)
 
-	foundInstance, err = storage.InstanceFindByIP("10.1.0.1")
+	foundInstance, err = storage.InstanceFind("session2", "10.1.0.1")
 	assert.Nil(t, err)
 	assert.Equal(t, i2, foundInstance)
 
-	foundInstance, err = storage.InstanceFindByIP("192.168.0.1")
-	assert.True(t, NotFound(err))
-	assert.Nil(t, foundInstance)
-}
-
-func TestInstanceFindByIPAndSession(t *testing.T) {
-	tmpfile, err := ioutil.TempFile("", "pwd")
-	if err != nil {
-		log.Fatal(err)
-	}
-	tmpfile.Close()
-	os.Remove(tmpfile.Name())
-	defer os.Remove(tmpfile.Name())
-
-	storage, err := NewFileStorage(tmpfile.Name())
-
-	assert.Nil(t, err)
-
-	i1 := &types.Instance{Name: "i1", IP: "10.0.0.1"}
-	i2 := &types.Instance{Name: "i2", IP: "10.1.0.1"}
-	s1 := &types.Session{Id: "session1", Instances: map[string]*types.Instance{"i1": i1}}
-	s2 := &types.Session{Id: "session2", Instances: map[string]*types.Instance{"i2": i2}}
-	err = storage.SessionPut(s1)
-	assert.Nil(t, err)
-	err = storage.SessionPut(s2)
-	assert.Nil(t, err)
-
-	foundInstance, err := storage.InstanceFindByIPAndSession("session1", "10.0.0.1")
-	assert.Nil(t, err)
-	assert.Equal(t, i1, foundInstance)
-
-	foundInstance, err = storage.InstanceFindByIPAndSession("session2", "10.1.0.1")
-	assert.Nil(t, err)
-	assert.Equal(t, i2, foundInstance)
-
-	foundInstance, err = storage.InstanceFindByIPAndSession("session3", "10.1.0.1")
+	foundInstance, err = storage.InstanceFind("session3", "10.1.0.1")
 	assert.True(t, NotFound(err))
 	assert.Nil(t, foundInstance)
 
-	foundInstance, err = storage.InstanceFindByIPAndSession("session1", "10.1.0.1")
+	foundInstance, err = storage.InstanceFind("session1", "10.1.0.1")
 	assert.True(t, NotFound(err))
 	assert.Nil(t, foundInstance)
 
-	foundInstance, err = storage.InstanceFindByIPAndSession("session1", "192.168.0.1")
-	assert.True(t, NotFound(err))
-	assert.Nil(t, foundInstance)
-}
-
-func TestInstanceFindByAlias(t *testing.T) {
-	tmpfile, err := ioutil.TempFile("", "pwd")
-	if err != nil {
-		log.Fatal(err)
-	}
-	tmpfile.Close()
-	os.Remove(tmpfile.Name())
-	defer os.Remove(tmpfile.Name())
-
-	storage, err := NewFileStorage(tmpfile.Name())
-
-	assert.Nil(t, err)
-
-	i1 := &types.Instance{Name: "i1", Alias: "foo", IP: "10.0.0.1"}
-	i2 := &types.Instance{Name: "i2", Alias: "foo", IP: "10.1.0.1"}
-	s1 := &types.Session{Id: "session1", Instances: map[string]*types.Instance{"i1": i1}}
-	s2 := &types.Session{Id: "session2", Instances: map[string]*types.Instance{"i2": i2}}
-	err = storage.SessionPut(s1)
-	assert.Nil(t, err)
-	err = storage.SessionPut(s2)
-	assert.Nil(t, err)
-
-	foundInstance, err := storage.InstanceFindByAlias("session1", "foo")
-	assert.Nil(t, err)
-	assert.Equal(t, i1, foundInstance)
-
-	foundInstance, err = storage.InstanceFindByAlias("session2", "foo")
-	assert.Nil(t, err)
-	assert.Equal(t, i2, foundInstance)
-
-	foundInstance, err = storage.InstanceFindByAlias("session1", "bar")
-	assert.True(t, NotFound(err))
-	assert.Nil(t, foundInstance)
-
-	foundInstance, err = storage.InstanceFindByAlias("session3", "foo")
+	foundInstance, err = storage.InstanceFind("session1", "192.168.0.1")
 	assert.True(t, NotFound(err))
 	assert.Nil(t, foundInstance)
 }
@@ -232,7 +158,7 @@ func TestInstanceCreate(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	i1 := &types.Instance{Name: "i1", Alias: "foo", IP: "10.0.0.1"}
+	i1 := &types.Instance{Name: "i1", IP: "10.0.0.1"}
 	s1 := &types.Session{Id: "session1"}
 	err = storage.SessionPut(s1)
 	assert.Nil(t, err)
@@ -260,8 +186,8 @@ func TestCounts(t *testing.T) {
 	assert.Nil(t, err)
 
 	c1 := &types.Client{}
-	i1 := &types.Instance{Name: "i1", Alias: "foo", IP: "10.0.0.1"}
-	i2 := &types.Instance{Name: "i2", Alias: "foo", IP: "10.1.0.1"}
+	i1 := &types.Instance{Name: "i1", IP: "10.0.0.1"}
+	i2 := &types.Instance{Name: "i2", IP: "10.1.0.1"}
 	s1 := &types.Session{Id: "session1", Instances: map[string]*types.Instance{"i1": i1}}
 	s2 := &types.Session{Id: "session2", Instances: map[string]*types.Instance{"i2": i2}}
 	s3 := &types.Session{Id: "session3", Clients: []*types.Client{c1}}

@@ -1,4 +1,4 @@
-package task
+package scheduler
 
 import (
 	"context"
@@ -7,7 +7,10 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +43,8 @@ func TestNew(t *testing.T) {
 	store := mockStorage()
 
 	s := &types.Session{
-		Id: "aaabbbccc",
+		Id:        "aaabbbccc",
+		ExpiresAt: time.Now().Add(time.Hour),
 		Instances: map[string]*types.Instance{
 			"node1": &types.Instance{
 				Name: "node1",
@@ -51,14 +55,14 @@ func TestNew(t *testing.T) {
 	err := store.SessionPut(s)
 	assert.Nil(t, err)
 
-	sch, err := NewScheduler(store)
+	sch, err := NewScheduler(store, event.NewLocalBroker(), &pwd.Mock{})
 	assert.Nil(t, err)
 	assert.Len(t, sch.scheduledSessions, 1)
 }
 
 func TestAddTask(t *testing.T) {
 	store := mockStorage()
-	sch, err := NewScheduler(store)
+	sch, err := NewScheduler(store, event.NewLocalBroker(), &pwd.Mock{})
 	assert.Nil(t, err)
 
 	task := &mockTask{name: "FooBar"}
@@ -73,7 +77,7 @@ func TestAddTask(t *testing.T) {
 
 func TestRemoveTask(t *testing.T) {
 	store := mockStorage()
-	sch, err := NewScheduler(store)
+	sch, err := NewScheduler(store, event.NewLocalBroker(), &pwd.Mock{})
 	assert.Nil(t, err)
 
 	task := &mockTask{name: "FooBar"}
@@ -93,7 +97,8 @@ func TestStart(t *testing.T) {
 	store := mockStorage()
 
 	s := &types.Session{
-		Id: "aaabbbccc",
+		Id:        "aaabbbccc",
+		ExpiresAt: time.Now().Add(time.Hour),
 		Instances: map[string]*types.Instance{
 			"node1": &types.Instance{
 				Name: "node1",
@@ -104,7 +109,7 @@ func TestStart(t *testing.T) {
 	err := store.SessionPut(s)
 	assert.Nil(t, err)
 
-	sch, err := NewScheduler(store)
+	sch, err := NewScheduler(store, event.NewLocalBroker(), &pwd.Mock{})
 	assert.Nil(t, err)
 
 	wg := sync.WaitGroup{}
@@ -119,6 +124,78 @@ func TestStart(t *testing.T) {
 	assert.Nil(t, err)
 
 	sch.Start()
+	defer sch.Stop()
 	wg.Wait()
 	assert.True(t, ran)
+}
+
+func TestScheduleFromEvent(t *testing.T) {
+	s := &types.Session{
+		Id:        "aaaabbbbcccc",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+	lb := event.NewLocalBroker()
+	store := mockStorage()
+	store.SessionPut(s)
+	sch, err := NewScheduler(store, lb, &pwd.Mock{})
+	assert.Nil(t, err)
+
+	sch.Start()
+	defer sch.Stop()
+
+	lb.Emit(event.SESSION_NEW, s.Id)
+
+	time.Sleep(time.Second)
+
+	assert.Len(t, sch.scheduledSessions, 1)
+}
+
+func TestUnscheduleFromEvent(t *testing.T) {
+	s := &types.Session{
+		Id:        "aaaabbbbcccc",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+	lb := event.NewLocalBroker()
+	store := mockStorage()
+	store.SessionPut(s)
+	sch, err := NewScheduler(store, lb, &pwd.Mock{})
+	assert.Nil(t, err)
+
+	sch.Start()
+	defer sch.Stop()
+
+	lb.Emit(event.SESSION_END, s.Id)
+
+	time.Sleep(time.Second)
+
+	assert.Len(t, sch.scheduledSessions, 0)
+}
+
+func TestCloseSession(t *testing.T) {
+	_e := event.NewLocalBroker()
+	_p := &pwd.Mock{}
+	_s := mockStorage()
+
+	s := &types.Session{
+		Id:        "aaaabbbbcccc",
+		ExpiresAt: time.Now().Add(-1 * time.Hour),
+	}
+	_p.On("SessionClose", s).Return(nil)
+
+	_s.SessionPut(s)
+
+	sch, err := NewScheduler(_s, _e, _p)
+	assert.Nil(t, err)
+
+	sch.Start()
+	defer sch.Stop()
+
+	time.Sleep(2 * time.Second)
+
+	_p.AssertExpectations(t)
+
+	_e.Emit(event.SESSION_END, s.Id)
+	time.Sleep(time.Second)
+
+	assert.Len(t, sch.scheduledSessions, 0)
 }

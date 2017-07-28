@@ -22,12 +22,16 @@ func FindEventType(name string) (EventType, bool) {
 	return EventType(-1), false
 }
 
+func NewEventType(name string) EventType {
+	return ciota(name)
+}
+
 var (
 	INSTANCE_VIEWPORT_RESIZE = ciota("instance viewport resize")
 	INSTANCE_DELETE          = ciota("instance delete")
 	INSTANCE_NEW             = ciota("instance new")
 	INSTANCE_STATS           = ciota("instance stats")
-	INSTANCE_TERMINAL_OUT    = ciota("instance terminal out")
+	SESSION_NEW              = ciota("session new")
 	SESSION_END              = ciota("session end")
 	SESSION_READY            = ciota("session ready")
 	SESSION_BUILDER_OUT      = ciota("session builder out")

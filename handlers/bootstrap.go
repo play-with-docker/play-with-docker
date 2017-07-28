@@ -6,9 +6,10 @@ import (
 
 	"github.com/googollee/go-socket.io"
 	"github.com/play-with-docker/play-with-docker/config"
+	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
-	"github.com/play-with-docker/play-with-docker/provider"
 	"github.com/play-with-docker/play-with-docker/pwd"
+	"github.com/play-with-docker/play-with-docker/scheduler"
 	"github.com/play-with-docker/play-with-docker/storage"
 )
 
@@ -17,19 +18,18 @@ var e event.EventApi
 var ws *socketio.Server
 
 func Bootstrap() {
-	sp := provider.NewLocalSessionProvider()
-
-	e = event.NewLocalBroker()
-
-	t := pwd.NewScheduler(e, sp)
 
 	s, err := storage.NewFileStorage(config.SessionsFile)
+	e = event.NewLocalBroker()
+
+	f := docker.NewLocalCachedFactory(s)
 
 	if err != nil && !os.IsNotExist(err) {
 		log.Fatal("Error initializing StorageAPI: ", err)
 	}
-	core = pwd.NewPWD(sp, t, e, s)
+	core = pwd.NewPWD(f, e, s)
 
+	scheduler.NewScheduler(s, e, core)
 }
 
 func RegisterEvents(s *socketio.Server) {

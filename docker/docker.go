@@ -4,27 +4,23 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/docker/distribution/reference"
-	"github.com/docker/docker/api"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/docker/go-connections/tlsconfig"
 )
 
 const (
@@ -49,7 +45,6 @@ type DockerApi interface {
 	DisconnectNetwork(containerId, networkId string) error
 	DeleteNetwork(id string) error
 	Exec(instanceName string, command []string) (int, error)
-	New(ip string, cert, key []byte) (DockerApi, error)
 	SwarmInit() (*SwarmTokens, error)
 	SwarmJoin(addr, token string) error
 }
@@ -411,6 +406,7 @@ func (d *docker) DeleteNetwork(id string) error {
 	return nil
 }
 
+/*
 func (d *docker) New(ip string, cert, key []byte) (DockerApi, error) {
 	// We check if the client needs to use TLS
 	var tlsConfig *tls.Config
@@ -454,7 +450,7 @@ func (d *docker) New(ip string, cert, key []byte) (DockerApi, error) {
 	}
 	return NewDocker(c), nil
 }
-
+*/
 func (d *docker) SwarmInit() (*SwarmTokens, error) {
 	req := swarm.InitRequest{AdvertiseAddr: "eth0", ListenAddr: "0.0.0.0:2377"}
 	_, err := d.c.SwarmInit(context.Background(), req)

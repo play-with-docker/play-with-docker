@@ -1,23 +1,38 @@
 package pwd
 
 import (
-	"sync"
 	"testing"
 	"time"
 
+	"github.com/play-with-docker/play-with-docker/config"
+	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestClientNew(t *testing.T) {
-	d := &mockDocker{}
-	tasks := &mockTasks{}
-	e := event.NewLocalBroker()
-	storage := &mockStorage{}
-	sp := &mockSessionProvider{docker: d}
+	_s := &storage.Mock{}
+	_f := &docker.FactoryMock{}
+	_g := &mockGenerator{}
+	_d := &docker.Mock{}
+	_e := &event.Mock{}
 
-	p := NewPWD(sp, tasks, e, storage)
+	_g.On("NewId").Return("aaaabbbbcccc")
+	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
+	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
+	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
+	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
+	_s.On("SessionCount").Return(1, nil)
+	_s.On("InstanceCount").Return(0, nil)
+
+	var nilArgs []interface{}
+	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
+
+	p := NewPWD(_f, _e, _s)
+	p.generator = _g
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
@@ -26,15 +41,33 @@ func TestClientNew(t *testing.T) {
 
 	assert.Equal(t, types.Client{Id: "foobar", Session: session, ViewPort: types.ViewPort{Cols: 0, Rows: 0}}, *client)
 	assert.Contains(t, session.Clients, client)
-}
-func TestClientCount(t *testing.T) {
-	d := &mockDocker{}
-	tasks := &mockTasks{}
-	e := event.NewLocalBroker()
-	storage := &mockStorage{}
-	sp := &mockSessionProvider{docker: d}
 
-	p := NewPWD(sp, tasks, e, storage)
+	_d.AssertExpectations(t)
+	_f.AssertExpectations(t)
+	_s.AssertExpectations(t)
+	_g.AssertExpectations(t)
+	_e.M.AssertExpectations(t)
+}
+
+func TestClientCount(t *testing.T) {
+	_s := &storage.Mock{}
+	_f := &docker.FactoryMock{}
+	_g := &mockGenerator{}
+	_d := &docker.Mock{}
+	_e := &event.Mock{}
+
+	_g.On("NewId").Return("aaaabbbbcccc")
+	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
+	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
+	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
+	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
+	_s.On("SessionCount").Return(1, nil)
+	_s.On("InstanceCount").Return(-1, nil)
+	var nilArgs []interface{}
+	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
+
+	p := NewPWD(_f, _e, _s)
+	p.generator = _g
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
@@ -42,38 +75,46 @@ func TestClientCount(t *testing.T) {
 	p.ClientNew("foobar", session)
 
 	assert.Equal(t, 1, p.ClientCount())
+
+	_d.AssertExpectations(t)
+	_f.AssertExpectations(t)
+	_s.AssertExpectations(t)
+	_g.AssertExpectations(t)
+	_e.M.AssertExpectations(t)
 }
 
 func TestClientResizeViewPort(t *testing.T) {
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	d := &mockDocker{}
-	tasks := &mockTasks{}
-	e := event.NewLocalBroker()
-	sp := &mockSessionProvider{docker: d}
+	_s := &storage.Mock{}
+	_f := &docker.FactoryMock{}
+	_g := &mockGenerator{}
+	_d := &docker.Mock{}
+	_e := &event.Mock{}
 
-	broadcastedSessionId := ""
-	broadcastedArgs := []interface{}{}
+	_g.On("NewId").Return("aaaabbbbcccc")
+	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
+	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
+	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
+	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
+	_s.On("SessionCount").Return(1, nil)
+	_s.On("InstanceCount").Return(0, nil)
+	var nilArgs []interface{}
+	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
-	e.On(event.INSTANCE_VIEWPORT_RESIZE, func(sessionId string, args ...interface{}) {
-		broadcastedSessionId = sessionId
-		broadcastedArgs = args
-		wg.Done()
-	})
-
-	storage := &mockStorage{}
-
-	p := NewPWD(sp, tasks, e, storage)
+	_e.M.On("Emit", event.INSTANCE_VIEWPORT_RESIZE, "aaaabbbbcccc", []interface{}{uint(80), uint(24)}).Return()
+	p := NewPWD(_f, _e, _s)
+	p.generator = _g
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
 	client := p.ClientNew("foobar", session)
 
 	p.ClientResizeViewPort(client, 80, 24)
-	wg.Wait()
 
 	assert.Equal(t, types.ViewPort{Cols: 80, Rows: 24}, client.ViewPort)
-	assert.Equal(t, session.Id, broadcastedSessionId)
-	assert.Equal(t, uint(80), broadcastedArgs[0])
-	assert.Equal(t, uint(24), broadcastedArgs[1])
+
+	_d.AssertExpectations(t)
+	_f.AssertExpectations(t)
+	_s.AssertExpectations(t)
+	_g.AssertExpectations(t)
+	_e.M.AssertExpectations(t)
 }

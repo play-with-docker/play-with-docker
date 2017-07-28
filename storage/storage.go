@@ -15,10 +15,7 @@ type StorageApi interface {
 	SessionDelete(string) error
 	SessionGetAll() (map[string]*types.Session, error)
 
-	InstanceFindByAlias(sessionPrefix, alias string) (*types.Instance, error)
-	// Should have the session id too, soon
-	InstanceFindByIP(ip string) (*types.Instance, error)
-	InstanceFindByIPAndSession(sessionPrefix, ip string) (*types.Instance, error)
+	InstanceFind(session, ip string) (*types.Instance, error)
 	InstanceCreate(sessionId string, instance *types.Instance) error
 	InstanceDelete(sessionId, instanceName string) error
 

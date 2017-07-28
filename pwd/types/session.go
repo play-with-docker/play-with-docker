@@ -17,9 +17,6 @@ type Session struct {
 	ImageName    string               `json:"image_name"`
 	Host         string               `json:"host"`
 	Clients      []*Client            `json:"-" bson:"-"`
-	closingTimer *time.Timer          `json:"-"`
-	scheduled    bool                 `json:"-"`
-	ticker       *time.Ticker         `json:"-"`
 	rw           sync.Mutex           `json:"-"`
 }
 
@@ -29,19 +26,4 @@ func (s *Session) Lock() {
 
 func (s *Session) Unlock() {
 	s.rw.Unlock()
-}
-
-func (s *Session) StopTicker() {
-	if s.ticker != nil {
-		s.ticker.Stop()
-	}
-}
-func (s *Session) SetTicker(t *time.Ticker) {
-	s.ticker = t
-}
-func (s *Session) SetClosingTimer(t *time.Timer) {
-	s.closingTimer = t
-}
-func (s *Session) ClosingTimer() *time.Timer {
-	return s.closingTimer
 }

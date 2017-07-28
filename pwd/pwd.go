@@ -2,14 +2,16 @@ package pwd
 
 import (
 	"io"
+	"net"
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
-	"github.com/play-with-docker/play-with-docker/provider"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/xid"
+	"github.com/stretchr/testify/mock"
 )
 
 var (
@@ -45,11 +47,31 @@ func init() {
 }
 
 type pwd struct {
-	sessionProvider provider.SessionProvider
-	tasks           SchedulerApi
-	event           event.EventApi
-	storage         storage.StorageApi
-	clientCount     int32
+	dockerFactory docker.FactoryApi
+	event         event.EventApi
+	storage       storage.StorageApi
+	generator     IdGenerator
+	clientCount   int32
+}
+
+type IdGenerator interface {
+	NewId() string
+}
+
+type xidGenerator struct {
+}
+
+func (x xidGenerator) NewId() string {
+	return xid.New().String()
+}
+
+type mockGenerator struct {
+	mock.Mock
+}
+
+func (m *mockGenerator) NewId() string {
+	args := m.Called()
+	return args.String(0)
 }
 
 type PWDApi interface {
@@ -62,16 +84,13 @@ type PWDApi interface {
 
 	InstanceNew(session *types.Session, conf InstanceConfig) (*types.Instance, error)
 	InstanceResizeTerminal(instance *types.Instance, cols, rows uint) error
-	InstanceAttachTerminal(instance *types.Instance) error
+	InstanceGetTerminal(instance *types.Instance) (net.Conn, error)
 	InstanceUploadFromUrl(instance *types.Instance, fileName, dest, url string) error
 	InstanceUploadFromReader(instance *types.Instance, fileName, dest string, reader io.Reader) error
 	InstanceGet(session *types.Session, name string) *types.Instance
 	// TODO remove this function when we add the session prefix to the PWD url
-	InstanceFindByIP(ip string) *types.Instance
-	InstanceFindByAlias(sessionPrefix, alias string) *types.Instance
-	InstanceFindByIPAndSession(sessionPrefix, ip string) *types.Instance
+	InstanceFind(sessionId, ip string) *types.Instance
 	InstanceDelete(session *types.Session, instance *types.Instance) error
-	InstanceWriteToTerminal(sessionId, instanceName string, data string)
 	InstanceAllowedImages() []string
 	InstanceExec(instance *types.Instance, cmd []string) (int, error)
 
@@ -81,12 +100,12 @@ type PWDApi interface {
 	ClientCount() int
 }
 
-func NewPWD(sp provider.SessionProvider, t SchedulerApi, e event.EventApi, s storage.StorageApi) *pwd {
-	return &pwd{sessionProvider: sp, tasks: t, event: e, storage: s}
+func NewPWD(f docker.FactoryApi, e event.EventApi, s storage.StorageApi) *pwd {
+	return &pwd{dockerFactory: f, event: e, storage: s, generator: xidGenerator{}}
 }
 
 func (p *pwd) docker(sessionId string) docker.DockerApi {
-	d, err := p.sessionProvider.GetDocker(sessionId)
+	d, err := p.dockerFactory.GetForSession(sessionId)
 	if err != nil {
 		panic("Should not have got here. Session always need to be validated before calling this.")
 	}

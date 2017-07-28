@@ -48,46 +48,14 @@ func (store *storage) SessionPut(s *types.Session) error {
 	return store.save()
 }
 
-func (store *storage) InstanceFindByIP(ip string) (*types.Instance, error) {
-	store.rw.Lock()
-	defer store.rw.Unlock()
-
-	for _, s := range store.db {
-		for _, i := range s.Instances {
-			if i.IP == ip {
-				return i, nil
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("%s", notFound)
-}
-
-func (store *storage) InstanceFindByIPAndSession(sessionPrefix, ip string) (*types.Instance, error) {
+func (store *storage) InstanceFind(sessionId, ip string) (*types.Instance, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
 	for id, s := range store.db {
-		if strings.HasPrefix(id, sessionPrefix) {
+		if strings.HasPrefix(id, sessionId[:8]) {
 			for _, i := range s.Instances {
 				if i.IP == ip {
-					return i, nil
-				}
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("%s", notFound)
-}
-
-func (store *storage) InstanceFindByAlias(sessionPrefix, alias string) (*types.Instance, error) {
-	store.rw.Lock()
-	defer store.rw.Unlock()
-
-	for id, s := range store.db {
-		if strings.HasPrefix(id, sessionPrefix) {
-			for _, i := range s.Instances {
-				if i.Alias == alias {
 					return i, nil
 				}
 			}
