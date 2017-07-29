@@ -82,7 +82,7 @@ func (f *localCachedFactory) GetForInstance(sessionId, instanceName string) (Doc
 	cli := &http.Client{
 		Transport: transport,
 	}
-	dc, err := client.NewClient("http://192.168.1.5:443", api.DefaultVersion, cli, map[string]string{"X-Forwarded-Host": router.EncodeHost(instance.SessionId, instance.IP, router.HostOpts{EncodedPort: 2375})})
+	dc, err := client.NewClient("http://l2:443", api.DefaultVersion, cli, map[string]string{"X-Forwarded-Host": router.EncodeHost(instance.SessionId, instance.IP, router.HostOpts{EncodedPort: 2375})})
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to DinD docker daemon", err)
 	}

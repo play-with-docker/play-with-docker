@@ -263,7 +263,7 @@
     }
 
     $scope.getProxyUrl = function(instance, port) {
-      var url = window.location.protocol + '//' + instance.proxy + '-' + port + '.' + window.location.host;
+      var url = window.location.protocol + '//' + instance.proxy_host + '-' + port + '.direct.' + window.location.host;
 
       return url;
     }
