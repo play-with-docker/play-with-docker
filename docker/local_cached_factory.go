@@ -54,7 +54,7 @@ func (f *localCachedFactory) GetForInstance(sessionId, instanceName string) (Doc
 		return c, nil
 	}
 
-	instance, err := f.storage.InstanceFind(sessionId, instanceName)
+	instance, err := f.storage.InstanceGet(sessionId, instanceName)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (f *localCachedFactory) GetForInstance(sessionId, instanceName string) (Doc
 	cli := &http.Client{
 		Transport: transport,
 	}
-	dc, err := client.NewClient(fmt.Sprintf("http://%s:443", instance.Session.Host), api.DefaultVersion, cli, map[string]string{"Host": router.EncodeHost(instance.SessionId, instance.IP, router.HostOpts{EncodedPort: 2375})})
+	dc, err := client.NewClient("http://192.168.1.5:443", api.DefaultVersion, cli, map[string]string{"X-Forwarded-Host": router.EncodeHost(instance.SessionId, instance.IP, router.HostOpts{EncodedPort: 2375})})
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to DinD docker daemon", err)
 	}
@@ -90,12 +90,14 @@ func (f *localCachedFactory) GetForInstance(sessionId, instanceName string) (Doc
 	if err != nil {
 		return nil, err
 	}
-	f.instanceClients[sessionId+instance.Name] = NewDocker(dc)
+	dockerClient := NewDocker(dc)
+	f.instanceClients[sessionId+instance.Name] = dockerClient
 
-	return f.instanceClients[instance.Name], nil
+	return dockerClient, nil
 }
 
 func (f *localCachedFactory) check(c *client.Client) error {
+	ok := false
 	for i := 0; i < 5; i++ {
 		_, err := c.Ping(context.Background())
 		if err != nil {
@@ -107,7 +109,11 @@ func (f *localCachedFactory) check(c *client.Client) error {
 			}
 			return err
 		}
+		ok = true
 		break
+	}
+	if !ok {
+		return fmt.Errorf("Connection to docker daemon was not established.")
 	}
 	return nil
 }

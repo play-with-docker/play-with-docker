@@ -63,7 +63,7 @@ func WS(so socketio.Socket) {
 					log.Println(err)
 					return
 				}
-				ws.Emit("instance terminal out", instanceName, b)
+				ws.Emit("instance terminal out", instanceName, string(b))
 			}
 		}(instance.Name, conn, ws)
 	}

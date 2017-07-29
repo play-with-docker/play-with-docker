@@ -69,7 +69,7 @@ func TestInstanceNew(t *testing.T) {
 		IsDockerHost: true,
 		SessionId:    session.Id,
 		Session:      session,
-		Proxy:        router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
+		ProxyHost:    router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
 	expectedContainerOpts := docker.CreateContainerOpts{
 		Image:         expectedInstance.Image,
@@ -132,7 +132,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		SessionId:    session.Id,
 		IsDockerHost: false,
 		Session:      session,
-		Proxy:        router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
+		ProxyHost:    router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
 	expectedContainerOpts := docker.CreateContainerOpts{
 		Image:         expectedInstance.Image,
@@ -193,7 +193,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		IsDockerHost: false,
 		Session:      session,
 		SessionId:    session.Id,
-		Proxy:        router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
+		ProxyHost:    router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
 	expectedContainerOpts := docker.CreateContainerOpts{
 		Image:         expectedInstance.Image,

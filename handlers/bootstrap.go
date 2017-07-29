@@ -10,6 +10,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/scheduler"
+	"github.com/play-with-docker/play-with-docker/scheduler/task"
 	"github.com/play-with-docker/play-with-docker/storage"
 )
 
@@ -18,7 +19,6 @@ var e event.EventApi
 var ws *socketio.Server
 
 func Bootstrap() {
-
 	s, err := storage.NewFileStorage(config.SessionsFile)
 	e = event.NewLocalBroker()
 
@@ -29,7 +29,17 @@ func Bootstrap() {
 	}
 	core = pwd.NewPWD(f, e, s)
 
-	scheduler.NewScheduler(s, e, core)
+	sch, err := scheduler.NewScheduler(s, e, core)
+	if err != nil {
+		log.Fatal("Error initializing the scheduler: ", err)
+	}
+
+	sch.AddTask(task.NewCheckPorts(e, f))
+	sch.AddTask(task.NewCheckSwarmPorts(e, f))
+	sch.AddTask(task.NewCheckSwarmStatus(e, f))
+	sch.AddTask(task.NewCollectStats(e, f))
+
+	sch.Start()
 }
 
 func RegisterEvents(s *socketio.Server) {

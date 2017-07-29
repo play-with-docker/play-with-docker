@@ -212,13 +212,35 @@
           $scope.connected = true;
         });
 
-        socket.on('instance stats', function(name, mem, cpu, isManager, ports) {
-          $scope.idx[name].mem = mem;
-          $scope.idx[name].cpu = cpu;
-          $scope.idx[name].isManager = isManager;
-          $scope.idx[name].ports = ports;
+        socket.on('instance stats', function(stats) {
+          $scope.idx[stats.instance].mem = stats.mem;
+          $scope.idx[stats.instance].cpu = stats.cpu;
           $scope.$apply();
         });
+
+        socket.on('instance docker swarm status', function(status) {
+            if (status.is_manager) {
+                $scope.idx[status.instance].isManager = true
+            } else if (status.is_worker) {
+                $scope.idx[status.instance].isManager = false
+            } else {
+                $scope.idx[status.instance].isManager = null
+            }
+          $scope.$apply();
+        });
+
+        socket.on('instance docker ports', function(status) {
+          $scope.idx[status.instance].ports = status.ports;
+          $scope.$apply();
+        });
+
+        socket.on('instance docker swarm ports', function(status) {
+            for(var i in status.instances) {
+                var instance = status.instances[i];
+                $scope.idx[instance].swarmPorts = status.ports;
+            }
+            $scope.$apply();
+        }); 
 
         $scope.socket = socket;
 

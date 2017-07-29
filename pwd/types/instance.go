@@ -1,9 +1,6 @@
 package types
 
-import (
-	"context"
-	"sync"
-)
+import "context"
 
 type Instance struct {
 	Image        string          `json:"image" bson:"image"`
@@ -17,8 +14,8 @@ type Instance struct {
 	Key          []byte          `json:"key" bson:"key"`
 	IsDockerHost bool            `json:"is_docker_host" bson:"is_docker_host"`
 	SessionId    string          `json:"session_id" bson:"session_id"`
-	Proxy        string          `json:"proxy" bson:"proxy"`
+	ProxyHost    string          `json:"proxy_host" bson:"proxy_host"`
+	SessionHost  string          `json:"session_host" bson:"session_host"`
 	Session      *Session        `json:"-" bson:"-"`
 	ctx          context.Context `json:"-" bson:"-"`
-	rw           sync.Mutex
 }

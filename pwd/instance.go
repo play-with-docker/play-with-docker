@@ -111,7 +111,7 @@ func (p *pwd) InstanceGet(session *types.Session, name string) *types.Instance {
 
 func (p *pwd) InstanceFind(sessionId, ip string) *types.Instance {
 	defer observeAction("InstanceFind", time.Now())
-	i, err := p.storage.InstanceFind(sessionId, ip)
+	i, err := p.storage.InstanceFindByIP(sessionId, ip)
 	if err != nil {
 		return nil
 	}
@@ -211,7 +211,8 @@ func (p *pwd) InstanceNew(session *types.Session, conf InstanceConfig) (*types.I
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
 	instance.Session = session
-	instance.Proxy = router.EncodeHost(session.Id, ip, router.HostOpts{})
+	instance.ProxyHost = router.EncodeHost(session.Id, ip, router.HostOpts{})
+	instance.SessionHost = session.Host
 	// For now this condition holds through. In the future we might need a more complex logic.
 	instance.IsDockerHost = opts.Privileged
 

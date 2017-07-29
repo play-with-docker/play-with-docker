@@ -15,9 +15,9 @@ type StorageApi interface {
 	SessionDelete(string) error
 	SessionGetAll() (map[string]*types.Session, error)
 
-	InstanceFind(session, ip string) (*types.Instance, error)
+	InstanceGet(sessionId, name string) (*types.Instance, error)
+	InstanceFindByIP(session, ip string) (*types.Instance, error)
 	InstanceCreate(sessionId string, instance *types.Instance) error
 	InstanceDelete(sessionId, instanceName string) error
-
 	InstanceCount() (int, error)
 }

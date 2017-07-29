@@ -382,7 +382,11 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 			// It is not http neither. So just close the connection.
 			return
 		}
-		dstHost, err := r.director(req.Host)
+		host := req.Header.Get("X-Forwarded-Host")
+		if host == "" {
+			host = req.Host
+		}
+		dstHost, err := r.director(host)
 		if err != nil {
 			log.Printf("Error directing request: %v\n", err)
 			return

@@ -34,7 +34,12 @@ func (m *Mock) SessionGetAll() (map[string]*types.Session, error) {
 	return args.Get(0).(map[string]*types.Session), args.Error(1)
 }
 
-func (m *Mock) InstanceFind(sessionId, ip string) (*types.Instance, error) {
+func (m *Mock) InstanceGet(sessionId, name string) (*types.Instance, error) {
+	args := m.Called(sessionId, name)
+	return args.Get(0).(*types.Instance), args.Error(1)
+}
+
+func (m *Mock) InstanceFindByIP(sessionId, ip string) (*types.Instance, error) {
 	args := m.Called(sessionId, ip)
 	return args.Get(0).(*types.Instance), args.Error(1)
 }

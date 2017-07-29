@@ -48,7 +48,22 @@ func (store *storage) SessionPut(s *types.Session) error {
 	return store.save()
 }
 
-func (store *storage) InstanceFind(sessionId, ip string) (*types.Instance, error) {
+func (store *storage) InstanceGet(sessionId, name string) (*types.Instance, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	s := store.db[sessionId]
+	if s == nil {
+		return nil, fmt.Errorf("%s", notFound)
+	}
+	i := s.Instances[name]
+	if i == nil {
+		return nil, fmt.Errorf("%s", notFound)
+	}
+	return i, nil
+}
+
+func (store *storage) InstanceFindByIP(sessionId, ip string) (*types.Instance, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
@@ -114,19 +129,6 @@ func (store *storage) InstanceCount() (int, error) {
 	}
 
 	return ins, nil
-}
-
-func (store *storage) ClientCount() (int, error) {
-	store.rw.Lock()
-	defer store.rw.Unlock()
-
-	var cli int
-
-	for _, s := range store.db {
-		cli += len(s.Clients)
-	}
-
-	return cli, nil
 }
 
 func (store *storage) SessionDelete(sessionId string) error {

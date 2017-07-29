@@ -123,8 +123,9 @@ func (s *scheduler) Start() {
 }
 
 func (s *scheduler) register(session *types.Session) *scheduledSession {
-	s.scheduledSessions[session.Id] = &scheduledSession{session: session}
-	return s.scheduledSessions[session.Id]
+	ss := &scheduledSession{session: session}
+	s.scheduledSessions[session.Id] = ss
+	return ss
 }
 
 func (s *scheduler) cron(ctx context.Context, session *scheduledSession) {

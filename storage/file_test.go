@@ -102,7 +102,7 @@ func TestSessionGetAll(t *testing.T) {
 	assert.Equal(t, s2, loadedSessions[s2.Id])
 }
 
-func TestInstanceFind(t *testing.T) {
+func TestInstanceFindByIP(t *testing.T) {
 	tmpfile, err := ioutil.TempFile("", "pwd")
 	if err != nil {
 		log.Fatal(err)
@@ -124,25 +124,48 @@ func TestInstanceFind(t *testing.T) {
 	err = storage.SessionPut(s2)
 	assert.Nil(t, err)
 
-	foundInstance, err := storage.InstanceFind("session1", "10.0.0.1")
+	foundInstance, err := storage.InstanceFindByIP("session1", "10.0.0.1")
 	assert.Nil(t, err)
 	assert.Equal(t, i1, foundInstance)
 
-	foundInstance, err = storage.InstanceFind("session2", "10.1.0.1")
+	foundInstance, err = storage.InstanceFindByIP("session2", "10.1.0.1")
 	assert.Nil(t, err)
 	assert.Equal(t, i2, foundInstance)
 
-	foundInstance, err = storage.InstanceFind("session3", "10.1.0.1")
+	foundInstance, err = storage.InstanceFindByIP("session3", "10.1.0.1")
 	assert.True(t, NotFound(err))
 	assert.Nil(t, foundInstance)
 
-	foundInstance, err = storage.InstanceFind("session1", "10.1.0.1")
+	foundInstance, err = storage.InstanceFindByIP("session1", "10.1.0.1")
 	assert.True(t, NotFound(err))
 	assert.Nil(t, foundInstance)
 
-	foundInstance, err = storage.InstanceFind("session1", "192.168.0.1")
+	foundInstance, err = storage.InstanceFindByIP("session1", "192.168.0.1")
 	assert.True(t, NotFound(err))
 	assert.Nil(t, foundInstance)
+}
+
+func TestInstanceGet(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("", "pwd")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpfile.Close()
+	os.Remove(tmpfile.Name())
+	defer os.Remove(tmpfile.Name())
+
+	storage, err := NewFileStorage(tmpfile.Name())
+
+	assert.Nil(t, err)
+
+	i1 := &types.Instance{Name: "i1", IP: "10.0.0.1"}
+	s1 := &types.Session{Id: "session1", Instances: map[string]*types.Instance{"i1": i1}}
+	err = storage.SessionPut(s1)
+	assert.Nil(t, err)
+
+	foundInstance, err := storage.InstanceGet("session1", "i1")
+	assert.Nil(t, err)
+	assert.Equal(t, i1, foundInstance)
 }
 
 func TestInstanceCreate(t *testing.T) {
