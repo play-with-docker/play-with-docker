@@ -21,6 +21,7 @@ func WS(so socketio.Socket) {
 	session := core.SessionGet(sessionId)
 	if session == nil {
 		log.Printf("Session with id [%s] does not exist!\n", sessionId)
+		so.Disconnect()
 		return
 	}
 
