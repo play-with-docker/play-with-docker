@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/googollee/go-socket.io"
 	"github.com/gorilla/mux"
@@ -51,4 +52,17 @@ func WS(so socketio.Socket) {
 
 func WSError(so socketio.Socket) {
 	log.Println("error ws")
+}
+
+func WebSocket(rw http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	sessionId := vars["sessionId"]
+
+	session := core.SessionGet(sessionId)
+	if session == nil {
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	broadcast.GetHandler().ServeHTTP(rw, req)
 }

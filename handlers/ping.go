@@ -21,7 +21,7 @@ func Ping(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Microsecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if _, err := c.Info(ctx); err != nil && err == context.DeadlineExceeded {

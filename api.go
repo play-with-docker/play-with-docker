@@ -41,8 +41,6 @@ func main() {
 		}
 	}()
 
-	server := handlers.Broadcast.GetHandler()
-
 	r := mux.NewRouter()
 	corsRouter := mux.NewRouter()
 
@@ -77,7 +75,7 @@ func main() {
 		http.ServeFile(rw, r, "www/sdk.js")
 	})
 
-	corsRouter.Handle("/sessions/{sessionId}/ws/", server)
+	corsRouter.HandleFunc("/sessions/{sessionId}/ws/", handlers.WebSocket)
 	r.Handle("/metrics", promhttp.Handler())
 
 	// Generic routes

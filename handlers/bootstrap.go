@@ -12,7 +12,7 @@ import (
 )
 
 var core pwd.PWDApi
-var Broadcast pwd.BroadcastApi
+var broadcast pwd.BroadcastApi
 
 func Bootstrap() {
 	c, err := client.NewEnvClient()
@@ -22,18 +22,18 @@ func Bootstrap() {
 
 	d := docker.NewDocker(c)
 
-	Broadcast, err = pwd.NewBroadcast(WS, WSError)
+	broadcast, err = pwd.NewBroadcast(WS, WSError)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	t := pwd.NewScheduler(Broadcast, d)
+	t := pwd.NewScheduler(broadcast, d)
 
 	s, err := storage.NewFileStorage(config.SessionsFile)
 
 	if err != nil && !os.IsNotExist(err) {
 		log.Fatal("Error decoding sessions from disk ", err)
 	}
-	core = pwd.NewPWD(d, t, Broadcast, s)
+	core = pwd.NewPWD(d, t, broadcast, s)
 
 }
