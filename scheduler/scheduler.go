@@ -167,6 +167,7 @@ func (s *scheduler) Schedule(session *types.Session) error {
 	scheduledSession := s.register(session)
 	ctx, cancel := context.WithCancel(context.Background())
 	scheduledSession.cancel = cancel
+	scheduledSession.ticker = time.NewTicker(1 * time.Second)
 	go s.cron(ctx, scheduledSession)
 	return nil
 }
