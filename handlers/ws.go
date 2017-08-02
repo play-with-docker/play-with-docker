@@ -50,6 +50,11 @@ func WS(so socketio.Socket) {
 
 		go func(instanceName string, c net.Conn, ws socketio.Socket) {
 			defer c.Close()
+			defer func() {
+				rw.Lock()
+				defer rw.Unlock()
+				delete(trackedTerminals, instanceName)
+			}()
 			encoder := encoding.Replacement.NewEncoder()
 			buf := make([]byte, 1024)
 			for {
