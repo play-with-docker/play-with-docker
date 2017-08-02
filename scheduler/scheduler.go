@@ -96,7 +96,6 @@ func (s *scheduler) Start() {
 	for _, session := range s.scheduledSessions {
 		ctx, cancel := context.WithCancel(context.Background())
 		session.cancel = cancel
-		session.ticker = time.NewTicker(1 * time.Second)
 		go s.cron(ctx, session)
 	}
 	s.event.On(event.SESSION_NEW, func(sessionId string, args ...interface{}) {
@@ -129,6 +128,7 @@ func (s *scheduler) register(session *types.Session) *scheduledSession {
 }
 
 func (s *scheduler) cron(ctx context.Context, session *scheduledSession) {
+	session.ticker = time.NewTicker(1 * time.Second)
 	for {
 		select {
 		case <-session.ticker.C:
@@ -167,7 +167,6 @@ func (s *scheduler) Schedule(session *types.Session) error {
 	scheduledSession := s.register(session)
 	ctx, cancel := context.WithCancel(context.Background())
 	scheduledSession.cancel = cancel
-	scheduledSession.ticker = time.NewTicker(1 * time.Second)
 	go s.cron(ctx, scheduledSession)
 	return nil
 }
