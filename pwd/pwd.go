@@ -7,6 +7,7 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/prometheus/client_golang/prometheus"
@@ -47,11 +48,13 @@ func init() {
 }
 
 type pwd struct {
-	dockerFactory docker.FactoryApi
-	event         event.EventApi
-	storage       storage.StorageApi
-	generator     IdGenerator
-	clientCount   int32
+	dockerFactory      docker.FactoryApi
+	event              event.EventApi
+	storage            storage.StorageApi
+	generator          IdGenerator
+	clientCount        int32
+	windowsProvisioner provisioner.ProvisionerApi
+	dindProvisioner    provisioner.ProvisionerApi
 }
 
 type IdGenerator interface {
@@ -82,17 +85,16 @@ type PWDApi interface {
 	SessionGet(id string) *types.Session
 	SessionSetup(session *types.Session, conf SessionSetupConf) error
 
-	InstanceNew(session *types.Session, conf InstanceConfig) (*types.Instance, error)
+	InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error)
 	InstanceResizeTerminal(instance *types.Instance, cols, rows uint) error
 	InstanceGetTerminal(instance *types.Instance) (net.Conn, error)
 	InstanceUploadFromUrl(instance *types.Instance, fileName, dest, url string) error
 	InstanceUploadFromReader(instance *types.Instance, fileName, dest string, reader io.Reader) error
 	InstanceGet(session *types.Session, name string) *types.Instance
-	// TODO remove this function when we add the session prefix to the PWD url
-	InstanceFind(sessionId, ip string) *types.Instance
+	InstanceFindByIP(sessionId, ip string) *types.Instance
 	InstanceDelete(session *types.Session, instance *types.Instance) error
-	InstanceAllowedImages() []string
 	InstanceExec(instance *types.Instance, cmd []string) (int, error)
+	InstanceAllowedImages() []string
 
 	ClientNew(id string, session *types.Session) *types.Client
 	ClientResizeViewPort(client *types.Client, cols, rows uint)
@@ -101,7 +103,15 @@ type PWDApi interface {
 }
 
 func NewPWD(f docker.FactoryApi, e event.EventApi, s storage.StorageApi) *pwd {
-	return &pwd{dockerFactory: f, event: e, storage: s, generator: xidGenerator{}}
+	return &pwd{dockerFactory: f, event: e, storage: s, generator: xidGenerator{}, windowsProvisioner: provisioner.NewWindows(f), dindProvisioner: provisioner.NewDinD(f)}
+}
+
+func (p *pwd) getProvisioner(t string) (provisioner.ProvisionerApi, error) {
+	if t == "windows" {
+		return p.windowsProvisioner, nil
+	} else {
+		return p.dindProvisioner, nil
+	}
 }
 
 func (p *pwd) docker(sessionId string) docker.DockerApi {

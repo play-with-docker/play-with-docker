@@ -16,6 +16,19 @@ type Instance struct {
 	SessionId    string          `json:"session_id" bson:"session_id"`
 	ProxyHost    string          `json:"proxy_host" bson:"proxy_host"`
 	SessionHost  string          `json:"session_host" bson:"session_host"`
+	Type         string          `json:"type" bson:"type"`
 	Session      *Session        `json:"-" bson:"-"`
 	ctx          context.Context `json:"-" bson:"-"`
+}
+
+type InstanceConfig struct {
+	ImageName  string
+	Hostname   string
+	ServerCert []byte
+	ServerKey  []byte
+	CACert     []byte
+	Cert       []byte
+	Key        []byte
+	Host       string
+	Type       string
 }

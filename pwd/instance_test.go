@@ -87,7 +87,7 @@ func TestInstanceNew(t *testing.T) {
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1"}).Return()
 
-	instance, err := p.InstanceNew(session, InstanceConfig{Host: "something.play-with-docker.com"})
+	instance, err := p.InstanceNew(session, types.InstanceConfig{Host: "something.play-with-docker.com"})
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -149,7 +149,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1"}).Return()
 
-	instance, err := p.InstanceNew(session, InstanceConfig{ImageName: "redis"})
+	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis"})
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -211,7 +211,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_redis-master", "10.0.0.1", "redis-master"}).Return()
 
-	instance, err := p.InstanceNew(session, InstanceConfig{ImageName: "redis", Hostname: "redis-master"})
+	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis", Hostname: "redis-master"})
 
 	assert.Nil(t, err)
 
@@ -222,16 +222,4 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	_s.AssertExpectations(t)
 	_g.AssertExpectations(t)
 	_e.M.AssertExpectations(t)
-}
-
-func TestInstanceAllowedImages(t *testing.T) {
-	_f := &docker.FactoryMock{}
-	_s := &storage.Mock{}
-	_e := &event.Mock{}
-
-	p := NewPWD(_f, _e, _s)
-
-	expectedImages := []string{config.GetDindImageName(), "franela/dind:overlay2-dev", "franela/ucp:2.4.1"}
-
-	assert.Equal(t, expectedImages, p.InstanceAllowedImages())
 }

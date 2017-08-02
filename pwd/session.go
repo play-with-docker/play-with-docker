@@ -147,7 +147,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 
 	s.Ready = false
 	p.event.Emit(event.SESSION_READY, s.Id, false)
-	i, err := p.InstanceNew(s, InstanceConfig{ImageName: s.ImageName, Host: s.Host})
+	i, err := p.InstanceNew(s, types.InstanceConfig{ImageName: s.ImageName, Host: s.Host})
 	if err != nil {
 		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
 		return err
@@ -201,7 +201,7 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 	// first look for a swarm manager and create it
 	for _, conf := range conf.Instances {
 		if conf.IsSwarmManager {
-			instanceConf := InstanceConfig{
+			instanceConf := types.InstanceConfig{
 				ImageName: conf.Image,
 				Hostname:  conf.Hostname,
 				Host:      session.Host,
@@ -232,7 +232,7 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 			wg.Add(1)
 			go func(c SessionSetupInstanceConf) {
 				defer wg.Done()
-				instanceConf := InstanceConfig{
+				instanceConf := types.InstanceConfig{
 					ImageName: c.Image,
 					Hostname:  c.Hostname,
 				}

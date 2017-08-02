@@ -43,7 +43,7 @@ func (m *Mock) SessionSetup(session *types.Session, conf SessionSetupConf) error
 	return args.Error(0)
 }
 
-func (m *Mock) InstanceNew(session *types.Session, conf InstanceConfig) (*types.Instance, error) {
+func (m *Mock) InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error) {
 	args := m.Called(session, conf)
 	return args.Get(0).(*types.Instance), args.Error(1)
 }
@@ -73,7 +73,7 @@ func (m *Mock) InstanceGet(session *types.Session, name string) *types.Instance 
 	return args.Get(0).(*types.Instance)
 }
 
-func (m *Mock) InstanceFind(session, ip string) *types.Instance {
+func (m *Mock) InstanceFindByIP(session, ip string) *types.Instance {
 	args := m.Called(session, ip)
 	return args.Get(0).(*types.Instance)
 }
@@ -83,14 +83,14 @@ func (m *Mock) InstanceDelete(session *types.Session, instance *types.Instance) 
 	return args.Error(0)
 }
 
-func (m *Mock) InstanceAllowedImages() []string {
-	args := m.Called()
-	return args.Get(0).([]string)
-}
-
 func (m *Mock) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
 	args := m.Called(instance, cmd)
 	return args.Int(0), args.Error(1)
+}
+
+func (m *Mock) InstanceAllowedImages() []string {
+	args := m.Called()
+	return args.Get(0).([]string)
 }
 
 func (m *Mock) ClientNew(id string, session *types.Session) *types.Client {

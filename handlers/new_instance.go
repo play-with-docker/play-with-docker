@@ -6,14 +6,14 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/play-with-docker/play-with-docker/pwd"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
 func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
 
-	body := pwd.InstanceConfig{Host: req.Host}
+	body := types.InstanceConfig{Host: req.Host}
 
 	json.NewDecoder(req.Body).Decode(&body)
 
