@@ -16,7 +16,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/router"
 )
 
-func director(host string) (*net.TCPAddr, error) {
+func director(protocol router.Protocol, host string) (*net.TCPAddr, error) {
 	info, err := router.DecodeHost(host)
 	if err != nil {
 		return nil, err
@@ -29,8 +29,15 @@ func director(host string) (*net.TCPAddr, error) {
 	}
 
 	if port == 0 {
-		// TODO: Should default depending on the protocol
-		port = 80
+		if protocol == router.ProtocolHTTP {
+			port = 80
+		} else if protocol == router.ProtocolHTTPS {
+			port = 443
+		} else if protocol == router.ProtocolSSH {
+			port = 22
+		} else if protocol == router.ProtocolDNS {
+			port = 53
+		}
 	}
 
 	t, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", info.InstanceIP, port))

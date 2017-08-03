@@ -17,7 +17,16 @@ import (
 	"github.com/miekg/dns"
 )
 
-type Director func(host string) (*net.TCPAddr, error)
+type Protocol int
+
+const (
+	ProtocolHTTP Protocol = iota
+	ProtocolHTTPS
+	ProtocolSSH
+	ProtocolDNS
+)
+
+type Director func(protocol Protocol, host string) (*net.TCPAddr, error)
 
 type proxyRouter struct {
 	sync.Mutex
@@ -147,7 +156,7 @@ func (r *proxyRouter) sshHandle(nConn net.Conn) {
 		return
 	}
 
-	dstHost, err := r.director(sshCon.User())
+	dstHost, err := r.director(ProtocolSSH, sshCon.User())
 	if err != nil {
 		nConn.Close()
 		return
@@ -258,7 +267,7 @@ func (r *proxyRouter) dnsRequest(w dns.ResponseWriter, req *dns.Msg) {
 			return
 		}
 
-		dstHost, err := r.director(strings.TrimSuffix(question, "."))
+		dstHost, err := r.director(ProtocolDNS, strings.TrimSuffix(question, "."))
 		if err != nil {
 			// Director couldn't resolve it, try to lookup in the system's DNS
 			ips, err := net.LookupIP(question)
@@ -361,7 +370,7 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 		// It is a TLS connection
 		defer vhostConn.Close()
 		host := vhostConn.ClientHelloMsg.ServerName
-		dstHost, err := r.director(host)
+		dstHost, err := r.director(ProtocolHTTPS, host)
 		if err != nil {
 			log.Printf("Error directing request: %v\n", err)
 			return
@@ -386,7 +395,7 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 		if host == "" {
 			host = req.Host
 		}
-		dstHost, err := r.director(host)
+		dstHost, err := r.director(ProtocolHTTP, host)
 		if err != nil {
 			log.Printf("Error directing request: %v\n", err)
 			return
