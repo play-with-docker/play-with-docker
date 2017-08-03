@@ -19,7 +19,7 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 
 	s := core.SessionGet(sessionId)
 
-	if len(s.Instances) >= 5 {
+	if len(s.Instances) >= 10 {
 		rw.WriteHeader(http.StatusConflict)
 		return
 	}
