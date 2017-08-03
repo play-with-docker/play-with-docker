@@ -19,9 +19,15 @@ import (
 
 type localCachedFactory struct {
 	rw              sync.Mutex
+	irw             sync.Mutex
 	sessionClient   DockerApi
-	instanceClients map[string]DockerApi
+	instanceClients map[string]*instanceEntry
 	storage         storage.StorageApi
+}
+
+type instanceEntry struct {
+	rw     sync.Mutex
+	client DockerApi
 }
 
 func (f *localCachedFactory) GetForSession(sessionId string) (DockerApi, error) {
@@ -46,12 +52,22 @@ func (f *localCachedFactory) GetForSession(sessionId string) (DockerApi, error) 
 }
 
 func (f *localCachedFactory) GetForInstance(sessionId, instanceName string) (DockerApi, error) {
-	f.rw.Lock()
-	defer f.rw.Unlock()
+	key := sessionId + instanceName
 
-	c, found := f.instanceClients[sessionId+instanceName]
-	if found {
-		return c, nil
+	f.irw.Lock()
+	c, found := f.instanceClients[key]
+	if !found {
+		c := &instanceEntry{}
+		f.instanceClients[key] = c
+	}
+	c = f.instanceClients[key]
+	f.irw.Unlock()
+
+	c.rw.Lock()
+	defer c.rw.Unlock()
+
+	if c.client != nil {
+		return c.client, nil
 	}
 
 	instance, err := f.storage.InstanceGet(sessionId, instanceName)
@@ -91,7 +107,7 @@ func (f *localCachedFactory) GetForInstance(sessionId, instanceName string) (Doc
 		return nil, err
 	}
 	dockerClient := NewDocker(dc)
-	f.instanceClients[sessionId+instance.Name] = dockerClient
+	c.client = dockerClient
 
 	return dockerClient, nil
 }
@@ -120,7 +136,7 @@ func (f *localCachedFactory) check(c *client.Client) error {
 
 func NewLocalCachedFactory(s storage.StorageApi) *localCachedFactory {
 	return &localCachedFactory{
-		instanceClients: make(map[string]DockerApi),
+		instanceClients: make(map[string]*instanceEntry),
 		storage:         s,
 	}
 }
