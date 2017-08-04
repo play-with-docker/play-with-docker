@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -87,18 +88,21 @@ func (f *localCachedFactory) GetForInstance(sessionId, instanceName string) (Doc
 		tlsConfig.Certificates = []tls.Certificate{tlsCert}
 	}
 
+	proxyUrl, _ := url.Parse("http://l2:443")
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout:   1 * time.Second,
 			KeepAlive: 30 * time.Second,
-		}).DialContext}
+		}).DialContext,
+		Proxy: http.ProxyURL(proxyUrl),
+	}
 	if tlsConfig != nil {
 		transport.TLSClientConfig = tlsConfig
 	}
 	cli := &http.Client{
 		Transport: transport,
 	}
-	dc, err := client.NewClient("http://l2:443", api.DefaultVersion, cli, map[string]string{"X-Forwarded-Host": router.EncodeHost(instance.SessionId, instance.IP, router.HostOpts{EncodedPort: 2375})})
+	dc, err := client.NewClient(fmt.Sprintf("http://%s", router.EncodeHost(instance.SessionId, instance.IP, router.HostOpts{EncodedPort: 2375})), api.DefaultVersion, cli, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to DinD docker daemon", err)
 	}
