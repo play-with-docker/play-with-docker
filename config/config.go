@@ -46,6 +46,16 @@ func GetDindImageName() string {
 	}
 	return dindImage
 }
+
+func GetSSHImage() string {
+	sshImage := os.Getenv("SSH_IMAGE")
+	defaultSSHImage := "franela/ssh"
+	if len(sshImage) == 0 {
+		return defaultSSHImage
+	}
+	return sshImage
+}
+
 func GetDuration(reqDur string) time.Duration {
 	var defaultDuration = 4 * time.Hour
 	if reqDur != "" {

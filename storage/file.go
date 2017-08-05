@@ -48,6 +48,19 @@ func (store *storage) SessionPut(s *types.Session) error {
 	return store.save()
 }
 
+func (store *storage) InstanceGetAllWindows() ([]*types.WindowsInstance, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	instances := []*types.WindowsInstance{}
+
+	for _, s := range store.db {
+		instances = append(instances, s.WindowsAssigned...)
+	}
+
+	return instances, nil
+}
+
 func (store *storage) InstanceGet(sessionId, name string) (*types.Instance, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()
@@ -94,6 +107,20 @@ func (store *storage) InstanceCreate(sessionId string, instance *types.Instance)
 	return store.save()
 }
 
+func (store *storage) InstanceCreateWindows(instance *types.WindowsInstance) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	s, found := store.db[instance.SessionId]
+	if !found {
+		return fmt.Errorf("Session %s", notFound)
+	}
+
+	s.WindowsAssigned = append(s.WindowsAssigned, instance)
+
+	return store.save()
+}
+
 func (store *storage) InstanceDelete(sessionId, name string) error {
 	store.rw.Lock()
 	defer store.rw.Unlock()
@@ -107,6 +134,25 @@ func (store *storage) InstanceDelete(sessionId, name string) error {
 		return nil
 	}
 	delete(s.Instances, name)
+
+	return store.save()
+}
+
+func (store *storage) InstanceDeleteWindows(sessionId, id string) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	s, found := store.db[sessionId]
+	if !found {
+		return fmt.Errorf("Session %s", notFound)
+	}
+
+	for i, winst := range s.WindowsAssigned {
+		if winst.ID == id {
+			s.WindowsAssigned = append(s.WindowsAssigned[:i], s.WindowsAssigned[i+1:]...)
+		}
+
+	}
 
 	return store.save()
 }

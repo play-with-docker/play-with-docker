@@ -19,5 +19,8 @@ type StorageApi interface {
 	InstanceFindByIP(session, ip string) (*types.Instance, error)
 	InstanceCreate(sessionId string, instance *types.Instance) error
 	InstanceDelete(sessionId, instanceName string) error
+	InstanceDeleteWindows(sessionId, instanceId string) error
 	InstanceCount() (int, error)
+	InstanceGetAllWindows() ([]*types.WindowsInstance, error)
+	InstanceCreateWindows(*types.WindowsInstance) error
 }

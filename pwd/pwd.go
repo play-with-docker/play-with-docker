@@ -103,7 +103,7 @@ type PWDApi interface {
 }
 
 func NewPWD(f docker.FactoryApi, e event.EventApi, s storage.StorageApi) *pwd {
-	return &pwd{dockerFactory: f, event: e, storage: s, generator: xidGenerator{}, windowsProvisioner: provisioner.NewWindows(f), dindProvisioner: provisioner.NewDinD(f)}
+	return &pwd{dockerFactory: f, event: e, storage: s, generator: xidGenerator{}, windowsProvisioner: provisioner.NewWindowsASG(f, s), dindProvisioner: provisioner.NewDinD(f)}
 }
 
 func (p *pwd) getProvisioner(t string) (provisioner.ProvisionerApi, error) {

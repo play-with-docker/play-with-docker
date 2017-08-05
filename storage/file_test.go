@@ -168,6 +168,31 @@ func TestInstanceGet(t *testing.T) {
 	assert.Equal(t, i1, foundInstance)
 }
 
+func TestInstanceGetAllWindows(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("", "pwd")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpfile.Close()
+	os.Remove(tmpfile.Name())
+	defer os.Remove(tmpfile.Name())
+
+	storage, err := NewFileStorage(tmpfile.Name())
+
+	assert.Nil(t, err)
+	w1 := []*types.WindowsInstance{{ID: "one"}, {ID: "two"}}
+	w2 := []*types.WindowsInstance{{ID: "three"}, {ID: "four"}}
+	s1 := &types.Session{Id: "session1", WindowsAssigned: w1}
+	s2 := &types.Session{Id: "session2", WindowsAssigned: w2}
+	err = storage.SessionPut(s1)
+	err = storage.SessionPut(s2)
+	assert.Nil(t, err)
+
+	allw, err := storage.InstanceGetAllWindows()
+	assert.Nil(t, err)
+	assert.Equal(t, allw, append(w1, w2...))
+}
+
 func TestInstanceCreate(t *testing.T) {
 	tmpfile, err := ioutil.TempFile("", "pwd")
 	if err != nil {
@@ -193,6 +218,56 @@ func TestInstanceCreate(t *testing.T) {
 
 	assert.Equal(t, i1, loadedSession.Instances["i1"])
 
+}
+
+func TestInstanceCreateWindows(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("", "pwd")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpfile.Close()
+	os.Remove(tmpfile.Name())
+	defer os.Remove(tmpfile.Name())
+
+	storage, err := NewFileStorage(tmpfile.Name())
+
+	assert.Nil(t, err)
+
+	s1 := &types.Session{Id: "session1"}
+	i1 := &types.WindowsInstance{SessionId: s1.Id, ID: "some id"}
+	err = storage.SessionPut(s1)
+	assert.Nil(t, err)
+	err = storage.InstanceCreateWindows(i1)
+	assert.Nil(t, err)
+
+	loadedSession, err := storage.SessionGet("session1")
+	assert.Nil(t, err)
+
+	assert.Equal(t, i1, loadedSession.WindowsAssigned[0])
+}
+
+func TestInstanceDeleteWindows(t *testing.T) {
+	tmpfile, err := ioutil.TempFile("", "pwd")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpfile.Close()
+	os.Remove(tmpfile.Name())
+	defer os.Remove(tmpfile.Name())
+
+	storage, err := NewFileStorage(tmpfile.Name())
+
+	assert.Nil(t, err)
+
+	s1 := &types.Session{Id: "session1", WindowsAssigned: []*types.WindowsInstance{{ID: "one"}}}
+	err = storage.SessionPut(s1)
+	assert.Nil(t, err)
+
+	err = storage.InstanceDeleteWindows(s1.Id, "one")
+	assert.Nil(t, err)
+
+	found, err := storage.SessionGet(s1.Id)
+	assert.Equal(t, 0, len(found.WindowsAssigned))
 }
 
 func TestCounts(t *testing.T) {

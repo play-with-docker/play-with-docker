@@ -192,16 +192,17 @@ func (d *docker) DeleteContainer(id string) error {
 }
 
 type CreateContainerOpts struct {
-	Image         string
-	SessionId     string
-	PwdIpAddress  string
-	ContainerName string
-	Hostname      string
-	ServerCert    []byte
-	ServerKey     []byte
-	CACert        []byte
-	Privileged    bool
-	HostFQDN      string
+	Image           string
+	WindowsEndpoint string
+	SessionId       string
+	PwdIpAddress    string
+	ContainerName   string
+	Hostname        string
+	ServerCert      []byte
+	ServerKey       []byte
+	CACert          []byte
+	Privileged      bool
+	HostFQDN        string
 }
 
 func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
@@ -210,6 +211,8 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 	containerCertDir := fmt.Sprintf("%s/certs", containerDir)
 
 	env := []string{}
+
+	env = append(env, fmt.Sprintf("WINDOWS_ENDPOINT=%s", opts.WindowsEndpoint))
 
 	// Write certs to container cert dir
 	if len(opts.ServerCert) > 0 {

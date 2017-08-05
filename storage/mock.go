@@ -39,6 +39,11 @@ func (m *Mock) InstanceGet(sessionId, name string) (*types.Instance, error) {
 	return args.Get(0).(*types.Instance), args.Error(1)
 }
 
+func (m *Mock) InstanceGetAllWindows() ([]*types.WindowsInstance, error) {
+	args := m.Called()
+	return args.Get(0).([]*types.WindowsInstance), args.Error(1)
+}
+
 func (m *Mock) InstanceFindByIP(sessionId, ip string) (*types.Instance, error) {
 	args := m.Called(sessionId, ip)
 	return args.Get(0).(*types.Instance), args.Error(1)
@@ -49,8 +54,18 @@ func (m *Mock) InstanceCreate(sessionId string, instance *types.Instance) error 
 	return args.Error(0)
 }
 
+func (m *Mock) InstanceCreateWindows(instance *types.WindowsInstance) error {
+	args := m.Called(instance)
+	return args.Error(0)
+}
+
 func (m *Mock) InstanceDelete(sessionId, instanceName string) error {
 	args := m.Called(sessionId, instanceName)
+	return args.Error(0)
+}
+
+func (m *Mock) InstanceDeleteWindows(sessionId, instanceId string) error {
+	args := m.Called(sessionId, instanceId)
 	return args.Error(0)
 }
 

@@ -19,6 +19,12 @@ type Instance struct {
 	Type         string          `json:"type" bson:"type"`
 	Session      *Session        `json:"-" bson:"-"`
 	ctx          context.Context `json:"-" bson:"-"`
+	WindowsId    string          `json:"-" bson:"windows_id"`
+}
+
+type WindowsInstance struct {
+	ID        string `bson:"id"`
+	SessionId string `bson:"session_id"`
 }
 
 type InstanceConfig struct {
