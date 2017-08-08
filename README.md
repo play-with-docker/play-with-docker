@@ -26,9 +26,9 @@ Start the Docker daemon on your machine and run `docker pull franela/dind`.
 
 2) `go get -v -d -t ./...`
 
-3) Start PWD as a container with `docker stack deploy -c docker-compose.yml pwd`.
+3) Start PWD as a container with docker-compose up.
 
-5) Point to http://localhost and click "New Instance".
+5) Point to http://localhost and click "New Instance"
 
 Notes:
 
