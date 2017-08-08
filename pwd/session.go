@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
@@ -61,15 +62,28 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
-	if err := p.docker(s.Id).CreateNetwork(s.Id); err != nil {
+	dockerClient := p.docker(s.Id)
+	u, _ := url.Parse(dockerClient.GetDaemonHost())
+	if u.Host == "" {
+		s.Host = "localhost"
+	} else {
+		chunks := strings.Split(u.Host, ":")
+		s.Host = chunks[0]
+	}
+
+	if err := dockerClient.CreateNetwork(s.Id); err != nil {
 		log.Println("ERROR NETWORKING")
 		return nil, err
 	}
 	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
 
-	if err := p.connectToNetwork(s); err != nil {
+	ip, err := dockerClient.ConnectNetwork(config.L2ContainerName, s.Id, s.PwdIpAddress)
+	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
+	s.PwdIpAddress = ip
+	log.Printf("Connected %s to network [%s]\n", config.PWDContainerName, s.Id)
 
 	if err := p.storage.SessionPut(s); err != nil {
 		log.Println(err)
@@ -276,44 +290,5 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 	}
 	wg.Wait()
 
-	return nil
-}
-
-/*
-// This function should be called any time a session needs to be prepared:
-// 1. Like when it is created
-// 2. When it was loaded from storage
-func (p *pwd) prepareSession(session *types.Session) (bool, error) {
-	session.Lock()
-	defer session.Unlock()
-
-	if isSessionPrepared(session.Id) {
-		return false, nil
-	}
-
-	// Connect PWD daemon to the new network
-	if err := p.connectToNetwork(session); err != nil {
-		return false, err
-	}
-
-	for _, i := range session.Instances {
-		// wire the session back to the instance
-		i.Session = session
-		go p.InstanceAttachTerminal(i)
-	}
-	preparedSessions[session.Id] = true
-
-	return true, nil
-}
-*/
-
-func (p *pwd) connectToNetwork(s *types.Session) error {
-	ip, err := p.docker(s.Id).ConnectNetwork(config.L2ContainerName, s.Id, s.PwdIpAddress)
-	if err != nil {
-		log.Println("ERROR NETWORKING")
-		return err
-	}
-	s.PwdIpAddress = ip
-	log.Printf("Connected %s to network [%s]\n", config.PWDContainerName, s.Id)
 	return nil
 }

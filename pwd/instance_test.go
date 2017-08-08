@@ -47,6 +47,7 @@ func TestInstanceNew(t *testing.T) {
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
+	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
@@ -69,6 +70,7 @@ func TestInstanceNew(t *testing.T) {
 		IsDockerHost: true,
 		SessionId:    session.Id,
 		Session:      session,
+		SessionHost:  session.Host,
 		ProxyHost:    router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
 	expectedContainerOpts := docker.CreateContainerOpts{
@@ -109,6 +111,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
+	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
@@ -132,6 +135,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		SessionId:    session.Id,
 		IsDockerHost: false,
 		Session:      session,
+		SessionHost:  session.Host,
 		ProxyHost:    router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
 	expectedContainerOpts := docker.CreateContainerOpts{
@@ -171,6 +175,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
+	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
@@ -192,6 +197,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		Image:        "redis",
 		IsDockerHost: false,
 		Session:      session,
+		SessionHost:  session.Host,
 		SessionId:    session.Id,
 		ProxyHost:    router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}

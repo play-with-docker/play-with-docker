@@ -28,6 +28,11 @@ func (m *Mock) GetDaemonInfo() (types.Info, error) {
 	return args.Get(0).(types.Info), args.Error(1)
 }
 
+func (m *Mock) GetDaemonHost() string {
+	args := m.Called()
+	return args.String(0)
+}
+
 func (m *Mock) GetSwarmPorts() ([]string, []uint16, error) {
 	args := m.Called()
 	return args.Get(0).([]string), args.Get(1).([]uint16), args.Error(2)

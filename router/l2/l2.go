@@ -6,14 +6,19 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/router"
+	"github.com/shirou/gopsutil/load"
+	"github.com/urfave/negroni"
 )
 
 func director(protocol router.Protocol, host string) (*net.TCPAddr, error) {
@@ -128,7 +133,36 @@ func main() {
 	}
 	go monitorNetworks()
 
+	ro := mux.NewRouter()
+	ro.HandleFunc("/ping", ping).Methods("GET")
+	n := negroni.Classic()
+	n.UseHandler(ro)
+
+	httpServer := http.Server{
+		Addr:              "0.0.0.0:8080",
+		Handler:           n,
+		IdleTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go httpServer.ListenAndServe()
+
 	r := router.NewRouter(director, config.SSHKeyPath)
 	r.ListenAndWait(":443", ":53", ":22")
 	defer r.Close()
+}
+
+func ping(rw http.ResponseWriter, req *http.Request) {
+	// Get system load average of the last 5 minutes and compare it against a threashold.
+
+	a, err := load.Avg()
+	if err != nil {
+		log.Println("Cannot get system load average!", err)
+	} else {
+		if a.Load5 > config.MaxLoadAvg {
+			log.Printf("System load average is too high [%f]\n", a.Load5)
+			rw.WriteHeader(http.StatusInsufficientStorage)
+		}
+	}
+
+	fmt.Fprintf(rw, `{"ip": "%s"}`, config.L2RouterIP)
 }

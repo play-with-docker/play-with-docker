@@ -33,6 +33,7 @@ type DockerApi interface {
 	CreateNetwork(id string) error
 	ConnectNetwork(container, network, ip string) (string, error)
 	GetDaemonInfo() (types.Info, error)
+	GetDaemonHost() string
 	GetSwarmPorts() ([]string, []uint16, error)
 	GetPorts() ([]uint16, error)
 	GetContainerStats(name string) (io.ReadCloser, error)
@@ -100,6 +101,10 @@ func (d *docker) ConnectNetwork(containerId, networkId, ip string) (string, erro
 
 func (d *docker) GetDaemonInfo() (types.Info, error) {
 	return d.c.Info(context.Background())
+}
+
+func (d *docker) GetDaemonHost() string {
+	return d.c.DaemonHost()
 }
 
 func (d *docker) GetSwarmPorts() ([]string, []uint16, error) {
