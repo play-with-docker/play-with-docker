@@ -25,15 +25,13 @@ var core pwd.PWDApi
 var e event.EventApi
 var ws *socketio.Server
 
-func Bootstrap() {
-	s, err := storage.NewFileStorage(config.SessionsFile)
-	e = event.NewLocalBroker()
+func Bootstrap(storageInit func() storage.StorageApi, eventInit func() event.EventApi, factoryInit func(storage.StorageApi) docker.FactoryApi) {
+	s := storageInit()
 
-	f := docker.NewLocalCachedFactory(s)
+	e = eventInit()
 
-	if err != nil && !os.IsNotExist(err) {
-		log.Fatal("Error initializing StorageAPI: ", err)
-	}
+	f := factoryInit(s)
+
 	core = pwd.NewPWD(f, e, s)
 
 	sch, err := scheduler.NewScheduler(s, e, core)
