@@ -25,6 +25,4 @@ COPY --from=0 /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_rsa_key
 WORKDIR /app
 CMD ["./play-with-docker-l2", "-ssh_key_path", "/etc/ssh/ssh_host_rsa_key"]
 
-EXPOSE 22
-EXPOSE 53
-EXPOSE 443
+EXPOSE 22 53 443 8080
