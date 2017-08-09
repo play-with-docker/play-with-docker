@@ -1,11 +1,19 @@
 package storage
 
-import "github.com/play-with-docker/play-with-docker/pwd/types"
+import (
+	"fmt"
+
+	"github.com/play-with-docker/play-with-docker/pwd/types"
+)
 
 const notFound = "NotFound"
 
 func NotFound(e error) bool {
 	return e.Error() == notFound
+}
+
+func NewNotFoundError() error {
+	return fmt.Errorf("%s", notFound)
 }
 
 type StorageApi interface {
