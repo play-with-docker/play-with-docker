@@ -52,7 +52,12 @@ func (p *pwd) InstanceUploadFromReader(instance *types.Instance, fileName, dest 
 
 func (p *pwd) InstanceGet(session *types.Session, name string) *types.Instance {
 	defer observeAction("InstanceGet", time.Now())
-	return session.Instances[name]
+	instance, err := p.storage.InstanceGet(session.Id, name)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	return instance
 }
 
 func (p *pwd) InstanceFindByIP(sessionId, ip string) *types.Instance {
