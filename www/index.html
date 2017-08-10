@@ -48,7 +48,12 @@
                   <div class="md-toolbar-tools">
                     <h1 class="md-toolbar-tools">Instances</h1>
                     <templates-icon></templates-icon>
-                    <settings-icon></settings-icon>
+                    <settings-icon></settings-icon><br/>
+                  </div>
+                  <div class="md-toolbar-tools">
+                      <md-switch ng-disabled="instances.length > 0" ng-model="type.windows">
+                          Windows containers {{windows}}
+                      </md-switch>
                   </div>
                 </md-toolbar>
                 <md-content layout-padding>

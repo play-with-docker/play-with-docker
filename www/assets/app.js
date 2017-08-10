@@ -27,6 +27,7 @@
     $scope.isAlive = true;
     $scope.ttl = '--:--:--';
     $scope.connected = true;
+    $scope.type = {windows: false};
     $scope.isInstanceBeingCreated = false;
     $scope.newInstanceBtnText = '+ Add new instance';
     $scope.deleteInstanceBtnText = 'Delete';
@@ -108,10 +109,11 @@
 
     $scope.newInstance = function() {
       updateNewInstanceBtnState(true);
+      var instanceType = $scope.type.windows ? 'windows': 'linux';
       $http({
         method: 'POST',
         url: '/sessions/' + $scope.sessionId + '/instances',
-        data : { ImageName : InstanceService.getDesiredImage() }
+        data : { ImageName : InstanceService.getDesiredImage(), type: instanceType }
       }).then(function(response) {
         var i = $scope.upsertInstance(response.data);
         $scope.showInstance(i);

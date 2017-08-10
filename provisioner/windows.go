@@ -132,7 +132,7 @@ func (d *windows) InstanceDelete(session *types.Session, instance *types.Instanc
 	return nil
 }
 
-func (d *windows) InstanceResizeTerminal(instance *types.Instance, cols, rows uint) error {
+func (d *windows) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) error {
 	dockerClient, err := d.factory.GetForSession(instance.SessionId)
 	if err != nil {
 		return err
@@ -172,7 +172,9 @@ func (d *windows) getWindowsInstanceInfo(sessionId string) (*instanceInfo, error
 	availInstances := make([]string, len(instances))
 
 	for i, inst := range instances {
-		availInstances[i] = *inst.InstanceId
+		if *inst.LifecycleState == "InService" {
+			availInstances[i] = *inst.InstanceId
+		}
 	}
 
 	assignedInstances, err := d.storage.InstanceGetAllWindows()
