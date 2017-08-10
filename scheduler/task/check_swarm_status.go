@@ -24,7 +24,7 @@ type checkSwarmStatus struct {
 var CheckSwarmStatusEvent event.EventType
 
 func init() {
-	CheckSwarmStatusEvent = event.NewEventType("instance docker swarm status")
+	CheckSwarmStatusEvent = event.EventType("instance docker swarm status")
 }
 
 func (t *checkSwarmStatus) Name() string {

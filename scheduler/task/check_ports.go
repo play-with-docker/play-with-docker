@@ -22,7 +22,7 @@ type checkPorts struct {
 var CheckPortsEvent event.EventType
 
 func init() {
-	CheckPortsEvent = event.NewEventType("instance docker ports")
+	CheckPortsEvent = event.EventType("instance docker ports")
 }
 
 func (t *checkPorts) Name() string {

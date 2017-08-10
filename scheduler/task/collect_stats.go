@@ -27,7 +27,7 @@ type collectStats struct {
 var CollectStatsEvent event.EventType
 
 func init() {
-	CollectStatsEvent = event.NewEventType("instance stats")
+	CollectStatsEvent = event.EventType("instance stats")
 }
 
 func (t *collectStats) Name() string {

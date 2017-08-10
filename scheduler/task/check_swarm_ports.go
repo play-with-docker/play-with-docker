@@ -24,7 +24,7 @@ type checkSwarmPorts struct {
 var CheckSwarmPortsEvent event.EventType
 
 func init() {
-	CheckSwarmPortsEvent = event.NewEventType("instance docker swarm ports")
+	CheckSwarmPortsEvent = event.EventType("instance docker swarm ports")
 }
 
 func (t *checkSwarmPorts) Name() string {

@@ -1,40 +1,20 @@
 package event
 
-var events []string
-
-type EventType int
+type EventType string
 
 func (e EventType) String() string {
-	return events[int(e)]
-}
-
-func ciota(s string) EventType {
-	events = append(events, s)
-	return EventType(len(events) - 1)
-}
-
-func FindEventType(name string) (EventType, bool) {
-	for i, event := range events {
-		if event == name {
-			return EventType(i), true
-		}
-	}
-	return EventType(-1), false
-}
-
-func NewEventType(name string) EventType {
-	return ciota(name)
+	return string(e)
 }
 
 var (
-	INSTANCE_VIEWPORT_RESIZE = ciota("instance viewport resize")
-	INSTANCE_DELETE          = ciota("instance delete")
-	INSTANCE_NEW             = ciota("instance new")
-	INSTANCE_STATS           = ciota("instance stats")
-	SESSION_NEW              = ciota("session new")
-	SESSION_END              = ciota("session end")
-	SESSION_READY            = ciota("session ready")
-	SESSION_BUILDER_OUT      = ciota("session builder out")
+	INSTANCE_VIEWPORT_RESIZE = EventType("instance viewport resize")
+	INSTANCE_DELETE          = EventType("instance delete")
+	INSTANCE_NEW             = EventType("instance new")
+	INSTANCE_STATS           = EventType("instance stats")
+	SESSION_NEW              = EventType("session new")
+	SESSION_END              = EventType("session end")
+	SESSION_READY            = EventType("session ready")
+	SESSION_BUILDER_OUT      = EventType("session builder out")
 )
 
 type Handler func(sessionId string, args ...interface{})
