@@ -10,12 +10,8 @@ import (
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd"
-	"github.com/play-with-docker/play-with-docker/scheduler"
-	"github.com/play-with-docker/play-with-docker/scheduler/task"
-	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/play-with-docker/play-with-docker/templates"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
@@ -25,28 +21,9 @@ var core pwd.PWDApi
 var e event.EventApi
 var ws *socketio.Server
 
-func Bootstrap(storageInit func() storage.StorageApi, eventInit func() event.EventApi, factoryInit func(storage.StorageApi) docker.FactoryApi) {
-	s := storageInit()
-
-	e = eventInit()
-
-	f := factoryInit(s)
-
-	core = pwd.NewPWD(f, e, s)
-
-	sch, err := scheduler.NewScheduler(s, e, core)
-	if err != nil {
-		log.Fatal("Error initializing the scheduler: ", err)
-	}
-
-	sch.AddTask(task.NewCheckPorts(e, f))
-	sch.AddTask(task.NewCheckSwarmPorts(e, f))
-	sch.AddTask(task.NewCheckSwarmStatus(e, f))
-	sch.AddTask(task.NewCollectStats(e, f))
-
-	sch.Start()
-
-	Register()
+func Bootstrap(c pwd.PWDApi, ev event.EventApi) {
+	core = c
+	e = ev
 }
 
 func Register() {

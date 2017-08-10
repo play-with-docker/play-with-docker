@@ -8,12 +8,34 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/handlers"
+	"github.com/play-with-docker/play-with-docker/pwd"
+	"github.com/play-with-docker/play-with-docker/scheduler"
+	"github.com/play-with-docker/play-with-docker/scheduler/task"
 	"github.com/play-with-docker/play-with-docker/storage"
 )
 
 func main() {
 	config.ParseFlags()
-	handlers.Bootstrap(initStorage, initEvent, initFactory)
+
+	e := initEvent()
+	s := initStorage()
+	f := initFactory(s)
+
+	core := pwd.NewPWD(f, e, s)
+
+	sch, err := scheduler.NewScheduler(s, e, core)
+	if err != nil {
+		log.Fatal("Error initializing the scheduler: ", err)
+	}
+
+	sch.AddTask(task.NewCheckPorts(e, f))
+	sch.AddTask(task.NewCheckSwarmPorts(e, f))
+	sch.AddTask(task.NewCheckSwarmStatus(e, f))
+	sch.AddTask(task.NewCollectStats(e, f))
+
+	sch.Start()
+
+	handlers.Bootstrap(core, e)
 	handlers.Register()
 }
 
