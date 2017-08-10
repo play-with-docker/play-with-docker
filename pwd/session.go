@@ -15,6 +15,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/play-with-docker/play-with-docker/storage"
 )
 
 var preparedSessions = map[string]bool{}
@@ -72,7 +73,7 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 	}
 
 	if err := dockerClient.CreateNetwork(s.Id); err != nil {
-		log.Println("ERROR NETWORKING")
+		log.Println("ERROR NETWORKING", err)
 		return nil, err
 	}
 	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
@@ -99,8 +100,17 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 func (p *pwd) SessionClose(s *types.Session) error {
 	defer observeAction("SessionClose", time.Now())
 
-	s.Lock()
-	defer s.Unlock()
+	updatedSession, err := p.storage.SessionGet(s.Id)
+	if err != nil {
+		if storage.NotFound(err) {
+			log.Printf("Session with id [%s] was not found in storage.\n", s.Id)
+			return err
+		} else {
+			log.Printf("Couldn't close session. Got: %s\n", err)
+			return err
+		}
+	}
+	s = updatedSession
 
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	for _, i := range s.Instances {
@@ -113,11 +123,11 @@ func (p *pwd) SessionClose(s *types.Session) error {
 	// Disconnect PWD daemon from the network
 	if err := p.docker(s.Id).DisconnectNetwork(config.L2ContainerName, s.Id); err != nil {
 		if !strings.Contains(err.Error(), "is not connected to the network") {
-			log.Println("ERROR NETWORKING")
+			log.Println("ERROR NETWORKING", err)
 			return err
 		}
 	}
-	log.Printf("Disconnected pwd from network [%s]\n", s.Id)
+	log.Printf("Disconnected l2 from network [%s]\n", s.Id)
 	if err := p.docker(s.Id).DeleteNetwork(s.Id); err != nil {
 		if !strings.Contains(err.Error(), "not found") {
 			log.Println(err)
@@ -125,7 +135,7 @@ func (p *pwd) SessionClose(s *types.Session) error {
 		}
 	}
 
-	err := p.storage.SessionDelete(s.Id)
+	err = p.storage.SessionDelete(s.Id)
 	if err != nil {
 		return err
 	}

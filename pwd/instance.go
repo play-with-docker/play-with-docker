@@ -84,11 +84,11 @@ func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) e
 		return err
 	}
 
-	p.event.Emit(event.INSTANCE_DELETE, session.Id, instance.Name)
-
 	if err := p.storage.InstanceDelete(session.Id, instance.Name); err != nil {
 		return err
 	}
+
+	p.event.Emit(event.INSTANCE_DELETE, session.Id, instance.Name)
 
 	p.setGauges()
 
