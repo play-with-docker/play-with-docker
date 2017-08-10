@@ -62,7 +62,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		if stack != "" {
-			http.Redirect(rw, req, fmt.Sprintf("%s://%s/p/%s", req.URL.Scheme, hostname, s.Id), http.StatusFound)
+			http.Redirect(rw, req, fmt.Sprintf("/%s/p/%s", hostname, s.Id), http.StatusFound)
 			return
 		}
 		http.Redirect(rw, req, fmt.Sprintf("http://%s/p/%s", hostname, s.Id), http.StatusFound)
