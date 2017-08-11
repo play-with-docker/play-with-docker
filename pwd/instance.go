@@ -129,7 +129,13 @@ func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*t
 
 func (p *pwd) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
 	defer observeAction("InstanceExec", time.Now())
-	return p.docker(instance.SessionId).Exec(instance.Name, cmd)
+
+	dockerClient, err := p.dockerFactory.GetForSession(instance.SessionId)
+	if err != nil {
+		log.Println(err)
+		return -1, err
+	}
+	return dockerClient.Exec(instance.Name, cmd)
 }
 
 func (p *pwd) InstanceAllowedImages() []string {

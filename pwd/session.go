@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -10,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
@@ -63,7 +66,11 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 
 	log.Printf("NewSession id=[%s]\n", s.Id)
 
-	dockerClient := p.docker(s.Id)
+	dockerClient, err := p.dockerFactory.GetForSession(s.Id)
+	if err != nil {
+		// We assume we are out of capacity
+		return nil, fmt.Errorf("Out of capacity")
+	}
 	u, _ := url.Parse(dockerClient.GetDaemonHost())
 	if u.Host == "" {
 		s.Host = "localhost"
@@ -113,22 +120,33 @@ func (p *pwd) SessionClose(s *types.Session) error {
 	s = updatedSession
 
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
+	g, _ := errgroup.WithContext(context.Background())
 	for _, i := range s.Instances {
-		err := p.InstanceDelete(s, i)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
+		i := i
+		g.Go(func() error {
+			return p.InstanceDelete(s, i)
+		})
 	}
+	err = g.Wait()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
 	// Disconnect PWD daemon from the network
-	if err := p.docker(s.Id).DisconnectNetwork(config.L2ContainerName, s.Id); err != nil {
+	dockerClient, err := p.dockerFactory.GetForSession(s.Id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if err := dockerClient.DisconnectNetwork(config.L2ContainerName, s.Id); err != nil {
 		if !strings.Contains(err.Error(), "is not connected to the network") {
 			log.Println("ERROR NETWORKING", err)
 			return err
 		}
 	}
 	log.Printf("Disconnected l2 from network [%s]\n", s.Id)
-	if err := p.docker(s.Id).DeleteNetwork(s.Id); err != nil {
+	if err := dockerClient.DeleteNetwork(s.Id); err != nil {
 		if !strings.Contains(err.Error(), "not found") {
 			log.Println(err)
 			return err
@@ -189,7 +207,14 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 	cmd := fmt.Sprintf("docker swarm init --advertise-addr eth0 && docker-compose -f %s pull && docker stack deploy -c %s %s", file, file, s.StackName)
 
 	w := sessionBuilderWriter{sessionId: s.Id, event: p.event}
-	code, err := p.docker(s.Id).ExecAttach(i.Name, []string{"sh", "-c", cmd}, &w)
+
+	dockerClient, err := p.dockerFactory.GetForSession(s.Id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	code, err := dockerClient.ExecAttach(i.Name, []string{"sh", "-c", cmd}, &w)
 	if err != nil {
 		log.Printf("Error executing stack [%s]: %s\n", s.Stack, err)
 		return err

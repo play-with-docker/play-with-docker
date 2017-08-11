@@ -114,14 +114,6 @@ func (p *pwd) getProvisioner(t string) (provisioner.ProvisionerApi, error) {
 	}
 }
 
-func (p *pwd) docker(sessionId string) docker.DockerApi {
-	d, err := p.dockerFactory.GetForSession(sessionId)
-	if err != nil {
-		panic("Should not have got here. Session always need to be validated before calling this.")
-	}
-	return d
-}
-
 func (p *pwd) setGauges() {
 	s, _ := p.storage.SessionCount()
 	ses := float64(s)
