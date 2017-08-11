@@ -118,13 +118,9 @@ func (f *localCachedFactory) check(c *client.Client) error {
 	for i := 0; i < 5; i++ {
 		_, err := c.Ping(context.Background())
 		if err != nil {
-			if client.IsErrConnectionFailed(err) {
-				// connection has failed, maybe instance is not ready yet, sleep and retry
-				log.Printf("Connection to [%s] has failed, maybe instance is not ready yet, sleeping and retrying in 1 second. Try #%d\n", c.DaemonHost(), i+1)
-				time.Sleep(time.Second)
-				continue
-			}
-			return err
+			log.Printf("Connection to [%s] has failed, maybe instance is not ready yet, sleeping and retrying in 1 second. Try #%d\n", c.DaemonHost(), i+1)
+			time.Sleep(time.Second)
+			continue
 		}
 		ok = true
 		break
