@@ -102,6 +102,7 @@
       } else {
         $scope.idx[i.name].ip = i.ip;
         $scope.idx[i.name].hostname = i.hostname;
+        $scope.idx[i.name].proxy_host = i.proxy_host;
       }
 
       return $scope.idx[i.name];
@@ -185,8 +186,8 @@
           $scope.isAlive = false;
         });
 
-        socket.on('instance new', function(name, ip, hostname) {
-          $scope.upsertInstance({ name: name, ip: ip, hostname: hostname });
+        socket.on('instance new', function(name, ip, hostname, proxyHost) {
+          $scope.upsertInstance({ name: name, ip: ip, hostname: hostname, proxy_host: proxyHost});
           $scope.$apply(function() {
             if ($scope.instances.length == 1) {
               $scope.showInstance($scope.instances[0]);

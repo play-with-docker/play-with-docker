@@ -87,7 +87,7 @@ func TestInstanceNew(t *testing.T) {
 	}
 	_d.On("CreateContainer", expectedContainerOpts).Return("10.0.0.1", nil)
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
-	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1"}).Return()
+	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{Host: "something.play-with-docker.com"})
 	assert.Nil(t, err)
@@ -151,7 +151,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	}
 	_d.On("CreateContainer", expectedContainerOpts).Return("10.0.0.1", nil)
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
-	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1"}).Return()
+	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis"})
 	assert.Nil(t, err)
@@ -215,7 +215,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 
 	_d.On("CreateContainer", expectedContainerOpts).Return("10.0.0.1", nil)
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
-	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_redis-master", "10.0.0.1", "redis-master"}).Return()
+	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_redis-master", "10.0.0.1", "redis-master", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis", Hostname: "redis-master"})
 

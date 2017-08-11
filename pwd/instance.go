@@ -120,7 +120,7 @@ func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*t
 		return nil, err
 	}
 
-	p.event.Emit(event.INSTANCE_NEW, session.Id, instance.Name, instance.IP, instance.Hostname)
+	p.event.Emit(event.INSTANCE_NEW, session.Id, instance.Name, instance.IP, instance.Hostname, instance.ProxyHost)
 
 	p.setGauges()
 
