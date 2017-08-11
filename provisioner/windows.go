@@ -103,7 +103,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
 	instance.Session = session
-	instance.ProxyHost = router.EncodeHost(session.Id, ip, router.HostOpts{})
+	instance.ProxyHost = router.EncodeHost(session.Id, instnace.IP, router.HostOpts{})
 	instance.SessionHost = session.Host
 	// For now this condition holds through. In the future we might need a more complex logic.
 	instance.IsDockerHost = opts.Privileged
