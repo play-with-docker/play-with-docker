@@ -68,7 +68,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	containerName := fmt.Sprintf("%s_%s", session.Id[:8], conf.Hostname)
 	opts := docker.CreateContainerOpts{
 		Image:           conf.ImageName,
-		WindowsEndpoint: winfo.publicIP,
+		WindowsEndpoint: winfo.privateIP,
 		SessionId:       session.Id,
 		PwdIpAddress:    session.PwdIpAddress,
 		ContainerName:   containerName,
