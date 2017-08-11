@@ -1,0 +1,7 @@
+FROM alpine
+
+RUN apk add --no-cache openssh-client
+
+COPY ./windows /root/.ssh/id_rsa
+
+ENTRYPOINT while true; do ssh -q -o StrictHostKeyChecking=no Administrator@${WINDOWS_ENDPOINT}; done
