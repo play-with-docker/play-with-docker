@@ -84,7 +84,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	if err != nil {
 		return nil, err
 	}
-	ip, err := dockerClient.CreateContainer(opts)
+	_, err = dockerClient.CreateContainer(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
 	instance.Session = session
-	instance.ProxyHost = router.EncodeHost(session.Id, instnace.IP, router.HostOpts{})
+	instance.ProxyHost = router.EncodeHost(session.Id, instance.IP, router.HostOpts{})
 	instance.SessionHost = session.Host
 	// For now this condition holds through. In the future we might need a more complex logic.
 	instance.IsDockerHost = opts.Privileged
