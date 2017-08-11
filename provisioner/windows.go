@@ -50,6 +50,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	conf.ImageName = config.GetSSHImage()
 
 	winfo, err := d.getWindowsInstanceInfo(session.Id)
+
 	if err != nil {
 		return nil, err
 	}
@@ -82,20 +83,21 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 
 	dockerClient, err := d.factory.GetForSession(session.Id)
 	if err != nil {
+		d.releaseInstance(session.Id, winfo.id)
 		return nil, err
 	}
 	_, err = dockerClient.CreateContainer(opts)
 	if err != nil {
+		d.releaseInstance(session.Id, winfo.id)
 		return nil, err
 	}
 
 	instance := &types.Instance{}
 	instance.Image = opts.Image
-	instance.IP = winfo.privateIP
+	instance.IP = winfo.publicIP
 	instance.SessionId = session.Id
 	instance.Name = containerName
 	instance.WindowsId = winfo.id
-	instance.Hostname = conf.Hostname
 	instance.Cert = conf.Cert
 	instance.Key = conf.Key
 	instance.Type = conf.Type
@@ -107,6 +109,18 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	instance.SessionHost = session.Host
 	// For now this condition holds through. In the future we might need a more complex logic.
 	instance.IsDockerHost = opts.Privileged
+
+	if cli, err := d.factory.GetForInstance(instance); err != nil {
+		d.InstanceDelete(session, instance)
+		return nil, err
+	} else {
+		info, err := cli.GetDaemonInfo()
+		if err != nil {
+			d.InstanceDelete(session, instance)
+			return nil, err
+		}
+		instance.Hostname = info.Name
+	}
 
 	return instance, nil
 
@@ -122,14 +136,12 @@ func (d *windows) InstanceDelete(session *types.Session, instance *types.Instanc
 		return err
 	}
 
-	err = d.storage.InstanceDeleteWindows(session.Id, instance.WindowsId)
-	if err != nil {
-		return err
-	}
-
 	// TODO trigger deletion in AWS
+	return d.releaseInstance(session.Id, instance.WindowsId)
+}
 
-	return nil
+func (d *windows) releaseInstance(sessionId, instanceId string) error {
+	return d.storage.InstanceDeleteWindows(sessionId, instanceId)
 }
 
 func (d *windows) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) error {
@@ -198,6 +210,7 @@ func (d *windows) getWindowsInstanceInfo(sessionId string) (*instanceInfo, error
 	})
 	if err != nil {
 		// TODO retry x times and free the instance that was picked?
+		d.releaseInstance(sessionId, avInstanceId)
 		return nil, err
 	}
 
@@ -217,7 +230,6 @@ func (d *windows) getWindowsInstanceInfo(sessionId string) (*instanceInfo, error
 // select free instance and lock it into db.
 // additionally check if ASG needs to be resized
 func (d *windows) pickFreeInstance(sessionId string, availInstances, assignedInstances []string) string {
-
 	for _, av := range availInstances {
 		found := false
 		for _, as := range assignedInstances {
@@ -225,11 +237,9 @@ func (d *windows) pickFreeInstance(sessionId string, availInstances, assignedIns
 				found = true
 				break
 			}
-
 		}
 
 		if !found {
-			fmt.Println("ABOUT TO PERSIST", av)
 			err := d.storage.InstanceCreateWindows(&types.WindowsInstance{SessionId: sessionId, ID: av})
 			if err != nil {
 				// TODO either storage error or instance is already assigned (race condition)
@@ -237,8 +247,6 @@ func (d *windows) pickFreeInstance(sessionId string, availInstances, assignedIns
 			return av
 		}
 	}
-
 	// all availalbe instances are assigned
 	return ""
-
 }

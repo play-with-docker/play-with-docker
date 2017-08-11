@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/api"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/router"
 	"github.com/play-with-docker/play-with-docker/storage"
 )
@@ -52,8 +53,8 @@ func (f *localCachedFactory) GetForSession(sessionId string) (DockerApi, error) 
 	return f.sessionClient, nil
 }
 
-func (f *localCachedFactory) GetForInstance(sessionId, instanceName string) (DockerApi, error) {
-	key := sessionId + instanceName
+func (f *localCachedFactory) GetForInstance(instance *types.Instance) (DockerApi, error) {
+	key := instance.SessionId + instance.Name
 
 	f.irw.Lock()
 	c, found := f.instanceClients[key]
@@ -71,10 +72,6 @@ func (f *localCachedFactory) GetForInstance(sessionId, instanceName string) (Doc
 		return c.client, nil
 	}
 
-	instance, err := f.storage.InstanceGet(sessionId, instanceName)
-	if err != nil {
-		return nil, err
-	}
 	// Need to create client to the DinD docker daemon
 	// We check if the client needs to use TLS
 	var tlsConfig *tls.Config

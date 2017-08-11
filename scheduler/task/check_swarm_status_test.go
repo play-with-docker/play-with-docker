@@ -39,7 +39,7 @@ func TestCheckSwarmStatus_RunWhenInactive(t *testing.T) {
 		},
 	}
 
-	f.On("GetForInstance", "aaabbbccc", "node1").Return(d, nil)
+	f.On("GetForInstance", i).Return(d, nil)
 	d.On("GetDaemonInfo").Return(infoInactive, nil)
 	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{DockerSwarmStatus{IsManager: false, IsWorker: false, Instance: "node1"}}).Return()
 
@@ -70,7 +70,7 @@ func TestCheckSwarmStatus_RunWhenLocked(t *testing.T) {
 		},
 	}
 
-	f.On("GetForInstance", "aaabbbccc", "node1").Return(d, nil)
+	f.On("GetForInstance", i).Return(d, nil)
 	d.On("GetDaemonInfo").Return(infoLocked, nil)
 	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{DockerSwarmStatus{IsManager: false, IsWorker: false, Instance: "node1"}}).Return()
 
@@ -102,7 +102,7 @@ func TestCheckSwarmStatus_RunWhenManager(t *testing.T) {
 		},
 	}
 
-	f.On("GetForInstance", "aaabbbccc", "node1").Return(d, nil)
+	f.On("GetForInstance", i).Return(d, nil)
 	d.On("GetDaemonInfo").Return(infoLocked, nil)
 	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{DockerSwarmStatus{IsManager: true, IsWorker: false, Instance: "node1"}}).Return()
 
@@ -134,7 +134,7 @@ func TestCheckSwarmStatus_RunWhenWorker(t *testing.T) {
 		},
 	}
 
-	f.On("GetForInstance", "aaabbbccc", "node1").Return(d, nil)
+	f.On("GetForInstance", i).Return(d, nil)
 	d.On("GetDaemonInfo").Return(infoLocked, nil)
 	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{DockerSwarmStatus{IsManager: false, IsWorker: true, Instance: "node1"}}).Return()
 

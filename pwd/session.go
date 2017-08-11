@@ -259,7 +259,7 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 			if err != nil {
 				return err
 			}
-			dockerClient, err := p.dockerFactory.GetForInstance(session.Id, i.Name)
+			dockerClient, err := p.dockerFactory.GetForInstance(i)
 			if err != nil {
 				return err
 			}
@@ -293,7 +293,7 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 
 				if firstSwarmManager != nil {
 					if c.IsSwarmManager {
-						dockerClient, err := p.dockerFactory.GetForInstance(session.Id, i.Name)
+						dockerClient, err := p.dockerFactory.GetForInstance(i)
 						if err != nil {
 							log.Println(err)
 							return
@@ -307,7 +307,7 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 						}
 					}
 					if c.IsSwarmWorker {
-						dockerClient, err := p.dockerFactory.GetForInstance(session.Id, i.Name)
+						dockerClient, err := p.dockerFactory.GetForInstance(i)
 						if err != nil {
 							log.Println(err)
 							return

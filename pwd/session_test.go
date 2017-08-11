@@ -84,22 +84,22 @@ func TestSessionSetup(t *testing.T) {
 	_s.On("InstanceCount").Return(0, nil)
 
 	_d.On("CreateContainer", docker.CreateContainerOpts{Image: "franela/dind", SessionId: "aaaabbbbcccc", PwdIpAddress: "10.0.0.1", ContainerName: "aaaabbbb_manager1", Hostname: "manager1", Privileged: true, HostFQDN: "localhost"}).Return("10.0.0.2", nil)
-	_f.On("GetForInstance", "aaaabbbbcccc", "aaaabbbb_manager1").Return(_d, nil)
+	_f.On("GetForInstance", mock.AnythingOfType("*types.Instance")).Return(_d, nil)
 	_d.On("SwarmInit").Return(&docker.SwarmTokens{Manager: "managerToken", Worker: "workerToken"}, nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_manager1", "10.0.0.2", "manager1", "ip10-0-0-2-aaaabbbbcccc"}).Return()
 
 	_d.On("CreateContainer", docker.CreateContainerOpts{Image: "franela/dind", SessionId: "aaaabbbbcccc", PwdIpAddress: "10.0.0.1", ContainerName: "aaaabbbb_manager2", Hostname: "manager2", Privileged: true}).Return("10.0.0.3", nil)
-	_f.On("GetForInstance", "aaaabbbbcccc", "aaaabbbb_manager2").Return(_d, nil)
+	_f.On("GetForInstance", mock.AnythingOfType("*types.Instance")).Return(_d, nil)
 	_d.On("SwarmJoin", "10.0.0.2:2377", "managerToken").Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_manager2", "10.0.0.3", "manager2", "ip10-0-0-3-aaaabbbbcccc"}).Return()
 
 	_d.On("CreateContainer", docker.CreateContainerOpts{Image: "franela/dind:overlay2-dev", SessionId: "aaaabbbbcccc", PwdIpAddress: "10.0.0.1", ContainerName: "aaaabbbb_manager3", Hostname: "manager3", Privileged: true}).Return("10.0.0.4", nil)
-	_f.On("GetForInstance", "aaaabbbbcccc", "aaaabbbb_manager3").Return(_d, nil)
+	_f.On("GetForInstance", mock.AnythingOfType("*types.Instance")).Return(_d, nil)
 	_d.On("SwarmJoin", "10.0.0.2:2377", "managerToken").Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_manager3", "10.0.0.4", "manager3", "ip10-0-0-4-aaaabbbbcccc"}).Return()
 
 	_d.On("CreateContainer", docker.CreateContainerOpts{Image: "franela/dind", SessionId: "aaaabbbbcccc", PwdIpAddress: "10.0.0.1", ContainerName: "aaaabbbb_worker1", Hostname: "worker1", Privileged: true}).Return("10.0.0.5", nil)
-	_f.On("GetForInstance", "aaaabbbbcccc", "aaaabbbb_worker1").Return(_d, nil)
+	_f.On("GetForInstance", mock.AnythingOfType("*types.Instance")).Return(_d, nil)
 	_d.On("SwarmJoin", "10.0.0.2:2377", "workerToken").Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_worker1", "10.0.0.5", "worker1", "ip10-0-0-5-aaaabbbbcccc"}).Return()
 

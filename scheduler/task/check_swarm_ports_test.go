@@ -40,7 +40,7 @@ func TestCheckSwarmPorts_RunWhenManager(t *testing.T) {
 		},
 	}
 
-	f.On("GetForInstance", "aaaabbbbcccc", "aaaabbbb_node1").Return(d, nil)
+	f.On("GetForInstance", i).Return(d, nil)
 	d.On("GetDaemonInfo").Return(info, nil)
 	d.On("GetSwarmPorts").Return([]string{"node1", "node2"}, []uint16{8080, 9090}, nil)
 	e.M.On("Emit", CheckSwarmPortsEvent, "aaaabbbbcccc", []interface{}{DockerSwarmPorts{Manager: i.Name, Instances: []string{i.Name, "aaaabbbb_node2"}, Ports: []int{8080, 9090}}}).Return()

@@ -26,15 +26,15 @@ func TestCheckPorts_Run(t *testing.T) {
 	e := &event.Mock{}
 	f := &docker.FactoryMock{}
 
-	d.On("GetPorts").Return([]uint16{8080, 9090}, nil)
-	f.On("GetForInstance", "aaaabbbbcccc", "aaaabbbb_node1").Return(d, nil)
-	e.M.On("Emit", CheckPortsEvent, "aaaabbbbcccc", []interface{}{DockerPorts{Instance: "aaaabbbb_node1", Ports: []int{8080, 9090}}}).Return()
-
 	i := &types.Instance{
 		IP:        "10.0.0.1",
 		Name:      "aaaabbbb_node1",
 		SessionId: "aaaabbbbcccc",
 	}
+
+	d.On("GetPorts").Return([]uint16{8080, 9090}, nil)
+	f.On("GetForInstance", i).Return(d, nil)
+	e.M.On("Emit", CheckPortsEvent, "aaaabbbbcccc", []interface{}{DockerPorts{Instance: "aaaabbbb_node1", Ports: []int{8080, 9090}}}).Return()
 
 	task := NewCheckPorts(e, f)
 	ctx := context.Background()

@@ -32,7 +32,7 @@ func (t *checkSwarmStatus) Name() string {
 }
 
 func (t *checkSwarmStatus) Run(ctx context.Context, instance *types.Instance) error {
-	dockerClient, err := t.factory.GetForInstance(instance.SessionId, instance.Name)
+	dockerClient, err := t.factory.GetForInstance(instance)
 	if err != nil {
 		log.Println(err)
 		return err
