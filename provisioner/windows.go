@@ -66,6 +66,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 		}
 		conf.Hostname = nodeName
 	}
+
 	containerName := fmt.Sprintf("%s_%s", session.Id[:8], conf.Hostname)
 	opts := docker.CreateContainerOpts{
 		Image:           conf.ImageName,
@@ -94,9 +95,8 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 
 	instance := &types.Instance{}
 	instance.Image = opts.Image
-	instance.IP = winfo.publicIP
+	instance.IP = winfo.privateIP
 	instance.SessionId = session.Id
-	instance.Name = containerName
 	instance.WindowsId = winfo.id
 	instance.Cert = conf.Cert
 	instance.Key = conf.Key
@@ -120,6 +120,11 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 			return nil, err
 		}
 		instance.Hostname = info.Name
+		instance.Name = fmt.Sprintf("%s_%s", session.Id[:8], info.Name)
+		if err = dockerClient.ContainerRename(containerName, instance.Name); err != nil {
+			d.InstanceDelete(session, instance)
+			return nil, err
+		}
 	}
 
 	return instance, nil

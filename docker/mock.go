@@ -50,6 +50,10 @@ func (m *Mock) ContainerResize(name string, rows, cols uint) error {
 	args := m.Called(name, rows, cols)
 	return args.Error(0)
 }
+func (m *Mock) ContainerRename(old, new string) error {
+	args := m.Called(old, new)
+	return args.Error(0)
+}
 func (m *Mock) CreateAttachConnection(name string) (net.Conn, error) {
 	args := m.Called(name)
 	return args.Get(0).(net.Conn), args.Error(1)

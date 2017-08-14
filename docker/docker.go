@@ -38,6 +38,7 @@ type DockerApi interface {
 	GetPorts() ([]uint16, error)
 	GetContainerStats(name string) (io.ReadCloser, error)
 	ContainerResize(name string, rows, cols uint) error
+	ContainerRename(old, new string) error
 	CreateAttachConnection(name string) (net.Conn, error)
 	CopyToContainer(containerName, destination, fileName string, content io.Reader) error
 	DeleteContainer(id string) error
@@ -164,6 +165,10 @@ func (d *docker) ContainerResize(name string, rows, cols uint) error {
 	return d.c.ContainerResize(context.Background(), name, types.ResizeOptions{Height: rows, Width: cols})
 }
 
+func (d *docker) ContainerRename(old, new string) error {
+	return d.c.ContainerRename(context.Background(), old, new)
+}
+
 func (d *docker) CreateAttachConnection(name string) (net.Conn, error) {
 	ctx := context.Background()
 
@@ -241,7 +246,8 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 		NetworkMode: container.NetworkMode(opts.SessionId),
 		Privileged:  opts.Privileged,
 		AutoRemove:  true,
-		LogConfig:   container.LogConfig{Config: map[string]string{"max-size": "10m", "max-file": "1"}},
+		//PublishAllPorts: true,
+		LogConfig: container.LogConfig{Config: map[string]string{"max-size": "10m", "max-file": "1"}},
 	}
 
 	if os.Getenv("APPARMOR_PROFILE") != "" {
@@ -261,7 +267,8 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 
 	env = append(env, fmt.Sprintf("PWD_IP_ADDRESS=%s", opts.PwdIpAddress))
 	env = append(env, fmt.Sprintf("PWD_HOST_FQDN=%s", opts.HostFQDN))
-	cf := &container.Config{Hostname: opts.Hostname,
+	cf := &container.Config{
+		Hostname:     opts.Hostname,
 		Image:        opts.Image,
 		Tty:          true,
 		OpenStdin:    true,
@@ -269,6 +276,12 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 		AttachStdout: true,
 		AttachStderr: true,
 		Env:          env,
+		//ExposedPorts: nat.PortSet{
+		//"2377":     struct{}{},
+		//"4789/udp": struct{}{},
+		//"7946":     struct{}{},
+		//"7946/udp": struct{}{},
+		//},
 	}
 	networkConf := &network.NetworkingConfig{
 		map[string]*network.EndpointSettings{
