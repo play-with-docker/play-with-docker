@@ -156,6 +156,14 @@
             $scope.$apply();
           }, 1000);
         }
+
+        var i = response.data;
+        for (var k in i.instances) {
+          var instance = i.instances[k];
+          $scope.instances.push(instance);
+          $scope.idx[instance.name] = instance;
+        }
+
         var socket = io({ path: '/sessions/' + sessionId + '/ws' });
 
         socket.on('session ready', function(ready) {
@@ -247,12 +255,6 @@
 
         $scope.socket = socket;
 
-        var i = response.data;
-        for (var k in i.instances) {
-          var instance = i.instances[k];
-          $scope.instances.push(instance);
-          $scope.idx[instance.name] = instance;
-        }
 
         // If instance is passed in URL, select it
         let inst = $scope.idx[$location.hash()];
