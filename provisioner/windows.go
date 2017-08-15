@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"strings"
 
@@ -94,6 +95,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	}
 
 	instance := &types.Instance{}
+	instance.Name = containerName
 	instance.Image = opts.Image
 	instance.IP = winfo.privateIP
 	instance.SessionId = session.Id
@@ -111,18 +113,26 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	instance.IsDockerHost = opts.Privileged
 
 	if cli, err := d.factory.GetForInstance(instance); err != nil {
-		d.InstanceDelete(session, instance)
+		if derr := d.InstanceDelete(session, instance); derr != nil {
+			log.Println("Error deleting instance: ", derr)
+		}
 		return nil, err
 	} else {
 		info, err := cli.GetDaemonInfo()
 		if err != nil {
-			d.InstanceDelete(session, instance)
+			if derr := d.InstanceDelete(session, instance); derr != nil {
+				log.Println("Error deleting instance: ", derr)
+			}
 			return nil, err
 		}
 		instance.Hostname = info.Name
 		instance.Name = fmt.Sprintf("%s_%s", session.Id[:8], info.Name)
 		if err = dockerClient.ContainerRename(containerName, instance.Name); err != nil {
-			d.InstanceDelete(session, instance)
+			// revert instance name to remove ssh container
+			instance.Name = containerName
+			if derr := d.InstanceDelete(session, instance); derr != nil {
+				log.Println("Error deleting instance: ", derr)
+			}
 			return nil, err
 		}
 	}
