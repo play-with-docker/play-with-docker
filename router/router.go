@@ -405,6 +405,7 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 			log.Printf("Error dialing backend %s: %v\n", dstHost.String(), err)
 			return
 		}
+		defer d.Close()
 		err = req.Write(d)
 		if err != nil {
 			log.Printf("Error requesting backend %s: %v\n", dstHost.String(), err)
