@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -146,12 +147,27 @@ func (d *windows) InstanceDelete(session *types.Session, instance *types.Instanc
 	if err != nil {
 		return err
 	}
+
+	_, err = asgService.DetachInstances(&autoscaling.DetachInstancesInput{
+		AutoScalingGroupName:           aws.String("pwd-windows"),
+		InstanceIds:                    []*string{aws.String(instance.WindowsId)},
+		ShouldDecrementDesiredCapacity: aws.Bool(false),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// return error and don't do anything else
+	if _, err := ec2Service.TerminateInstances(&ec2.TerminateInstancesInput{InstanceIds: []*string{aws.String(instance.WindowsId)}}); err != nil {
+		return err
+	}
+
 	err = dockerClient.DeleteContainer(instance.Name)
 	if err != nil && !strings.Contains(err.Error(), "No such container") {
 		return err
 	}
 
-	// TODO trigger deletion in AWS
 	return d.releaseInstance(session.Id, instance.WindowsId)
 }
 
@@ -197,6 +213,9 @@ func (d *windows) getWindowsInstanceInfo(sessionId string) (*instanceInfo, error
 	// there should always be one asg
 	instances := out.AutoScalingGroups[0].Instances
 	availInstances := make([]string, len(instances))
+
+	// reverse order so older instances are first served
+	sort.Sort(sort.Reverse(sort.StringSlice(availInstances)))
 
 	for i, inst := range instances {
 		if *inst.LifecycleState == "InService" {
