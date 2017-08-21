@@ -4,4 +4,4 @@ RUN apk add --no-cache openssh-client
 
 COPY ./windows /root/.ssh/id_rsa
 
-CMD while true; do ssh -L 2375:${WINDOWS_ENDPOINT}:2375 -q -o StrictHostKeyChecking=no Administrator@${WINDOWS_ENDPOINT}; done
+CMD while true; do ssh -L 2375:${WINDOWS_ENDPOINT}:2375 -q -o StrictHostKeyChecking=no Administrator@${WINDOWS_ENDPOINT} powershell; done
