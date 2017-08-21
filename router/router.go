@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 
@@ -34,11 +35,12 @@ type proxyRouter struct {
 	keyPath      string
 	director     Director
 	closed       bool
-	httpListener net.Listener
+	httpListener *net.TCPListener
 	udpDnsServer *dns.Server
 	tcpDnsServer *dns.Server
 	sshListener  net.Listener
 	sshConfig    *ssh.ServerConfig
+	dialer       *net.Dialer
 }
 
 func (r *proxyRouter) Listen(httpAddr, dnsAddr, sshAddr string) {
@@ -52,8 +54,11 @@ func (r *proxyRouter) ListenAndWait(httpAddr, dnsAddr, sshAddr string) {
 }
 
 func (r *proxyRouter) listen(wg *sync.WaitGroup, httpAddr, dnsAddr, sshAddr string) {
-
-	l, err := net.Listen("tcp", httpAddr)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", httpAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	l, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -61,10 +66,12 @@ func (r *proxyRouter) listen(wg *sync.WaitGroup, httpAddr, dnsAddr, sshAddr stri
 	wg.Add(1)
 	go func() {
 		for !r.closed {
-			conn, err := r.httpListener.Accept()
+			conn, err := r.httpListener.AcceptTCP()
 			if err != nil {
 				continue
 			}
+			conn.SetKeepAlive(true)
+			conn.SetKeepAlivePeriod(3 * time.Minute)
 			go r.handleConnection(conn)
 		}
 		wg.Done()
@@ -333,7 +340,7 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 			log.Printf("Error directing request: %v\n", err)
 			return
 		}
-		d, err := net.Dial("tcp", dstHost.String())
+		d, err := r.dialer.Dial("tcp", dstHost.String())
 		if err != nil {
 			log.Printf("Error dialing backend %s: %v\n", dstHost.String(), err)
 			return
@@ -358,7 +365,7 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 			log.Printf("Error directing request: %v\n", err)
 			return
 		}
-		d, err := net.Dial("tcp", dstHost.String())
+		d, err := r.dialer.Dial("tcp", dstHost.String())
 		if err != nil {
 			log.Printf("Error dialing backend %s: %v\n", dstHost.String(), err)
 			return
@@ -423,10 +430,11 @@ func proxySsh(reqs1, reqs2 <-chan *ssh.Request, channel1, channel2 ssh.Channel) 
 
 func proxyConn(src, dst net.Conn) {
 	errc := make(chan error, 2)
-	cp := func(dst io.Writer, src io.Reader) {
+	cp := func(dst net.Conn, src net.Conn) {
 		_, err := io.Copy(dst, src)
 		errc <- err
 	}
+
 	go cp(src, dst)
 	go cp(dst, src)
 	<-errc
@@ -450,5 +458,13 @@ func NewRouter(director Director, keyPath string) *proxyRouter {
 
 	sshConfig.AddHostKey(private)
 
-	return &proxyRouter{director: director, sshConfig: sshConfig}
+	return &proxyRouter{
+		director:  director,
+		sshConfig: sshConfig,
+		dialer: &net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		},
+	}
 }

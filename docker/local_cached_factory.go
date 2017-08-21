@@ -91,7 +91,8 @@ func (f *localCachedFactory) GetForInstance(instance *types.Instance) (DockerApi
 			Timeout:   1 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
-		Proxy: http.ProxyURL(proxyUrl),
+		MaxIdleConnsPerHost: 5,
+		Proxy:               http.ProxyURL(proxyUrl),
 	}
 	if tlsConfig != nil {
 		transport.TLSClientConfig = tlsConfig
