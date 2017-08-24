@@ -7,7 +7,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
-type ProvisionerApi interface {
+type InstanceProvisionerApi interface {
 	InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error)
 	InstanceDelete(session *types.Session, instance *types.Instance) error
 
@@ -16,4 +16,12 @@ type ProvisionerApi interface {
 
 	InstanceUploadFromUrl(instance *types.Instance, fileName, dest, url string) error
 	InstanceUploadFromReader(instance *types.Instance, fileName, dest string, reader io.Reader) error
+}
+
+type SessionProvisionerApi interface {
+	SessionNew(session *types.Session) error
+}
+
+type InstanceProvisionerFactoryApi interface {
+	GetProvisioner(instanceType string) (InstanceProvisionerApi, error)
 }

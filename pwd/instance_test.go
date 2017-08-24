@@ -8,6 +8,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/router"
 	"github.com/play-with-docker/play-with-docker/storage"
@@ -21,11 +22,13 @@ func TestInstanceResizeTerminal(t *testing.T) {
 	_s := &storage.Mock{}
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_d.On("ContainerResize", "foobar", uint(24), uint(80)).Return(nil)
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
 
-	p := NewPWD(_f, _e, _s)
+	p := NewPWD(_f, _e, _s, sp, ipf)
 
 	err := p.InstanceResizeTerminal(&types.Instance{Name: "foobar", SessionId: "aaaabbbbcccc"}, 24, 80)
 	assert.Nil(t, err)
@@ -43,6 +46,8 @@ func TestInstanceNew(t *testing.T) {
 	_s := &storage.Mock{}
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
@@ -56,22 +61,21 @@ func TestInstanceNew(t *testing.T) {
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
-	p := NewPWD(_f, _e, _s)
+	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{
-		Name:         fmt.Sprintf("%s_node1", session.Id[:8]),
-		Hostname:     "node1",
-		IP:           "10.0.0.1",
-		Image:        config.GetDindImageName(),
-		IsDockerHost: true,
-		SessionId:    session.Id,
-		Session:      session,
-		SessionHost:  session.Host,
-		ProxyHost:    router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
+		Name:        fmt.Sprintf("%s_node1", session.Id[:8]),
+		Hostname:    "node1",
+		IP:          "10.0.0.1",
+		Image:       config.GetDindImageName(),
+		SessionId:   session.Id,
+		Session:     session,
+		SessionHost: session.Host,
+		ProxyHost:   router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
 	expectedContainerOpts := docker.CreateContainerOpts{
 		Image:         expectedInstance.Image,
@@ -107,6 +111,8 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	_s := &storage.Mock{}
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
@@ -120,7 +126,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
-	p := NewPWD(_f, _e, _s)
+	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
@@ -128,15 +134,14 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{
-		Name:         fmt.Sprintf("%s_node1", session.Id[:8]),
-		Hostname:     "node1",
-		IP:           "10.0.0.1",
-		Image:        "redis",
-		SessionId:    session.Id,
-		IsDockerHost: false,
-		Session:      session,
-		SessionHost:  session.Host,
-		ProxyHost:    router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
+		Name:        fmt.Sprintf("%s_node1", session.Id[:8]),
+		Hostname:    "node1",
+		IP:          "10.0.0.1",
+		Image:       "redis",
+		SessionId:   session.Id,
+		Session:     session,
+		SessionHost: session.Host,
+		ProxyHost:   router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
 	expectedContainerOpts := docker.CreateContainerOpts{
 		Image:         expectedInstance.Image,
@@ -147,7 +152,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		ServerCert:    nil,
 		ServerKey:     nil,
 		CACert:        nil,
-		Privileged:    false,
+		Privileged:    true,
 	}
 	_d.On("CreateContainer", expectedContainerOpts).Return("10.0.0.1", nil)
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
@@ -172,6 +177,9 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
 
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
+
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
@@ -184,22 +192,21 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
-	p := NewPWD(_f, _e, _s)
+	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{
-		Name:         fmt.Sprintf("%s_redis-master", session.Id[:8]),
-		Hostname:     "redis-master",
-		IP:           "10.0.0.1",
-		Image:        "redis",
-		IsDockerHost: false,
-		Session:      session,
-		SessionHost:  session.Host,
-		SessionId:    session.Id,
-		ProxyHost:    router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
+		Name:        fmt.Sprintf("%s_redis-master", session.Id[:8]),
+		Hostname:    "redis-master",
+		IP:          "10.0.0.1",
+		Image:       "redis",
+		Session:     session,
+		SessionHost: session.Host,
+		SessionId:   session.Id,
+		ProxyHost:   router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
 	expectedContainerOpts := docker.CreateContainerOpts{
 		Image:         expectedInstance.Image,
@@ -210,7 +217,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		ServerCert:    nil,
 		ServerKey:     nil,
 		CACert:        nil,
-		Privileged:    false,
+		Privileged:    true,
 	}
 
 	_d.On("CreateContainer", expectedContainerOpts).Return("10.0.0.1", nil)

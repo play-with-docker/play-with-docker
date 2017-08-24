@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/event"
-	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
@@ -136,10 +135,4 @@ func (p *pwd) InstanceExec(instance *types.Instance, cmd []string) (int, error) 
 		return -1, err
 	}
 	return dockerClient.Exec(instance.Name, cmd)
-}
-
-func (p *pwd) InstanceAllowedImages() []string {
-	defer observeAction("InstanceAllowedImages", time.Now())
-
-	return p.dindProvisioner.(*provisioner.DinD).InstanceAllowedImages()
 }

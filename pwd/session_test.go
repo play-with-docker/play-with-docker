@@ -7,6 +7,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -21,6 +22,9 @@ func TestSessionNew(t *testing.T) {
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
 
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
+
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
@@ -33,7 +37,7 @@ func TestSessionNew(t *testing.T) {
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
-	p := NewPWD(_f, _e, _s)
+	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
 	before := time.Now()
@@ -72,6 +76,8 @@ func TestSessionSetup(t *testing.T) {
 	_s := &storage.Mock{}
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
@@ -109,7 +115,7 @@ func TestSessionSetup(t *testing.T) {
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
-	p := NewPWD(_f, _e, _s)
+	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 	s, e := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, e)

@@ -88,11 +88,6 @@ func (m *Mock) InstanceExec(instance *types.Instance, cmd []string) (int, error)
 	return args.Int(0), args.Error(1)
 }
 
-func (m *Mock) InstanceAllowedImages() []string {
-	args := m.Called()
-	return args.Get(0).([]string)
-}
-
 func (m *Mock) ClientNew(id string, session *types.Session) *types.Client {
 	args := m.Called(id, session)
 	return args.Get(0).(*types.Client)

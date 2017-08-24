@@ -8,6 +8,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/handlers"
+	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/scheduler"
 	"github.com/play-with-docker/play-with-docker/scheduler/task"
@@ -21,7 +22,10 @@ func main() {
 	s := initStorage()
 	f := initFactory(s)
 
-	core := pwd.NewPWD(f, e, s)
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(f, s), provisioner.NewDinD(f))
+	sp := provisioner.NewOverlaySessionProvisioner(f)
+
+	core := pwd.NewPWD(f, e, s, sp, ipf)
 
 	sch, err := scheduler.NewScheduler(s, e, core)
 	if err != nil {

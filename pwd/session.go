@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
@@ -65,33 +64,10 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 	s.ImageName = imageName
 
 	log.Printf("NewSession id=[%s]\n", s.Id)
-
-	dockerClient, err := p.dockerFactory.GetForSession(s.Id)
-	if err != nil {
-		// We assume we are out of capacity
-		return nil, fmt.Errorf("Out of capacity")
-	}
-	u, _ := url.Parse(dockerClient.GetDaemonHost())
-	if u.Host == "" {
-		s.Host = "localhost"
-	} else {
-		chunks := strings.Split(u.Host, ":")
-		s.Host = chunks[0]
-	}
-
-	if err := dockerClient.CreateNetwork(s.Id); err != nil {
-		log.Println("ERROR NETWORKING", err)
-		return nil, err
-	}
-	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
-
-	ip, err := dockerClient.ConnectNetwork(config.L2ContainerName, s.Id, s.PwdIpAddress)
-	if err != nil {
+	if err := p.sessionProvisioner.SessionNew(s); err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	s.PwdIpAddress = ip
-	log.Printf("Connected %s to network [%s]\n", config.PWDContainerName, s.Id)
 
 	if err := p.storage.SessionPut(s); err != nil {
 		log.Println(err)

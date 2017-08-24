@@ -7,6 +7,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/stretchr/testify/assert"
@@ -20,6 +21,9 @@ func TestClientNew(t *testing.T) {
 	_d := &docker.Mock{}
 	_e := &event.Mock{}
 
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
+
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
@@ -32,7 +36,7 @@ func TestClientNew(t *testing.T) {
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
-	p := NewPWD(_f, _e, _s)
+	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
@@ -56,6 +60,8 @@ func TestClientCount(t *testing.T) {
 	_g := &mockGenerator{}
 	_d := &docker.Mock{}
 	_e := &event.Mock{}
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
@@ -68,7 +74,7 @@ func TestClientCount(t *testing.T) {
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
-	p := NewPWD(_f, _e, _s)
+	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
 	session, err := p.SessionNew(time.Hour, "", "", "")
@@ -91,6 +97,8 @@ func TestClientResizeViewPort(t *testing.T) {
 	_g := &mockGenerator{}
 	_d := &docker.Mock{}
 	_e := &event.Mock{}
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
@@ -104,7 +112,7 @@ func TestClientResizeViewPort(t *testing.T) {
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
 	_e.M.On("Emit", event.INSTANCE_VIEWPORT_RESIZE, "aaaabbbbcccc", []interface{}{uint(80), uint(24)}).Return()
-	p := NewPWD(_f, _e, _s)
+	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
 	session, err := p.SessionNew(time.Hour, "", "", "")

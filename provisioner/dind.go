@@ -36,14 +36,6 @@ func checkHostnameExists(session *types.Session, hostname string) bool {
 	return exists
 }
 
-func (d *DinD) InstanceAllowedImages() []string {
-	return []string{
-		config.GetDindImageName(),
-		"franela/dind:overlay2-dev",
-		"franela/ucp:2.4.1",
-	}
-}
-
 func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error) {
 	if conf.ImageName == "" {
 		conf.ImageName = config.GetDindImageName()
@@ -70,15 +62,8 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		ServerCert:    conf.ServerCert,
 		ServerKey:     conf.ServerKey,
 		CACert:        conf.CACert,
-		Privileged:    false,
 		HostFQDN:      conf.Host,
-	}
-
-	for _, imageName := range d.InstanceAllowedImages() {
-		if conf.ImageName == imageName {
-			opts.Privileged = true
-			break
-		}
+		Privileged:    true,
 	}
 
 	dockerClient, err := d.factory.GetForSession(session.Id)
@@ -104,8 +89,6 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	instance.Session = session
 	instance.ProxyHost = router.EncodeHost(session.Id, ip, router.HostOpts{})
 	instance.SessionHost = session.Host
-	// For now this condition holds through. In the future we might need a more complex logic.
-	instance.IsDockerHost = opts.Privileged
 
 	return instance, nil
 }

@@ -48,13 +48,15 @@ func init() {
 }
 
 type pwd struct {
-	dockerFactory      docker.FactoryApi
-	event              event.EventApi
-	storage            storage.StorageApi
-	generator          IdGenerator
-	clientCount        int32
-	windowsProvisioner provisioner.ProvisionerApi
-	dindProvisioner    provisioner.ProvisionerApi
+	dockerFactory              docker.FactoryApi
+	event                      event.EventApi
+	storage                    storage.StorageApi
+	generator                  IdGenerator
+	clientCount                int32
+	sessionProvisioner         provisioner.SessionProvisionerApi
+	instanceProvisionerFactory provisioner.InstanceProvisionerFactoryApi
+	windowsProvisioner         provisioner.InstanceProvisionerApi
+	dindProvisioner            provisioner.InstanceProvisionerApi
 }
 
 type IdGenerator interface {
@@ -94,7 +96,6 @@ type PWDApi interface {
 	InstanceFindByIP(sessionId, ip string) *types.Instance
 	InstanceDelete(session *types.Session, instance *types.Instance) error
 	InstanceExec(instance *types.Instance, cmd []string) (int, error)
-	InstanceAllowedImages() []string
 
 	ClientNew(id string, session *types.Session) *types.Client
 	ClientResizeViewPort(client *types.Client, cols, rows uint)
@@ -102,16 +103,20 @@ type PWDApi interface {
 	ClientCount() int
 }
 
-func NewPWD(f docker.FactoryApi, e event.EventApi, s storage.StorageApi) *pwd {
-	return &pwd{dockerFactory: f, event: e, storage: s, generator: xidGenerator{}, windowsProvisioner: provisioner.NewWindowsASG(f, s), dindProvisioner: provisioner.NewDinD(f)}
+func NewPWD(f docker.FactoryApi, e event.EventApi, s storage.StorageApi, sp provisioner.SessionProvisionerApi, ipf provisioner.InstanceProvisionerFactoryApi) *pwd {
+	//  windowsProvisioner: provisioner.NewWindowsASG(f, s), dindProvisioner: provisioner.NewDinD(f)
+	return &pwd{dockerFactory: f, event: e, storage: s, generator: xidGenerator{}, sessionProvisioner: sp, instanceProvisionerFactory: ipf}
 }
 
-func (p *pwd) getProvisioner(t string) (provisioner.ProvisionerApi, error) {
-	if t == "windows" {
-		return p.windowsProvisioner, nil
-	} else {
-		return p.dindProvisioner, nil
-	}
+func (p *pwd) getProvisioner(t string) (provisioner.InstanceProvisionerApi, error) {
+	return p.instanceProvisionerFactory.GetProvisioner(t)
+	/*
+		if t == "windows" {
+			return p.windowsProvisioner, nil
+		} else {
+			return p.dindProvisioner, nil
+		}
+	*/
 }
 
 func (p *pwd) setGauges() {
