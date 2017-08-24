@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	dtypes "github.com/docker/docker/api/types"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
@@ -51,7 +52,7 @@ func TestInstanceNew(t *testing.T) {
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
-	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
+	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
 	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
@@ -116,7 +117,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
-	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
+	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
 	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
@@ -182,7 +183,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
-	_d.On("CreateNetwork", "aaaabbbbcccc").Return(nil)
+	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
 	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)

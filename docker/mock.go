@@ -13,8 +13,8 @@ type Mock struct {
 	mock.Mock
 }
 
-func (m *Mock) CreateNetwork(id string) error {
-	args := m.Called(id)
+func (m *Mock) CreateNetwork(id string, opts types.NetworkCreate) error {
+	args := m.Called(id, opts)
 	return args.Error(0)
 }
 

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	dtypes "github.com/docker/docker/api/types"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -33,7 +34,8 @@ func (p *overlaySessionProvisioner) SessionNew(s *types.Session) error {
 		s.Host = chunks[0]
 	}
 
-	if err := dockerClient.CreateNetwork(s.Id); err != nil {
+	opts := dtypes.NetworkCreate{Driver: "overlay", Attachable: true}
+	if err := dockerClient.CreateNetwork(s.Id, opts); err != nil {
 		log.Println("ERROR NETWORKING", err)
 		return err
 	}

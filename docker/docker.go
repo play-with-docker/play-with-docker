@@ -30,7 +30,7 @@ const (
 )
 
 type DockerApi interface {
-	CreateNetwork(id string) error
+	CreateNetwork(id string, opts types.NetworkCreate) error
 	ConnectNetwork(container, network, ip string) (string, error)
 	GetDaemonInfo() (types.Info, error)
 	GetDaemonHost() string
@@ -60,8 +60,7 @@ type docker struct {
 	c *client.Client
 }
 
-func (d *docker) CreateNetwork(id string) error {
-	opts := types.NetworkCreate{Driver: "overlay", Attachable: true}
+func (d *docker) CreateNetwork(id string, opts types.NetworkCreate) error {
 	_, err := d.c.NetworkCreate(context.Background(), id, opts)
 
 	if err != nil {
