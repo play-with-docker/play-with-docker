@@ -23,6 +23,11 @@ func (m *Mock) ConnectNetwork(container, network, ip string) (string, error) {
 	return args.String(0), args.Error(1)
 }
 
+func (m *Mock) NetworkInspect(id string) (types.NetworkResource, error) {
+	args := m.Called(id)
+	return args.Get(0).(types.NetworkResource), args.Error(1)
+}
+
 func (m *Mock) GetDaemonInfo() (types.Info, error) {
 	args := m.Called()
 	return args.Get(0).(types.Info), args.Error(1)
