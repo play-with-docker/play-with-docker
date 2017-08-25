@@ -206,19 +206,19 @@ func (d *docker) DeleteContainer(id string) error {
 }
 
 type CreateContainerOpts struct {
-	Image              string
-	WindowsEndpoint    string
-	SessionId          string
-	PwdIpAddress       string
-	ContainerName      string
-	Hostname           string
-	ServerCert         []byte
-	ServerKey          []byte
-	CACert             []byte
-	Privileged         bool
-	HostFQDN           string
-	Labels             map[string]string
-	AdditionalNetworks []string
+	Image           string
+	WindowsEndpoint string
+	SessionId       string
+	PwdIpAddress    string
+	ContainerName   string
+	Hostname        string
+	ServerCert      []byte
+	ServerKey       []byte
+	CACert          []byte
+	Privileged      bool
+	HostFQDN        string
+	Labels          map[string]string
+	Networks        map[string]string
 }
 
 func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
@@ -284,10 +284,15 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 		Env:          env,
 		Labels:       opts.Labels,
 	}
-	networkConf := &network.NetworkingConfig{
-		map[string]*network.EndpointSettings{
-			opts.SessionId: &network.EndpointSettings{Aliases: []string{opts.Hostname}},
-		},
+
+	networkConf := &network.NetworkingConfig{}
+	ec := map[string]*network.EndpointSettings{}
+	for netId, hostname := range opts.Networks {
+		es := &network.EndpointSettings{}
+		if hostname != "" {
+			es.Aliases = []string{hostname}
+		}
+		ec[netId] = es
 	}
 
 	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
@@ -303,13 +308,6 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 				return "", err
 			}
 		} else {
-			return "", err
-		}
-	}
-
-	for _, netId := range opts.AdditionalNetworks {
-		set := &network.EndpointSettings{}
-		if err := d.c.NetworkConnect(context.Background(), netId, container.ID, set); err != nil {
 			return "", err
 		}
 	}
