@@ -50,3 +50,26 @@ func (p *overlaySessionProvisioner) SessionNew(s *types.Session) error {
 	log.Printf("Connected %s to network [%s]\n", config.PWDContainerName, s.Id)
 	return nil
 }
+func (p *overlaySessionProvisioner) SessionClose(s *types.Session) error {
+	// Disconnect L2 router from the network
+	dockerClient, err := p.dockerFactory.GetForSession(s.Id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if err := dockerClient.DisconnectNetwork(config.L2ContainerName, s.Id); err != nil {
+		if !strings.Contains(err.Error(), "is not connected to the network") {
+			log.Println("ERROR NETWORKING", err)
+			return err
+		}
+	}
+	log.Printf("Disconnected l2 from network [%s]\n", s.Id)
+	if err := dockerClient.DeleteNetwork(s.Id); err != nil {
+		if !strings.Contains(err.Error(), "not found") {
+			log.Println(err)
+			return err
+		}
+	}
+
+	return nil
+}

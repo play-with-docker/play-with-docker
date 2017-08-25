@@ -7,13 +7,11 @@ import (
 	"math"
 	"path"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -109,24 +107,9 @@ func (p *pwd) SessionClose(s *types.Session) error {
 		return err
 	}
 
-	// Disconnect PWD daemon from the network
-	dockerClient, err := p.dockerFactory.GetForSession(s.Id)
-	if err != nil {
+	if err := p.sessionProvisioner.SessionClose(s); err != nil {
 		log.Println(err)
 		return err
-	}
-	if err := dockerClient.DisconnectNetwork(config.L2ContainerName, s.Id); err != nil {
-		if !strings.Contains(err.Error(), "is not connected to the network") {
-			log.Println("ERROR NETWORKING", err)
-			return err
-		}
-	}
-	log.Printf("Disconnected l2 from network [%s]\n", s.Id)
-	if err := dockerClient.DeleteNetwork(s.Id); err != nil {
-		if !strings.Contains(err.Error(), "not found") {
-			log.Println(err)
-			return err
-		}
 	}
 
 	err = p.storage.SessionDelete(s.Id)
