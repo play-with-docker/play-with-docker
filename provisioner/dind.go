@@ -64,7 +64,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		CACert:        conf.CACert,
 		HostFQDN:      conf.Host,
 		Privileged:    true,
-		Networks:      map[string]string{session.Id: conf.Hostname},
+		Networks:      []string{session.Id},
 	}
 
 	dockerClient, err := d.factory.GetForSession(session.Id)

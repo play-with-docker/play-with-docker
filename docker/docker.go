@@ -219,7 +219,7 @@ type CreateContainerOpts struct {
 	Privileged      bool
 	HostFQDN        string
 	Labels          map[string]string
-	Networks        map[string]string
+	Networks        []string
 }
 
 func (d *docker) CreateContainer(opts CreateContainerOpts) error {
@@ -286,17 +286,10 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 		Labels:       opts.Labels,
 	}
 
-	networkConf := &network.NetworkingConfig{}
-	ec := map[string]*network.EndpointSettings{}
-	for netId, hostname := range opts.Networks {
-		es := &network.EndpointSettings{}
-		if hostname != "" {
-			es.Aliases = []string{hostname}
-		}
-		ec[netId] = es
+	networkConf := &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{opts.Networks[0]: &network.EndpointSettings{}},
 	}
 
-	networkConf.EndpointsConfig = ec
 	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
 
 	if err != nil {
@@ -311,6 +304,16 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 			}
 		} else {
 			return err
+		}
+	}
+
+	//connect remaining networks if there are any
+	if len(opts.Networks) > 1 {
+		for _, nid := range opts.Networks {
+			err := d.c.NetworkConnect(context.Background(), nid, container.ID, &network.EndpointSettings{})
+			if err != nil {
+				return "", err
+			}
 		}
 	}
 

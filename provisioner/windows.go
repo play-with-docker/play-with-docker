@@ -82,7 +82,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 		CACert:          conf.CACert,
 		Privileged:      false,
 		HostFQDN:        conf.Host,
-		Networks:        map[string]string{session.Id: conf.Hostname},
+		Networks:        []string{session.Id},
 	}
 
 	dockerClient, err := d.factory.GetForSession(session.Id)
