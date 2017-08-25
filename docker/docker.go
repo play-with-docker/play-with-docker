@@ -295,6 +295,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 		ec[netId] = es
 	}
 
+	networkConf.EndpointsConfig = ec
 	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
 
 	if err != nil {
