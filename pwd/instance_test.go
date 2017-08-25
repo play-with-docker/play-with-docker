@@ -90,7 +90,7 @@ func TestInstanceNew(t *testing.T) {
 		CACert:        nil,
 		Privileged:    true,
 		HostFQDN:      "something.play-with-docker.com",
-		Networks:      map[string]string{session.Id: expectedInstance.Hostname},
+		Networks:      []string{session.Id},
 	}
 	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
 	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
@@ -158,7 +158,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		ServerKey:     nil,
 		CACert:        nil,
 		Privileged:    true,
-		Networks:      map[string]string{session.Id: expectedInstance.Hostname},
+		Networks:      []string{session.Id},
 	}
 	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
 	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
@@ -226,7 +226,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		ServerKey:     nil,
 		CACert:        nil,
 		Privileged:    true,
-		Networks:      map[string]string{session.Id: expectedInstance.Hostname},
+		Networks:      []string{session.Id},
 	}
 
 	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
