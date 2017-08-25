@@ -312,7 +312,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 		for _, nid := range opts.Networks {
 			err := d.c.NetworkConnect(context.Background(), nid, container.ID, &network.EndpointSettings{})
 			if err != nil {
-				return "", err
+				return err
 			}
 		}
 	}
