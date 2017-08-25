@@ -71,10 +71,15 @@ func (m *Mock) DeleteContainer(id string) error {
 	args := m.Called(id)
 	return args.Error(0)
 }
-func (m *Mock) CreateContainer(opts CreateContainerOpts) (string, error) {
+func (m *Mock) CreateContainer(opts CreateContainerOpts) error {
 	args := m.Called(opts)
-	return args.String(0), args.Error(1)
+	return args.Error(0)
 }
+func (m *Mock) GetContainerIPs(id string) (map[string]string, error) {
+	args := m.Called(id)
+	return args.Get(0).(map[string]string), args.Error(1)
+}
+
 func (m *Mock) ExecAttach(instanceName string, command []string, out io.Writer) (int, error) {
 	args := m.Called(instanceName, command, out)
 	return args.Int(0), args.Error(1)

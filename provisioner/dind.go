@@ -71,14 +71,19 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	if err != nil {
 		return nil, err
 	}
-	ip, err := dockerClient.CreateContainer(opts)
+	if err := dockerClient.CreateContainer(opts); err != nil {
+		return nil, err
+	}
+
+	ips, err := dockerClient.GetContainerIPs(containerName)
 	if err != nil {
 		return nil, err
 	}
 
 	instance := &types.Instance{}
 	instance.Image = opts.Image
-	instance.IP = ip
+	instance.IP = ips[session.Id]
+	instance.RoutableIP = instance.IP
 	instance.SessionId = session.Id
 	instance.Name = containerName
 	instance.Hostname = conf.Hostname
@@ -88,7 +93,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
 	instance.Session = session
-	instance.ProxyHost = router.EncodeHost(session.Id, ip, router.HostOpts{})
+	instance.ProxyHost = router.EncodeHost(session.Id, instance.RoutableIP, router.HostOpts{})
 	instance.SessionHost = session.Host
 
 	return instance, nil

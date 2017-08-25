@@ -90,8 +90,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 		d.releaseInstance(session.Id, winfo.id)
 		return nil, err
 	}
-	_, err = dockerClient.CreateContainer(opts)
-	if err != nil {
+	if err = dockerClient.CreateContainer(opts); err != nil {
 		d.releaseInstance(session.Id, winfo.id)
 		return nil, err
 	}
@@ -100,6 +99,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	instance.Name = containerName
 	instance.Image = opts.Image
 	instance.IP = winfo.privateIP
+	instance.RoutableIP = instance.IP
 	instance.SessionId = session.Id
 	instance.WindowsId = winfo.id
 	instance.Cert = conf.Cert
@@ -109,7 +109,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
 	instance.Session = session
-	instance.ProxyHost = router.EncodeHost(session.Id, instance.IP, router.HostOpts{})
+	instance.ProxyHost = router.EncodeHost(session.Id, instance.RoutableIP, router.HostOpts{})
 	instance.SessionHost = session.Host
 
 	if cli, err := d.factory.GetForInstance(instance); err != nil {

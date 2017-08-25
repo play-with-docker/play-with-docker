@@ -7,6 +7,7 @@ type Instance struct {
 	Name        string          `json:"name" bson:"name"`
 	Hostname    string          `json:"hostname" bson:"hostname"`
 	IP          string          `json:"ip" bson:"ip"`
+	RoutableIP  string          `json:"routable_ip" bson:"routable_id"`
 	ServerCert  []byte          `json:"server_cert" bson:"server_cert"`
 	ServerKey   []byte          `json:"server_key" bson:"server_key"`
 	CACert      []byte          `json:"ca_cert" bson:"ca_cert"`

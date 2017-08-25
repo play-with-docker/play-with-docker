@@ -43,7 +43,8 @@ type DockerApi interface {
 	CreateAttachConnection(name string) (net.Conn, error)
 	CopyToContainer(containerName, destination, fileName string, content io.Reader) error
 	DeleteContainer(id string) error
-	CreateContainer(opts CreateContainerOpts) (string, error)
+	CreateContainer(opts CreateContainerOpts) error
+	GetContainerIPs(id string) (map[string]string, error)
 	ExecAttach(instanceName string, command []string, out io.Writer) (int, error)
 	DisconnectNetwork(containerId, networkId string) error
 	DeleteNetwork(id string) error
@@ -221,7 +222,7 @@ type CreateContainerOpts struct {
 	Networks        map[string]string
 }
 
-func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
+func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 	// Make sure directories are available for the new instance container
 	containerDir := "/var/run/pwd"
 	containerCertDir := fmt.Sprintf("%s/certs", containerDir)
@@ -302,38 +303,47 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 		if client.IsErrImageNotFound(err) {
 			log.Printf("Unable to find image '%s' locally\n", opts.Image)
 			if err = d.pullImage(context.Background(), opts.Image); err != nil {
-				return "", err
+				return err
 			}
 			container, err = d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
 			if err != nil {
-				return "", err
+				return err
 			}
 		} else {
-			return "", err
+			return err
 		}
 	}
 
 	if err := d.copyIfSet(opts.ServerCert, "cert.pem", containerCertDir, opts.ContainerName); err != nil {
-		return "", err
+		return err
 	}
 	if err := d.copyIfSet(opts.ServerKey, "key.pem", containerCertDir, opts.ContainerName); err != nil {
-		return "", err
+		return err
 	}
 	if err := d.copyIfSet(opts.CACert, "ca.pem", containerCertDir, opts.ContainerName); err != nil {
-		return "", err
+		return err
 	}
 
 	err = d.c.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{})
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	cinfo, err := d.c.ContainerInspect(context.Background(), container.ID)
+	return nil
+}
+
+func (d *docker) GetContainerIPs(id string) (map[string]string, error) {
+	cinfo, err := d.c.ContainerInspect(context.Background(), id)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return cinfo.NetworkSettings.Networks[opts.SessionId].IPAddress, nil
+	ips := map[string]string{}
+	for networkId, conf := range cinfo.NetworkSettings.Networks {
+		ips[networkId] = conf.IPAddress
+	}
+	return ips, nil
+
 }
 
 func (d *docker) pullImage(ctx context.Context, image string) error {

@@ -72,6 +72,7 @@ func TestInstanceNew(t *testing.T) {
 		Name:        fmt.Sprintf("%s_node1", session.Id[:8]),
 		Hostname:    "node1",
 		IP:          "10.0.0.1",
+		RoutableIP:  "10.0.0.1",
 		Image:       config.GetDindImageName(),
 		SessionId:   session.Id,
 		Session:     session,
@@ -91,7 +92,8 @@ func TestInstanceNew(t *testing.T) {
 		HostFQDN:      "something.play-with-docker.com",
 		Networks:      map[string]string{session.Id: expectedInstance.Hostname},
 	}
-	_d.On("CreateContainer", expectedContainerOpts).Return("10.0.0.1", nil)
+	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
+	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
@@ -139,6 +141,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		Name:        fmt.Sprintf("%s_node1", session.Id[:8]),
 		Hostname:    "node1",
 		IP:          "10.0.0.1",
+		RoutableIP:  "10.0.0.1",
 		Image:       "redis",
 		SessionId:   session.Id,
 		Session:     session,
@@ -157,7 +160,8 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		Privileged:    true,
 		Networks:      map[string]string{session.Id: expectedInstance.Hostname},
 	}
-	_d.On("CreateContainer", expectedContainerOpts).Return("10.0.0.1", nil)
+	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
+	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
@@ -205,6 +209,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		Name:        fmt.Sprintf("%s_redis-master", session.Id[:8]),
 		Hostname:    "redis-master",
 		IP:          "10.0.0.1",
+		RoutableIP:  "10.0.0.1",
 		Image:       "redis",
 		Session:     session,
 		SessionHost: session.Host,
@@ -224,7 +229,8 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		Networks:      map[string]string{session.Id: expectedInstance.Hostname},
 	}
 
-	_d.On("CreateContainer", expectedContainerOpts).Return("10.0.0.1", nil)
+	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
+	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_redis-master", "10.0.0.1", "redis-master", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
