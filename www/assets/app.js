@@ -292,6 +292,10 @@
     }
 
     $scope.removeInstance = function(name) {
+        if ($scope.idx[name]) {
+            var handler = $scope.idx[name].terminalBufferInterval;
+            clearInterval(handler);
+        }
       if ($scope.idx[name]) {
         delete $scope.idx[name];
         $scope.instances = $scope.instances.filter(function(i) {
@@ -365,8 +369,13 @@
         $scope.resize(term.proposeGeometry());
       }, 4);
 
+      instance.terminalBuffer = '';
+      instance.terminalBufferInterval = setInterval(function() {
+          $scope.socket.emit('instance terminal in', instance.name, instance.terminalBuffer);
+          instance.terminalBuffer = '';
+      }, 70);
       term.on('data', function(d) {
-        $scope.socket.emit('instance terminal in', instance.name, d);
+          instance.terminalBuffer += d;
       });
 
       instance.term = term;
