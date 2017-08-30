@@ -371,8 +371,10 @@
 
       instance.terminalBuffer = '';
       instance.terminalBufferInterval = setInterval(function() {
-          $scope.socket.emit('instance terminal in', instance.name, instance.terminalBuffer);
-          instance.terminalBuffer = '';
+          if (instance.terminalBuffer.length > 0) {
+              $scope.socket.emit('instance terminal in', instance.name, instance.terminalBuffer);
+              instance.terminalBuffer = '';
+          }
       }, 70);
       term.on('data', function(d) {
           instance.terminalBuffer += d;
