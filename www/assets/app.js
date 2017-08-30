@@ -116,8 +116,7 @@
         url: '/sessions/' + $scope.sessionId + '/instances',
         data : { ImageName : InstanceService.getDesiredImage(), type: instanceType }
       }).then(function(response) {
-        var i = $scope.upsertInstance(response.data);
-        $scope.showInstance(i);
+        $scope.upsertInstance(response.data);
       }, function(response) {
         if (response.status == 409) {
           $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
@@ -195,11 +194,9 @@
         });
 
         socket.on('instance new', function(name, ip, hostname, proxyHost) {
-          $scope.upsertInstance({ name: name, ip: ip, hostname: hostname, proxy_host: proxyHost});
+          var instance = $scope.upsertInstance({ name: name, ip: ip, hostname: hostname, proxy_host: proxyHost});
           $scope.$apply(function() {
-            if ($scope.instances.length == 1) {
-              $scope.showInstance($scope.instances[0]);
-            }
+            $scope.showInstance(instance);
           });
         });
 
@@ -209,10 +206,18 @@
         });
 
         socket.on('instance viewport resize', function(cols, rows) {
+            if (cols == 0 || rows == 0) {
+                return
+            }
           // viewport has changed, we need to resize all terminals
-
           $scope.instances.forEach(function(instance) {
-            instance.term.resize(cols, rows);
+              if (instance.term) {
+                instance.term.resize(cols, rows);
+                if (instance.buffer) {
+                  instance.term.write(instance.buffer);
+                  instance.buffer = '';
+                }
+              }
           });
         });
 
@@ -276,19 +281,16 @@
     $scope.showInstance = function(instance) {
       $scope.selectedInstance = instance;
       $location.hash(instance.name);
-      if (!instance.creatingTerminal) {
-        if (!instance.term) {
+      if (!instance.term) {
           $timeout(function() {
-            createTerminal(instance);
-            TerminalService.setFontSize(TerminalService.getFontSize());
-            instance.term.focus();
+              createTerminal(instance);
+              TerminalService.setFontSize(TerminalService.getFontSize());
+              instance.term.focus();
+              $timeout(function() {
+              }, 0, false);
           }, 0, false);
-          return
-        }
+        return
       }
-      $timeout(function() {
-        instance.term.focus();
-      }, 0, false);
     }
 
     $scope.removeInstance = function(name) {
@@ -365,9 +367,12 @@
       term.open(terminalContainer);
 
       // Set geometry during the next tick, to avoid race conditions.
+    
+        /*
       setTimeout(function() {
         $scope.resize(term.proposeGeometry());
       }, 4);
+      */
 
       instance.terminalBuffer = '';
       instance.terminalBufferInterval = setInterval(function() {
@@ -381,11 +386,6 @@
       });
 
       instance.term = term;
-
-      if (instance.buffer) {
-        term.write(instance.buffer);
-        instance.buffer = '';
-      }
 
       if (cb) {
         cb();
