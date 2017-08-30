@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"crypto/tls"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/googollee/go-socket.io"
 	gh "github.com/gorilla/handlers"
@@ -91,9 +94,23 @@ func Register() {
 		IdleTimeout:       30 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
+	if config.UseLetsEncrypt {
+		certManager := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(config.LetsEncryptDomains...),
+			Cache:      autocert.DirCache(config.LetsEncryptCertsDir),
+		}
 
-	log.Println("Listening on port " + config.PortNumber)
-	log.Fatal(httpServer.ListenAndServe())
+		httpServer.TLSConfig = &tls.Config{
+			GetCertificate: certManager.GetCertificate,
+		}
+		log.Println("Listening on port " + config.PortNumber)
+		log.Fatal(httpServer.ListenAndServeTLS("", ""))
+	} else {
+		log.Println("Listening on port " + config.PortNumber)
+		log.Fatal(httpServer.ListenAndServe())
+	}
+
 }
 
 func RegisterEvents(s *socketio.Server) {
