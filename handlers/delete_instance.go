@@ -12,10 +12,15 @@ func DeleteInstance(rw http.ResponseWriter, req *http.Request) {
 	instanceName := vars["instanceName"]
 
 	s := core.SessionGet(sessionId)
-	i := core.InstanceGet(s, instanceName)
-	err := core.InstanceDelete(s, i)
-	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
+	if s != nil {
+		i := core.InstanceGet(s, instanceName)
+		err := core.InstanceDelete(s, i)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	} else {
+		rw.WriteHeader(http.StatusNotFound)
 		return
 	}
 }
