@@ -6,10 +6,10 @@ import (
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
-var notFound = errors.New("NotFound")
+var NotFoundError = errors.New("NotFound")
 
 func NotFound(e error) bool {
-	return e == notFound
+	return e == NotFoundError
 }
 
 type StorageApi interface {

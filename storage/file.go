@@ -31,7 +31,7 @@ func (store *storage) SessionGet(id string) (*types.Session, error) {
 
 	s, found := store.db.Sessions[id]
 	if !found {
-		return nil, notFound
+		return nil, NotFoundError
 	}
 
 	return s, nil
@@ -98,7 +98,7 @@ func (store *storage) InstanceGet(name string) (*types.Instance, error) {
 
 	i := store.db.Instances[name]
 	if i == nil {
-		return nil, notFound
+		return nil, NotFoundError
 	}
 	return i, nil
 }
@@ -109,7 +109,7 @@ func (store *storage) InstancePut(instance *types.Instance) error {
 
 	_, found := store.db.Sessions[string(instance.SessionId)]
 	if !found {
-		return notFound
+		return NotFoundError
 	}
 
 	store.db.Instances[instance.Name] = instance
@@ -188,7 +188,7 @@ func (store *storage) WindowsInstancePut(instance *types.WindowsInstance) error 
 
 	_, found := store.db.Sessions[string(instance.SessionId)]
 	if !found {
-		return notFound
+		return NotFoundError
 	}
 	store.db.WindowsInstances[instance.Id] = instance
 	found = false
@@ -233,7 +233,7 @@ func (store *storage) ClientGet(id string) (*types.Client, error) {
 
 	i := store.db.Clients[id]
 	if i == nil {
-		return nil, notFound
+		return nil, NotFoundError
 	}
 	return i, nil
 }
@@ -243,7 +243,7 @@ func (store *storage) ClientPut(client *types.Client) error {
 
 	_, found := store.db.Sessions[string(client.SessionId)]
 	if !found {
-		return notFound
+		return NotFoundError
 	}
 
 	store.db.Clients[client.Id] = client
