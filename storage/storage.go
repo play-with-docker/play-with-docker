@@ -1,34 +1,37 @@
 package storage
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
-const notFound = "NotFound"
+var notFound = errors.New("NotFound")
 
 func NotFound(e error) bool {
-	return e.Error() == notFound
-}
-
-func NewNotFoundError() error {
-	return fmt.Errorf("%s", notFound)
+	return e == notFound
 }
 
 type StorageApi interface {
-	SessionGet(string) (*types.Session, error)
-	SessionPut(*types.Session) error
+	SessionGet(id string) (*types.Session, error)
+	SessionGetAll() ([]*types.Session, error)
+	SessionPut(session *types.Session) error
+	SessionDelete(id string) error
 	SessionCount() (int, error)
-	SessionDelete(string) error
-	SessionGetAll() (map[string]*types.Session, error)
 
-	InstanceGet(sessionId, name string) (*types.Instance, error)
-	InstanceFindByIP(session, ip string) (*types.Instance, error)
-	InstanceCreate(sessionId string, instance *types.Instance) error
-	InstanceDelete(sessionId, instanceName string) error
-	InstanceDeleteWindows(sessionId, instanceId string) error
+	InstanceGet(name string) (*types.Instance, error)
+	InstancePut(instance *types.Instance) error
+	InstanceDelete(name string) error
 	InstanceCount() (int, error)
-	InstanceGetAllWindows() ([]*types.WindowsInstance, error)
-	InstanceCreateWindows(*types.WindowsInstance) error
+	InstanceFindBySessionId(sessionId string) ([]*types.Instance, error)
+
+	WindowsInstanceGetAll() ([]*types.WindowsInstance, error)
+	WindowsInstancePut(instance *types.WindowsInstance) error
+	WindowsInstanceDelete(id string) error
+
+	ClientGet(id string) (*types.Client, error)
+	ClientPut(client *types.Client) error
+	ClientDelete(id string) error
+	ClientCount() (int, error)
+	ClientFindBySessionId(sessionId string) ([]*types.Client, error)
 }

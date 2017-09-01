@@ -15,7 +15,6 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/play-with-docker/play-with-docker/storage"
 )
 
 var preparedSessions = map[string]bool{}
@@ -46,7 +45,6 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 
 	s := &types.Session{}
 	s.Id = p.generator.NewId()
-	s.Instances = map[string]*types.Instance{}
 	s.CreatedAt = time.Now()
 	s.ExpiresAt = s.CreatedAt.Add(duration)
 	s.Ready = true
@@ -81,21 +79,14 @@ func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName str
 func (p *pwd) SessionClose(s *types.Session) error {
 	defer observeAction("SessionClose", time.Now())
 
-	updatedSession, err := p.storage.SessionGet(s.Id)
-	if err != nil {
-		if storage.NotFound(err) {
-			log.Printf("Session with id [%s] was not found in storage.\n", s.Id)
-			return err
-		} else {
-			log.Printf("Couldn't close session. Got: %s\n", err)
-			return err
-		}
-	}
-	s = updatedSession
-
 	log.Printf("Starting clean up of session [%s]\n", s.Id)
 	g, _ := errgroup.WithContext(context.Background())
-	for _, i := range s.Instances {
+	instances, err := p.storage.InstanceFindBySessionId(s.Id)
+	if err != nil {
+		log.Printf("Could not find instances in session %s. Got %v\n", s.Id, err)
+		return err
+	}
+	for _, i := range instances {
 		i := i
 		g.Go(func() error {
 			return p.InstanceDelete(s, i)
@@ -124,13 +115,22 @@ func (p *pwd) SessionClose(s *types.Session) error {
 
 }
 
-func (p *pwd) SessionGetSmallestViewPort(s *types.Session) types.ViewPort {
+func (p *pwd) SessionGetSmallestViewPort(sessionId string) types.ViewPort {
 	defer observeAction("SessionGetSmallestViewPort", time.Now())
 
-	minRows := s.Clients[0].ViewPort.Rows
-	minCols := s.Clients[0].ViewPort.Cols
+	clients, err := p.storage.ClientFindBySessionId(sessionId)
+	if err != nil {
+		log.Printf("Error finding clients for session [%s]. Got: %v\n", sessionId, err)
+		return types.ViewPort{Rows: 24, Cols: 80}
+	}
+	if len(clients) == 0 {
+		log.Printf("Session [%s] doesn't have clients. Returning default viewport\n", sessionId)
+		return types.ViewPort{Rows: 24, Cols: 80}
+	}
+	minRows := clients[0].ViewPort.Rows
+	minCols := clients[0].ViewPort.Cols
 
-	for _, c := range s.Clients {
+	for _, c := range clients {
 		minRows = uint(math.Min(float64(minRows), float64(c.ViewPort.Rows)))
 		minCols = uint(math.Min(float64(minCols), float64(c.ViewPort.Cols)))
 	}
@@ -205,6 +205,15 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 	defer observeAction("SessionSetup", time.Now())
 	var tokens *docker.SwarmTokens = nil
 	var firstSwarmManager *types.Instance = nil
+
+	instances, err := p.storage.InstanceFindBySessionId(session.Id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if len(instances) > 0 {
+		return sessionNotEmpty
+	}
 
 	// first look for a swarm manager and create it
 	for _, conf := range conf.Instances {

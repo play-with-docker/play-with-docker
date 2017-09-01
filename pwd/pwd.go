@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"errors"
 	"io"
 	"net"
 	"time"
@@ -79,10 +80,22 @@ func (m *mockGenerator) NewId() string {
 	return args.String(0)
 }
 
+var sessionComplete = errors.New("Session is complete")
+
+func SessionComplete(e error) bool {
+	return e == sessionComplete
+}
+
+var sessionNotEmpty = errors.New("Session is not empty")
+
+func SessionNotEmpty(e error) bool {
+	return e == sessionNotEmpty
+}
+
 type PWDApi interface {
 	SessionNew(duration time.Duration, stack string, stackName, imageName string) (*types.Session, error)
 	SessionClose(session *types.Session) error
-	SessionGetSmallestViewPort(session *types.Session) types.ViewPort
+	SessionGetSmallestViewPort(sessionId string) types.ViewPort
 	SessionDeployStack(session *types.Session) error
 	SessionGet(id string) *types.Session
 	SessionSetup(session *types.Session, conf SessionSetupConf) error
@@ -93,7 +106,7 @@ type PWDApi interface {
 	InstanceUploadFromUrl(instance *types.Instance, fileName, dest, url string) error
 	InstanceUploadFromReader(instance *types.Instance, fileName, dest string, reader io.Reader) error
 	InstanceGet(session *types.Session, name string) *types.Instance
-	InstanceFindByIP(sessionId, ip string) *types.Instance
+	InstanceFindBySession(session *types.Session) ([]*types.Instance, error)
 	InstanceDelete(session *types.Session, instance *types.Instance) error
 	InstanceExec(instance *types.Instance, cmd []string) (int, error)
 

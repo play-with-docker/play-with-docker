@@ -51,7 +51,7 @@ func (p *pwd) InstanceUploadFromReader(instance *types.Instance, fileName, dest 
 
 func (p *pwd) InstanceGet(session *types.Session, name string) *types.Instance {
 	defer observeAction("InstanceGet", time.Now())
-	instance, err := p.storage.InstanceGet(session.Id, name)
+	instance, err := p.storage.InstanceGet(name)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -59,14 +59,14 @@ func (p *pwd) InstanceGet(session *types.Session, name string) *types.Instance {
 	return instance
 }
 
-func (p *pwd) InstanceFindByIP(sessionId, ip string) *types.Instance {
-	defer observeAction("InstanceFindByIP", time.Now())
-	i, err := p.storage.InstanceFindByIP(sessionId, ip)
+func (p *pwd) InstanceFindBySession(session *types.Session) ([]*types.Instance, error) {
+	defer observeAction("InstanceFindBySession", time.Now())
+	instances, err := p.storage.InstanceFindBySessionId(session.Id)
 	if err != nil {
-		return nil
+		log.Println(err)
+		return nil, err
 	}
-
-	return i
+	return instances, nil
 }
 
 func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) error {
@@ -83,7 +83,7 @@ func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) e
 		return err
 	}
 
-	if err := p.storage.InstanceDelete(session.Id, instance.Name); err != nil {
+	if err := p.storage.InstanceDelete(instance.Name); err != nil {
 		return err
 	}
 
@@ -99,6 +99,16 @@ func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*t
 	session.Lock()
 	defer session.Unlock()
 
+	instances, err := p.storage.InstanceFindBySessionId(session.Id)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	if len(instances) >= 5 {
+		return nil, sessionComplete
+	}
+
 	prov, err := p.getProvisioner(conf.Type)
 	if err != nil {
 		return nil, err
@@ -109,12 +119,7 @@ func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*t
 		return nil, err
 	}
 
-	if session.Instances == nil {
-		session.Instances = make(map[string]*types.Instance)
-	}
-	session.Instances[instance.Name] = instance
-
-	err = p.storage.InstanceCreate(session.Id, instance)
+	err = p.storage.InstancePut(instance)
 	if err != nil {
 		return nil, err
 	}

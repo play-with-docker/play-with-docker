@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
@@ -19,13 +20,12 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 
 	s := core.SessionGet(sessionId)
 
-	if len(s.Instances) >= 5 {
-		rw.WriteHeader(http.StatusConflict)
-		return
-	}
-
 	i, err := core.InstanceNew(s, body)
 	if err != nil {
+		if pwd.SessionComplete(err) {
+			rw.WriteHeader(http.StatusConflict)
+			return
+		}
 		log.Println(err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return

@@ -22,7 +22,7 @@ func TestClientNew(t *testing.T) {
 	_d := &docker.Mock{}
 	_e := &event.Mock{}
 
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -33,6 +33,8 @@ func TestClientNew(t *testing.T) {
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
 	_s.On("InstanceCount").Return(0, nil)
+	_s.On("ClientCount").Return(1, nil)
+	_s.On("ClientPut", mock.AnythingOfType("*types.Client")).Return(nil)
 
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
@@ -45,8 +47,7 @@ func TestClientNew(t *testing.T) {
 
 	client := p.ClientNew("foobar", session)
 
-	assert.Equal(t, types.Client{Id: "foobar", Session: session, ViewPort: types.ViewPort{Cols: 0, Rows: 0}}, *client)
-	assert.Contains(t, session.Clients, client)
+	assert.Equal(t, types.Client{Id: "foobar", SessionId: session.Id, ViewPort: types.ViewPort{Cols: 0, Rows: 0}}, *client)
 
 	_d.AssertExpectations(t)
 	_f.AssertExpectations(t)
@@ -61,7 +62,7 @@ func TestClientCount(t *testing.T) {
 	_g := &mockGenerator{}
 	_d := &docker.Mock{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -70,6 +71,8 @@ func TestClientCount(t *testing.T) {
 	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
+	_s.On("ClientPut", mock.AnythingOfType("*types.Client")).Return(nil)
+	_s.On("ClientCount").Return(1, nil)
 	_s.On("SessionCount").Return(1, nil)
 	_s.On("InstanceCount").Return(-1, nil)
 	var nilArgs []interface{}
@@ -98,7 +101,7 @@ func TestClientResizeViewPort(t *testing.T) {
 	_g := &mockGenerator{}
 	_d := &docker.Mock{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -109,6 +112,9 @@ func TestClientResizeViewPort(t *testing.T) {
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
 	_s.On("InstanceCount").Return(0, nil)
+	_s.On("InstanceFindBySessionId", "aaaabbbbcccc").Return([]*types.Instance{}, nil)
+	_s.On("ClientPut", mock.AnythingOfType("*types.Client")).Return(nil)
+	_s.On("ClientCount").Return(1, nil)
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
@@ -119,6 +125,7 @@ func TestClientResizeViewPort(t *testing.T) {
 	session, err := p.SessionNew(time.Hour, "", "", "")
 	assert.Nil(t, err)
 	client := p.ClientNew("foobar", session)
+	_s.On("ClientFindBySessionId", "aaaabbbbcccc").Return([]*types.Client{client}, nil)
 
 	p.ClientResizeViewPort(client, 80, 24)
 

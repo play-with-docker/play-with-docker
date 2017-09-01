@@ -1,12 +1,12 @@
 package types
 
 type Client struct {
-	Id       string
-	ViewPort ViewPort
-	Session  *Session
+	Id        string   `json:"id" bson:"id"`
+	SessionId string   `json:"session_id"`
+	ViewPort  ViewPort `json:"viewport"`
 }
 
 type ViewPort struct {
-	Rows uint
-	Cols uint
+	Rows uint `json:"rows"`
+	Cols uint `json:"cols"`
 }

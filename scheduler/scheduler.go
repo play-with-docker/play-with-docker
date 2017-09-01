@@ -161,9 +161,14 @@ func (s *scheduler) processSession(ctx context.Context, session *types.Session) 
 		return
 	}
 
+	instances, err := s.storage.InstanceFindBySessionId(updatedSession.Id)
+	if err != nil {
+		log.Printf("Couldn't find instances for session [%s]. Got: %v\n", updatedSession.Id, err)
+		return
+	}
 	wg := sync.WaitGroup{}
-	wg.Add(len(updatedSession.Instances))
-	for _, ins := range updatedSession.Instances {
+	wg.Add(len(instances))
+	for _, ins := range instances {
 		go func(ins *types.Instance) {
 			s.processInstance(ctx, ins)
 			wg.Done()

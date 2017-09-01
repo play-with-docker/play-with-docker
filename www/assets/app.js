@@ -59,9 +59,16 @@
 
     var selectedKeyboardShortcuts = KeyboardShortcutService.getCurrentShortcuts();
 
+    $scope.resizeHandler = null;
+
     angular.element($window).bind('resize', function() {
       if ($scope.selectedInstance) {
-        $scope.resize($scope.selectedInstance.term.proposeGeometry());
+        if (!$scope.resizeHandler) {
+            $scope.resizeHandler = setTimeout(function() {
+                $scope.resizeHandler = null
+                $scope.resize($scope.selectedInstance.term.proposeGeometry());
+            }, 1000);
+        }
       }
     });
 
@@ -263,7 +270,12 @@
 
         // If instance is passed in URL, select it
         let inst = $scope.idx[$location.hash()];
-        if (inst) $scope.showInstance(inst);
+        if (inst) {
+            $scope.showInstance(inst);
+        } else if($scope.instances.length > 0) {
+            // if no instance has been passed, select the first.
+            $scope.showInstance($scope.instances[0]);
+        }
       }, function(response) {
         if (response.status == 404) {
           document.write('session not found');

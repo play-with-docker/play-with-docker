@@ -2,9 +2,7 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -13,146 +11,76 @@ import (
 type storage struct {
 	rw   sync.Mutex
 	path string
-	db   map[string]*types.Session
+	db   *DB
 }
 
-func (store *storage) SessionGet(sessionId string) (*types.Session, error) {
+type DB struct {
+	Sessions         map[string]*types.Session         `json:"sessions"`
+	Instances        map[string]*types.Instance        `json:"instances"`
+	Clients          map[string]*types.Client          `json:"clients"`
+	WindowsInstances map[string]*types.WindowsInstance `json:"windows_instances"`
+
+	WindowsInstancesBySessionId map[string][]string `json:"windows_instances_by_session_id"`
+	InstancesBySessionId        map[string][]string `json:"instances_by_session_id"`
+	ClientsBySessionId          map[string][]string `json:"clients_by_session_id"`
+}
+
+func (store *storage) SessionGet(id string) (*types.Session, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
-	s, found := store.db[sessionId]
+	s, found := store.db.Sessions[id]
 	if !found {
-		return nil, fmt.Errorf("%s", notFound)
+		return nil, notFound
 	}
 
 	return s, nil
 }
 
-func (store *storage) SessionGetAll() (map[string]*types.Session, error) {
+func (store *storage) SessionGetAll() ([]*types.Session, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
-	return store.db, nil
+	sessions := make([]*types.Session, len(store.db.Sessions))
+	i := 0
+	for _, s := range store.db.Sessions {
+		sessions[i] = s
+		i++
+	}
+
+	return sessions, nil
 }
 
-func (store *storage) SessionPut(s *types.Session) error {
+func (store *storage) SessionPut(session *types.Session) error {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
-	// Initialize instances map if nil
-	if s.Instances == nil {
-		s.Instances = map[string]*types.Instance{}
-	}
-	store.db[s.Id] = s
+	store.db.Sessions[session.Id] = session
 
 	return store.save()
 }
 
-func (store *storage) InstanceGetAllWindows() ([]*types.WindowsInstance, error) {
+func (store *storage) SessionDelete(id string) error {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
-	instances := []*types.WindowsInstance{}
-
-	for _, s := range store.db {
-		instances = append(instances, s.WindowsAssigned...)
-	}
-
-	return instances, nil
-}
-
-func (store *storage) InstanceGet(sessionId, name string) (*types.Instance, error) {
-	store.rw.Lock()
-	defer store.rw.Unlock()
-
-	s := store.db[sessionId]
-	if s == nil {
-		return nil, fmt.Errorf("%s", notFound)
-	}
-	i := s.Instances[name]
-	if i == nil {
-		return nil, fmt.Errorf("%s", notFound)
-	}
-	return i, nil
-}
-
-func (store *storage) InstanceFindByIP(sessionId, ip string) (*types.Instance, error) {
-	store.rw.Lock()
-	defer store.rw.Unlock()
-
-	for id, s := range store.db {
-		if strings.HasPrefix(id, sessionId[:8]) {
-			for _, i := range s.Instances {
-				if i.IP == ip {
-					return i, nil
-				}
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("%s", notFound)
-}
-
-func (store *storage) InstanceCreate(sessionId string, instance *types.Instance) error {
-	store.rw.Lock()
-	defer store.rw.Unlock()
-
-	s, found := store.db[sessionId]
+	_, found := store.db.Sessions[id]
 	if !found {
-		return fmt.Errorf("Session %s", notFound)
-	}
-
-	s.Instances[instance.Name] = instance
-
-	return store.save()
-}
-
-func (store *storage) InstanceCreateWindows(instance *types.WindowsInstance) error {
-	store.rw.Lock()
-	defer store.rw.Unlock()
-
-	s, found := store.db[instance.SessionId]
-	if !found {
-		return fmt.Errorf("Session %s", notFound)
-	}
-
-	s.WindowsAssigned = append(s.WindowsAssigned, instance)
-
-	return store.save()
-}
-
-func (store *storage) InstanceDelete(sessionId, name string) error {
-	store.rw.Lock()
-	defer store.rw.Unlock()
-
-	s, found := store.db[sessionId]
-	if !found {
-		return fmt.Errorf("Session %s", notFound)
-	}
-
-	if _, found := s.Instances[name]; !found {
 		return nil
 	}
-	delete(s.Instances, name)
-
-	return store.save()
-}
-
-func (store *storage) InstanceDeleteWindows(sessionId, id string) error {
-	store.rw.Lock()
-	defer store.rw.Unlock()
-
-	s, found := store.db[sessionId]
-	if !found {
-		return fmt.Errorf("Session %s", notFound)
+	for _, i := range store.db.WindowsInstancesBySessionId[id] {
+		delete(store.db.WindowsInstances, i)
 	}
-
-	for i, winst := range s.WindowsAssigned {
-		if winst.ID == id {
-			s.WindowsAssigned = append(s.WindowsAssigned[:i], s.WindowsAssigned[i+1:]...)
-		}
-
+	store.db.WindowsInstancesBySessionId[id] = []string{}
+	for _, i := range store.db.InstancesBySessionId[id] {
+		delete(store.db.Instances, i)
 	}
+	store.db.InstancesBySessionId[id] = []string{}
+	for _, i := range store.db.ClientsBySessionId[id] {
+		delete(store.db.Clients, i)
+	}
+	store.db.ClientsBySessionId[id] = []string{}
+	delete(store.db.Sessions, id)
 
 	return store.save()
 }
@@ -161,28 +89,215 @@ func (store *storage) SessionCount() (int, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
-	return len(store.db), nil
+	return len(store.db.Sessions), nil
+}
+
+func (store *storage) InstanceGet(name string) (*types.Instance, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	i := store.db.Instances[name]
+	if i == nil {
+		return nil, notFound
+	}
+	return i, nil
+}
+
+func (store *storage) InstancePut(instance *types.Instance) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	_, found := store.db.Sessions[string(instance.SessionId)]
+	if !found {
+		return notFound
+	}
+
+	store.db.Instances[instance.Name] = instance
+	found = false
+	for _, i := range store.db.InstancesBySessionId[string(instance.SessionId)] {
+		if i == instance.Name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		store.db.InstancesBySessionId[string(instance.SessionId)] = append(store.db.InstancesBySessionId[string(instance.SessionId)], instance.Name)
+	}
+
+	return store.save()
+}
+
+func (store *storage) InstanceDelete(name string) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	instance, found := store.db.Instances[name]
+	if !found {
+		return nil
+	}
+
+	instances := store.db.InstancesBySessionId[string(instance.SessionId)]
+	for n, i := range instances {
+		if i == name {
+			instances = append(instances[:n], instances[n+1:]...)
+			break
+		}
+	}
+	store.db.InstancesBySessionId[string(instance.SessionId)] = instances
+	delete(store.db.Instances, name)
+
+	return store.save()
 }
 
 func (store *storage) InstanceCount() (int, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
-	var ins int
-
-	for _, s := range store.db {
-		ins += len(s.Instances)
-	}
-
-	return ins, nil
+	return len(store.db.Instances), nil
 }
 
-func (store *storage) SessionDelete(sessionId string) error {
+func (store *storage) InstanceFindBySessionId(sessionId string) ([]*types.Instance, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()
 
-	delete(store.db, sessionId)
+	instanceIds := store.db.InstancesBySessionId[sessionId]
+	instances := make([]*types.Instance, len(instanceIds))
+	for i, id := range instanceIds {
+		instances[i] = store.db.Instances[id]
+	}
+
+	return instances, nil
+}
+
+func (store *storage) WindowsInstanceGetAll() ([]*types.WindowsInstance, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	instances := []*types.WindowsInstance{}
+
+	for _, s := range store.db.WindowsInstances {
+		instances = append(instances, s)
+	}
+
+	return instances, nil
+}
+
+func (store *storage) WindowsInstancePut(instance *types.WindowsInstance) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	_, found := store.db.Sessions[string(instance.SessionId)]
+	if !found {
+		return notFound
+	}
+	store.db.WindowsInstances[instance.Id] = instance
+	found = false
+	for _, i := range store.db.WindowsInstancesBySessionId[string(instance.SessionId)] {
+		if i == instance.Id {
+			found = true
+			break
+		}
+	}
+	if !found {
+		store.db.WindowsInstancesBySessionId[string(instance.SessionId)] = append(store.db.WindowsInstancesBySessionId[string(instance.SessionId)], instance.Id)
+	}
+
 	return store.save()
+}
+
+func (store *storage) WindowsInstanceDelete(id string) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	instance, found := store.db.WindowsInstances[id]
+	if !found {
+		return nil
+	}
+
+	instances := store.db.WindowsInstancesBySessionId[string(instance.SessionId)]
+	for n, i := range instances {
+		if i == id {
+			instances = append(instances[:n], instances[n+1:]...)
+			break
+		}
+	}
+	store.db.WindowsInstancesBySessionId[string(instance.SessionId)] = instances
+	delete(store.db.WindowsInstances, id)
+
+	return store.save()
+}
+
+func (store *storage) ClientGet(id string) (*types.Client, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	i := store.db.Clients[id]
+	if i == nil {
+		return nil, notFound
+	}
+	return i, nil
+}
+func (store *storage) ClientPut(client *types.Client) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	_, found := store.db.Sessions[string(client.SessionId)]
+	if !found {
+		return notFound
+	}
+
+	store.db.Clients[client.Id] = client
+	found = false
+	for _, i := range store.db.ClientsBySessionId[string(client.SessionId)] {
+		if i == client.Id {
+			found = true
+			break
+		}
+	}
+	if !found {
+		store.db.ClientsBySessionId[string(client.SessionId)] = append(store.db.ClientsBySessionId[string(client.SessionId)], client.Id)
+	}
+
+	return store.save()
+}
+func (store *storage) ClientDelete(id string) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	client, found := store.db.Clients[id]
+	if !found {
+		return nil
+	}
+
+	clients := store.db.ClientsBySessionId[string(client.SessionId)]
+	for n, i := range clients {
+		if i == client.Id {
+			clients = append(clients[:n], clients[n+1:]...)
+			break
+		}
+	}
+	store.db.ClientsBySessionId[string(client.SessionId)] = clients
+	delete(store.db.Clients, id)
+
+	return store.save()
+}
+func (store *storage) ClientCount() (int, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	return len(store.db.Clients), nil
+}
+func (store *storage) ClientFindBySessionId(sessionId string) ([]*types.Client, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	clientIds := store.db.ClientsBySessionId[sessionId]
+	clients := make([]*types.Client, len(clientIds))
+	for i, id := range clientIds {
+		clients[i] = store.db.Clients[id]
+	}
+
+	return clients, nil
 }
 
 func (store *storage) load() error {
@@ -196,7 +311,15 @@ func (store *storage) load() error {
 			return err
 		}
 	} else {
-		store.db = map[string]*types.Session{}
+		store.db = &DB{
+			Sessions:                    map[string]*types.Session{},
+			Instances:                   map[string]*types.Instance{},
+			Clients:                     map[string]*types.Client{},
+			WindowsInstances:            map[string]*types.WindowsInstance{},
+			WindowsInstancesBySessionId: map[string][]string{},
+			InstancesBySessionId:        map[string][]string{},
+			ClientsBySessionId:          map[string][]string{},
+		}
 	}
 
 	file.Close()

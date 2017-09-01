@@ -23,7 +23,7 @@ func TestInstanceResizeTerminal(t *testing.T) {
 	_s := &storage.Mock{}
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_d.On("ContainerResize", "foobar", uint(24), uint(80)).Return(nil)
@@ -47,7 +47,7 @@ func TestInstanceNew(t *testing.T) {
 	_s := &storage.Mock{}
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -57,7 +57,9 @@ func TestInstanceNew(t *testing.T) {
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
+	_s.On("ClientCount").Return(0, nil)
 	_s.On("InstanceCount").Return(0, nil)
+	_s.On("InstanceFindBySessionId", "aaaabbbbcccc").Return([]*types.Instance{}, nil)
 
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
@@ -75,7 +77,6 @@ func TestInstanceNew(t *testing.T) {
 		RoutableIP:  "10.0.0.1",
 		Image:       config.GetDindImageName(),
 		SessionId:   session.Id,
-		Session:     session,
 		SessionHost: session.Host,
 		ProxyHost:   router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
@@ -94,7 +95,7 @@ func TestInstanceNew(t *testing.T) {
 	}
 	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
 	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
-	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
+	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{Host: "something.play-with-docker.com"})
@@ -115,7 +116,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	_s := &storage.Mock{}
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -125,7 +126,9 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
+	_s.On("ClientCount").Return(0, nil)
 	_s.On("InstanceCount").Return(0, nil)
+	_s.On("InstanceFindBySessionId", "aaaabbbbcccc").Return([]*types.Instance{}, nil)
 
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
@@ -144,7 +147,6 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		RoutableIP:  "10.0.0.1",
 		Image:       "redis",
 		SessionId:   session.Id,
-		Session:     session,
 		SessionHost: session.Host,
 		ProxyHost:   router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
 	}
@@ -162,7 +164,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	}
 	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
 	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
-	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
+	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis"})
@@ -184,7 +186,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
 
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -194,7 +196,9 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
+	_s.On("ClientCount").Return(0, nil)
 	_s.On("InstanceCount").Return(0, nil)
+	_s.On("InstanceFindBySessionId", "aaaabbbbcccc").Return([]*types.Instance{}, nil)
 
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
@@ -211,7 +215,6 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		IP:          "10.0.0.1",
 		RoutableIP:  "10.0.0.1",
 		Image:       "redis",
-		Session:     session,
 		SessionHost: session.Host,
 		SessionId:   session.Id,
 		ProxyHost:   router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
@@ -231,7 +234,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 
 	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
 	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
-	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
+	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_redis-master", "10.0.0.1", "redis-master", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis", Hostname: "redis-master"})

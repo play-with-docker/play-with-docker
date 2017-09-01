@@ -23,8 +23,8 @@ func (m *Mock) SessionClose(session *types.Session) error {
 	return args.Error(0)
 }
 
-func (m *Mock) SessionGetSmallestViewPort(session *types.Session) types.ViewPort {
-	args := m.Called(session)
+func (m *Mock) SessionGetSmallestViewPort(sessionId string) types.ViewPort {
+	args := m.Called(sessionId)
 	return args.Get(0).(types.ViewPort)
 }
 
@@ -72,10 +72,9 @@ func (m *Mock) InstanceGet(session *types.Session, name string) *types.Instance 
 	args := m.Called(session, name)
 	return args.Get(0).(*types.Instance)
 }
-
-func (m *Mock) InstanceFindByIP(session, ip string) *types.Instance {
-	args := m.Called(session, ip)
-	return args.Get(0).(*types.Instance)
+func (m *Mock) InstanceFindBySession(session *types.Session) ([]*types.Instance, error) {
+	args := m.Called(session)
+	return args.Get(0).([]*types.Instance), args.Error(1)
 }
 
 func (m *Mock) InstanceDelete(session *types.Session, instance *types.Instance) error {

@@ -32,8 +32,13 @@ func WS(so socketio.Socket) {
 
 	so.Join(session.Id)
 
+	instances, err := core.InstanceFindBySession(session)
+	if err != nil {
+		log.Printf("Couldn't find instances for session with id [%s]. Got: %v\n", sessionId, err)
+		return
+	}
 	var rw sync.Mutex
-	trackedTerminals := make(map[string]net.Conn, len(session.Instances))
+	trackedTerminals := make(map[string]net.Conn, len(instances))
 
 	attachTerminalToSocket := func(instance *types.Instance, ws socketio.Socket) {
 		rw.Lock()
@@ -73,7 +78,7 @@ func WS(so socketio.Socket) {
 		}(instance.Name, conn, ws)
 	}
 	// since this is a new connection, get all terminals of the session and attach
-	for _, instance := range session.Instances {
+	for _, instance := range instances {
 		attachTerminalToSocket(instance, so)
 	}
 

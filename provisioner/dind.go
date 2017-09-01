@@ -14,20 +14,22 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/router"
+	"github.com/play-with-docker/play-with-docker/storage"
 )
 
 type DinD struct {
 	factory docker.FactoryApi
+	storage storage.StorageApi
 }
 
-func NewDinD(f docker.FactoryApi) *DinD {
-	return &DinD{factory: f}
+func NewDinD(f docker.FactoryApi, s storage.StorageApi) *DinD {
+	return &DinD{factory: f, storage: s}
 }
 
-func checkHostnameExists(session *types.Session, hostname string) bool {
-	containerName := fmt.Sprintf("%s_%s", session.Id[:8], hostname)
+func checkHostnameExists(sessionId, hostname string, instances []*types.Instance) bool {
+	containerName := fmt.Sprintf("%s_%s", sessionId[:8], hostname)
 	exists := false
-	for _, instance := range session.Instances {
+	for _, instance := range instances {
 		if instance.Name == containerName {
 			exists = true
 			break
@@ -42,10 +44,14 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	}
 	log.Printf("NewInstance - using image: [%s]\n", conf.ImageName)
 	if conf.Hostname == "" {
+		instances, err := d.storage.InstanceFindBySessionId(session.Id)
+		if err != nil {
+			return nil, err
+		}
 		var nodeName string
 		for i := 1; ; i++ {
 			nodeName = fmt.Sprintf("node%d", i)
-			exists := checkHostnameExists(session, nodeName)
+			exists := checkHostnameExists(session.Id, nodeName, instances)
 			if !exists {
 				break
 			}
@@ -92,7 +98,6 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	instance.ServerCert = conf.ServerCert
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
-	instance.Session = session
 	instance.ProxyHost = router.EncodeHost(session.Id, instance.RoutableIP, router.HostOpts{})
 	instance.SessionHost = session.Host
 

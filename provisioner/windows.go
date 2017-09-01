@@ -58,10 +58,14 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	}
 
 	if conf.Hostname == "" {
+		instances, err := d.storage.InstanceFindBySessionId(session.Id)
+		if err != nil {
+			return nil, err
+		}
 		var nodeName string
 		for i := 1; ; i++ {
 			nodeName = fmt.Sprintf("node%d", i)
-			exists := checkHostnameExists(session, nodeName)
+			exists := checkHostnameExists(session.Id, nodeName, instances)
 			if !exists {
 				break
 			}
@@ -87,11 +91,11 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 
 	dockerClient, err := d.factory.GetForSession(session.Id)
 	if err != nil {
-		d.releaseInstance(session.Id, winfo.id)
+		d.releaseInstance(winfo.id)
 		return nil, err
 	}
 	if err = dockerClient.CreateContainer(opts); err != nil {
-		d.releaseInstance(session.Id, winfo.id)
+		d.releaseInstance(winfo.id)
 		return nil, err
 	}
 
@@ -108,7 +112,6 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	instance.ServerCert = conf.ServerCert
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
-	instance.Session = session
 	instance.ProxyHost = router.EncodeHost(session.Id, instance.RoutableIP, router.HostOpts{})
 	instance.SessionHost = session.Host
 
@@ -167,11 +170,11 @@ func (d *windows) InstanceDelete(session *types.Session, instance *types.Instanc
 		return err
 	}
 
-	return d.releaseInstance(session.Id, instance.WindowsId)
+	return d.releaseInstance(instance.WindowsId)
 }
 
-func (d *windows) releaseInstance(sessionId, instanceId string) error {
-	return d.storage.InstanceDeleteWindows(sessionId, instanceId)
+func (d *windows) releaseInstance(instanceId string) error {
+	return d.storage.WindowsInstanceDelete(instanceId)
 }
 
 func (d *windows) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) error {
@@ -222,10 +225,10 @@ func (d *windows) getWindowsInstanceInfo(sessionId string) (*instanceInfo, error
 		}
 	}
 
-	assignedInstances, err := d.storage.InstanceGetAllWindows()
+	assignedInstances, err := d.storage.WindowsInstanceGetAll()
 	assignedInstancesIds := []string{}
 	for _, ai := range assignedInstances {
-		assignedInstancesIds = append(assignedInstancesIds, ai.ID)
+		assignedInstancesIds = append(assignedInstancesIds, ai.Id)
 	}
 
 	if err != nil {
@@ -243,7 +246,7 @@ func (d *windows) getWindowsInstanceInfo(sessionId string) (*instanceInfo, error
 	})
 	if err != nil {
 		// TODO retry x times and free the instance that was picked?
-		d.releaseInstance(sessionId, avInstanceId)
+		d.releaseInstance(avInstanceId)
 		return nil, err
 	}
 
@@ -273,7 +276,7 @@ func (d *windows) pickFreeInstance(sessionId string, availInstances, assignedIns
 		}
 
 		if !found {
-			err := d.storage.InstanceCreateWindows(&types.WindowsInstance{SessionId: sessionId, ID: av})
+			err := d.storage.WindowsInstancePut(&types.WindowsInstance{SessionId: sessionId, Id: av})
 			if err != nil {
 				// TODO either storage error or instance is already assigned (race condition)
 			}

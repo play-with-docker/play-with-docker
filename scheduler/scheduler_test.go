@@ -45,14 +45,17 @@ func TestNew(t *testing.T) {
 	s := &types.Session{
 		Id:        "aaabbbccc",
 		ExpiresAt: time.Now().Add(time.Hour),
-		Instances: map[string]*types.Instance{
-			"node1": &types.Instance{
-				Name: "node1",
-				IP:   "10.0.0.1",
-			},
-		},
+	}
+
+	i := &types.Instance{
+		SessionId: s.Id,
+		Name:      "node1",
+		IP:        "10.0.0.1",
 	}
 	err := store.SessionPut(s)
+	assert.Nil(t, err)
+
+	err = store.InstancePut(i)
 	assert.Nil(t, err)
 
 	sch, err := NewScheduler(store, event.NewLocalBroker(), &pwd.Mock{})
@@ -99,14 +102,17 @@ func TestStart(t *testing.T) {
 	s := &types.Session{
 		Id:        "aaabbbccc",
 		ExpiresAt: time.Now().Add(time.Hour),
-		Instances: map[string]*types.Instance{
-			"node1": &types.Instance{
-				Name: "node1",
-				IP:   "10.0.0.1",
-			},
-		},
+	}
+
+	i := &types.Instance{
+		SessionId: s.Id,
+		Name:      "node1",
+		IP:        "10.0.0.1",
 	}
 	err := store.SessionPut(s)
+	assert.Nil(t, err)
+
+	err = store.InstancePut(i)
 	assert.Nil(t, err)
 
 	sch, err := NewScheduler(store, event.NewLocalBroker(), &pwd.Mock{})

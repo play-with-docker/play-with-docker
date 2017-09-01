@@ -9,6 +9,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/provisioner"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -23,7 +24,7 @@ func TestSessionNew(t *testing.T) {
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
 
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -34,6 +35,7 @@ func TestSessionNew(t *testing.T) {
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
 	_s.On("InstanceCount").Return(0, nil)
+	_s.On("ClientCount").Return(0, nil)
 
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
@@ -77,7 +79,7 @@ func TestSessionSetup(t *testing.T) {
 	_s := &storage.Mock{}
 	_g := &mockGenerator{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -86,9 +88,11 @@ func TestSessionSetup(t *testing.T) {
 	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
-	_s.On("InstanceCreate", "aaaabbbbcccc", mock.AnythingOfType("*types.Instance")).Return(nil)
+	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
+	_s.On("ClientCount").Return(1, nil)
 	_s.On("InstanceCount").Return(0, nil)
+	_s.On("InstanceFindBySessionId", "aaaabbbbcccc").Return([]*types.Instance{}, nil)
 
 	_d.On("CreateContainer", docker.CreateContainerOpts{Image: "franela/dind", SessionId: "aaaabbbbcccc", PwdIpAddress: "10.0.0.1", ContainerName: "aaaabbbb_manager1", Hostname: "manager1", Privileged: true, HostFQDN: "localhost", Networks: []string{"aaaabbbbcccc"}}).Return(nil)
 	_d.On("GetContainerIPs", "aaaabbbb_manager1").Return(map[string]string{"aaaabbbbcccc": "10.0.0.2"}, nil)
@@ -152,8 +156,6 @@ func TestSessionSetup(t *testing.T) {
 		},
 	})
 	assert.Nil(t, err)
-
-	assert.Equal(t, 5, len(s.Instances))
 
 	_d.AssertExpectations(t)
 	_f.AssertExpectations(t)

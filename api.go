@@ -22,7 +22,7 @@ func main() {
 	s := initStorage()
 	f := initFactory(s)
 
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(f, s), provisioner.NewDinD(f))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(f, s), provisioner.NewDinD(f, s))
 	sp := provisioner.NewOverlaySessionProvisioner(f)
 
 	core := pwd.NewPWD(f, e, s, sp, ipf)
