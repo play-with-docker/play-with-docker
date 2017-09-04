@@ -1,7 +1,14 @@
-FROM alpine
+FROM ubuntu:16.04
 
-RUN apk add --no-cache openssh-client
+RUN apt update \
+    && apt install -y wget openssh-client \
+    && wget -O powershell.deb https://github.com/PowerShell/PowerShell/releases/download/v6.0.0-beta.6/powershell_6.0.0-beta.6-1ubuntu1.16.04.1_amd64.deb \
+    && dpkg -i powershell.deb; apt install -yf \
+    && rm -f powershell.deb
 
 COPY ./windows /root/.ssh/id_rsa
+COPY ./ssh_config /root/.ssh/config
+COPY ./connect.ps1 /
 
-CMD trap '' INT TSTP; while true; do ssh -t -L 2375:${WINDOWS_ENDPOINT}:2375 -q -o StrictHostKeyChecking=no Administrator@${WINDOWS_ENDPOINT} powershell; done
+
+CMD powershell -NoExit -File /connect.ps1 -endpoint ${WINDOWS_ENDPOINT}
