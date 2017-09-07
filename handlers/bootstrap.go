@@ -57,6 +57,12 @@ func Register() {
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}", DeleteInstance).Methods("DELETE")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/exec", Exec).Methods("POST")
 
+	r.HandleFunc("/ooc", func(rw http.ResponseWriter, r *http.Request) {
+		http.ServeFile(rw, r, "./www/ooc.html")
+	}).Methods("GET")
+	r.HandleFunc("/503", func(rw http.ResponseWriter, r *http.Request) {
+		http.ServeFile(rw, r, "./www/503.html")
+	}).Methods("GET")
 	r.HandleFunc("/p/{sessionId}", Home).Methods("GET")
 	r.PathPrefix("/assets").Handler(http.FileServer(http.Dir("./www")))
 	r.HandleFunc("/robots.txt", func(rw http.ResponseWriter, r *http.Request) {

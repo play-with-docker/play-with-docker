@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/play-with-docker/play-with-docker/config"
+	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/recaptcha"
 )
 
@@ -46,7 +47,13 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 	duration := config.GetDuration(reqDur)
 	s, err := core.SessionNew(duration, stack, stackName, imageName)
 	if err != nil {
+		if provisioner.OutOfCapacity(err) {
+			http.Redirect(rw, req, "/ooc", http.StatusFound)
+			return
+		}
 		log.Println(err)
+		http.Redirect(rw, req, "/500", http.StatusInternalServerError)
+		return
 		//TODO: Return some error code
 	} else {
 		hostname := req.Host
