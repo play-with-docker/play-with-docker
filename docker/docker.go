@@ -51,6 +51,8 @@ type DockerApi interface {
 	Exec(instanceName string, command []string) (int, error)
 	SwarmInit() (*SwarmTokens, error)
 	SwarmJoin(addr, token string) error
+	ConfigCreate(name string, labels map[string]string, data []byte) error
+	ConfigDelete(name string) error
 }
 
 type SwarmTokens struct {
@@ -60,6 +62,18 @@ type SwarmTokens struct {
 
 type docker struct {
 	c *client.Client
+}
+
+func (d *docker) ConfigCreate(name string, labels map[string]string, data []byte) error {
+	config := swarm.ConfigSpec{}
+	config.Name = name
+	config.Labels = labels
+	config.Data = data
+	_, err := d.c.ConfigCreate(context.Background(), config)
+	return err
+}
+func (d *docker) ConfigDelete(name string) error {
+	return d.c.ConfigRemove(context.Background(), name)
 }
 
 func (d *docker) CreateNetwork(id string, opts types.NetworkCreate) error {

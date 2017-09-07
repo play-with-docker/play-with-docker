@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 
 	dockerTypes "github.com/docker/docker/api/types"
 	units "github.com/docker/go-units"
@@ -35,6 +36,29 @@ func (t *collectStats) Name() string {
 }
 
 func (t *collectStats) Run(ctx context.Context, instance *types.Instance) error {
+	if instance.Type == "windows" {
+		resp, err := http.Get(fmt.Sprintf("http://%s:222/stats", instance.IP))
+		if err != nil {
+			log.Printf("Could not get stats of windows instance with IP %s. Got: %v\n", instance.IP, err)
+			return fmt.Errorf("Could not get stats of windows instance with IP %s. Got: %v\n", instance.IP, err)
+		}
+		if resp.StatusCode != 200 {
+			log.Printf("Could not get stats of windows instance with IP %s. Got status code: %d\n", instance.IP, resp.StatusCode)
+			return fmt.Errorf("Could not get stats of windows instance with IP %s. Got status code: %d\n", instance.IP, resp.StatusCode)
+		}
+		var info map[string]float64
+		err = json.NewDecoder(resp.Body).Decode(&info)
+		if err != nil {
+			log.Printf("Could not get stats of windows instance with IP %s. Got: %v\n", instance.IP, err)
+			return fmt.Errorf("Could not get stats of windows instance with IP %s. Got: %v\n", instance.IP, err)
+		}
+		stats := InstanceStats{Instance: instance.Name}
+
+		stats.Mem = fmt.Sprintf("%.2f%% (%s / %s)", ((info["mem_used"] / info["mem_total"]) * 100), units.BytesSize(info["mem_used"]), units.BytesSize(info["mem_total"]))
+		stats.Cpu = fmt.Sprintf("%.2f%%", info["cpu"]*100)
+		t.event.Emit(CollectStatsEvent, instance.SessionId, stats)
+		return nil
+	}
 	dockerClient, err := t.factory.GetForSession(instance.SessionId)
 	if err != nil {
 		log.Println(err)

@@ -104,6 +104,14 @@ func (m *Mock) SwarmJoin(addr, token string) error {
 	args := m.Called(addr, token)
 	return args.Error(0)
 }
+func (m *Mock) ConfigCreate(name string, labels map[string]string, data []byte) error {
+	args := m.Called(name, labels, data)
+	return args.Error(0)
+}
+func (m *Mock) ConfigDelete(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
 
 type MockConn struct {
 }

@@ -6,14 +6,16 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
+	"net/url"
 	"sort"
-	"strings"
+
+	"golang.org/x/net/websocket"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/router"
@@ -48,60 +50,31 @@ func NewWindowsASG(f docker.FactoryApi, st storage.StorageApi) *windows {
 }
 
 func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error) {
-
-	conf.ImageName = config.GetSSHImage()
-
 	winfo, err := d.getWindowsInstanceInfo(session.Id)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if conf.Hostname == "" {
-		instances, err := d.storage.InstanceFindBySessionId(session.Id)
-		if err != nil {
-			return nil, err
-		}
-		var nodeName string
-		for i := 1; ; i++ {
-			nodeName = fmt.Sprintf("node%d", i)
-			exists := checkHostnameExists(session.Id, nodeName, instances)
-			if !exists {
-				break
-			}
-		}
-		conf.Hostname = nodeName
+	labels := map[string]string{
+		"io.tutorius.networkid":            session.Id,
+		"io.tutorius.networking.remote.ip": winfo.privateIP,
 	}
-
-	containerName := fmt.Sprintf("%s_%s", session.Id[:8], conf.Hostname)
-	opts := docker.CreateContainerOpts{
-		Image:           conf.ImageName,
-		WindowsEndpoint: winfo.privateIP,
-		SessionId:       session.Id,
-		PwdIpAddress:    session.PwdIpAddress,
-		ContainerName:   containerName,
-		Hostname:        conf.Hostname,
-		ServerCert:      conf.ServerCert,
-		ServerKey:       conf.ServerKey,
-		CACert:          conf.CACert,
-		Privileged:      false,
-		HostFQDN:        conf.Host,
-		Networks:        []string{session.Id},
-	}
+	instanceName := fmt.Sprintf("%s_%s", session.Id[:8], winfo.id)
 
 	dockerClient, err := d.factory.GetForSession(session.Id)
 	if err != nil {
 		d.releaseInstance(winfo.id)
 		return nil, err
 	}
-	if err = dockerClient.CreateContainer(opts); err != nil {
+	if err = dockerClient.ConfigCreate(instanceName, labels, []byte(instanceName)); err != nil {
 		d.releaseInstance(winfo.id)
 		return nil, err
 	}
 
 	instance := &types.Instance{}
-	instance.Name = containerName
-	instance.Image = opts.Image
+	instance.Name = instanceName
+	instance.Image = ""
 	instance.IP = winfo.privateIP
 	instance.RoutableIP = instance.IP
 	instance.SessionId = session.Id
@@ -114,31 +87,6 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	instance.CACert = conf.CACert
 	instance.ProxyHost = router.EncodeHost(session.Id, instance.RoutableIP, router.HostOpts{})
 	instance.SessionHost = session.Host
-
-	if cli, err := d.factory.GetForInstance(instance); err != nil {
-		if derr := d.InstanceDelete(session, instance); derr != nil {
-			log.Println("Error deleting instance: ", derr)
-		}
-		return nil, err
-	} else {
-		info, err := cli.GetDaemonInfo()
-		if err != nil {
-			if derr := d.InstanceDelete(session, instance); derr != nil {
-				log.Println("Error deleting instance: ", derr)
-			}
-			return nil, err
-		}
-		instance.Hostname = info.Name
-		instance.Name = fmt.Sprintf("%s_%s", session.Id[:8], info.Name)
-		if err = dockerClient.ContainerRename(containerName, instance.Name); err != nil {
-			// revert instance name to remove ssh container
-			instance.Name = containerName
-			if derr := d.InstanceDelete(session, instance); derr != nil {
-				log.Println("Error deleting instance: ", derr)
-			}
-			return nil, err
-		}
-	}
 
 	return instance, nil
 
@@ -160,13 +108,13 @@ func (d *windows) InstanceDelete(session *types.Session, instance *types.Instanc
 		return err
 	}
 
-	// return error and don't do anything else
+	//return error and don't do anything else
 	if _, err := ec2Service.TerminateInstances(&ec2.TerminateInstancesInput{InstanceIds: []*string{aws.String(instance.WindowsId)}}); err != nil {
 		return err
 	}
 
-	err = dockerClient.DeleteContainer(instance.Name)
-	if err != nil && !strings.Contains(err.Error(), "No such container") {
+	err = dockerClient.ConfigDelete(instance.Name)
+	if err != nil {
 		return err
 	}
 
@@ -178,27 +126,68 @@ func (d *windows) releaseInstance(instanceId string) error {
 }
 
 func (d *windows) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) error {
-	dockerClient, err := d.factory.GetForSession(instance.SessionId)
+	resp, err := http.Post(fmt.Sprintf("http://%s:222/terminals/1/size?cols=%d&rows=%d", instance.IP, cols, rows), "application/json", nil)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
-	return dockerClient.ContainerResize(instance.Name, rows, cols)
+	if resp.StatusCode != 200 {
+		log.Printf("Error resizing terminal of instance %s. Got %d\n", instance.Name, resp.StatusCode)
+		return fmt.Errorf("Error resizing terminal got %d\n", resp.StatusCode)
+	}
+	return nil
 }
 
 func (d *windows) InstanceGetTerminal(instance *types.Instance) (net.Conn, error) {
-	dockerClient, err := d.factory.GetForSession(instance.SessionId)
+	resp, err := http.Post(fmt.Sprintf("http://%s:222/terminals/1", instance.IP), "application/json", nil)
 	if err != nil {
+		log.Printf("Error creating terminal for instance %s. Got %v\n", instance.Name, err)
 		return nil, err
 	}
-	return dockerClient.CreateAttachConnection(instance.Name)
+	if resp.StatusCode != 200 {
+		log.Printf("Error creating terminal for instance %s. Got %d\n", instance.Name, resp.StatusCode)
+		return nil, fmt.Errorf("Creating terminal got %d\n", resp.StatusCode)
+	}
+	url := fmt.Sprintf("ws://%s:222/terminals/1", instance.IP)
+	ws, err := websocket.Dial(url, "", url)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return ws, nil
 }
 
-func (d *windows) InstanceUploadFromUrl(instance *types.Instance, fileName, dest, url string) error {
-	return fmt.Errorf("Not implemented")
+func (d *windows) InstanceUploadFromUrl(instance *types.Instance, fileName, dest, u string) error {
+	log.Printf("Downloading file [%s]\n", u)
+	resp, err := http.Get(u)
+	if err != nil {
+		return fmt.Errorf("Could not download file [%s]. Error: %s\n", u, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Could not download file [%s]. Status code: %d\n", u, resp.StatusCode)
+	}
+	uploadResp, err := http.Post(fmt.Sprintf("http://%s:222/terminals/1/uploads?dest=%s&file_name=%s", instance.IP, url.QueryEscape(dest), url.QueryEscape(fileName)), "", resp.Body)
+	if err != nil {
+		return err
+	}
+	if uploadResp.StatusCode != 200 {
+		return fmt.Errorf("Could not upload file [%s]. Status code: %d\n", fileName, uploadResp.StatusCode)
+	}
+
+	return nil
 }
 
 func (d *windows) InstanceUploadFromReader(instance *types.Instance, fileName, dest string, reader io.Reader) error {
-	return fmt.Errorf("Not implemented")
+	uploadResp, err := http.Post(fmt.Sprintf("http://%s:222/terminals/1/uploads?dest=%s&file_name=%s", instance.IP, url.QueryEscape(dest), url.QueryEscape(fileName)), "", reader)
+	if err != nil {
+		return err
+	}
+	if uploadResp.StatusCode != 200 {
+		return fmt.Errorf("Could not upload file [%s]. Status code: %d\n", fileName, uploadResp.StatusCode)
+	}
+
+	return nil
 }
 
 func (d *windows) getWindowsInstanceInfo(sessionId string) (*instanceInfo, error) {
