@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
@@ -24,6 +26,10 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		if pwd.SessionComplete(err) {
 			rw.WriteHeader(http.StatusConflict)
+			return
+		} else if provisioner.OutOfCapacity(err) {
+			rw.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintln(rw, `{"error": "out_of_capacity"}`)
 			return
 		}
 		log.Println(err)

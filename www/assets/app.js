@@ -127,6 +127,8 @@
       }, function(response) {
         if (response.status == 409) {
           $scope.showAlert('Max instances reached', 'Maximum number of instances reached')
+        } else if (response.status == 503 && response.data.error == 'out_of_capacity') {
+          $scope.showAlert('Out Of Capacity', 'We are really sorry. But we are currently out of capacity and cannot create new instances. Please try again later.')
         }
       }).finally(function() {
         updateNewInstanceBtnState(false);

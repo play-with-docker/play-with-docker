@@ -1,11 +1,18 @@
 package provisioner
 
 import (
+	"errors"
 	"io"
 	"net"
 
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
+
+var OutOfCapacityError = errors.New("OutOfCapacity")
+
+func OutOfCapacity(e error) bool {
+	return e == OutOfCapacityError
+}
 
 type InstanceProvisionerApi interface {
 	InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error)
