@@ -110,8 +110,12 @@ func (m *manager) disconnect(instance *types.Instance) {
 	}
 
 	t := m.terminals[instance.Name]
-	close(t.write)
-	t.conn.Close()
+	if t.write != nil {
+		close(t.write)
+	}
+	if t.conn != nil {
+		t.conn.Close()
+	}
 	m.untrackInstance(instance)
 }
 
