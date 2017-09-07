@@ -275,6 +275,11 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 		h.SecurityOpt = []string{fmt.Sprintf("apparmor=%s", os.Getenv("APPARMOR_PROFILE"))}
 	}
 
+	if os.Getenv("STORAGE_SIZE") != "" {
+		// assing 10GB size FS for each container
+		h.StorageOpt = map[string]string{"size": os.Getenv("STORAGE_SIZE")}
+	}
+
 	var pidsLimit = int64(1000)
 	if envLimit := os.Getenv("MAX_PROCESSES"); envLimit != "" {
 		if i, err := strconv.Atoi(envLimit); err == nil {
