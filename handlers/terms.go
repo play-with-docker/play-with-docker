@@ -126,6 +126,12 @@ func (m *manager) process() {
 			t := m.terminals[i.name]
 			t.write <- i.data
 		case instance := <-m.errorCh:
+			// check if it still exists before reconnecting
+			i := core.InstanceGet(&types.Session{Id: instance.SessionId}, instance.Name)
+			if i == nil {
+				log.Println("Instance doest not exist anymore. Won't reconnect")
+				continue
+			}
 			log.Println("reconnecting")
 			m.connect(instance)
 		}
@@ -177,11 +183,7 @@ func NewManager(s *types.Session) (*manager, error) {
 
 		// There is a new instance in a session we are tracking. We should track it's terminal
 		instanceName := args[0].(string)
-		instance := core.InstanceGet(s, instanceName)
-		if instance == nil {
-			log.Printf("Instance [%s] was not found in session [%s]\n", instanceName, sessionId)
-			return
-		}
+		instance := &types.Instance{Name: instanceName}
 		m.disconnect(instance)
 	})
 
