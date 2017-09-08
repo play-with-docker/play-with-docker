@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"crypto/tls"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -110,6 +111,16 @@ func Register() {
 		httpServer.TLSConfig = &tls.Config{
 			GetCertificate: certManager.GetCertificate,
 		}
+
+		go func() {
+			http.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+				http.Redirect(rw, r, fmt.Sprintf("https://%s", r.Host), http.StatusMovedPermanently)
+			})
+			log.Println("Starting redirect server")
+			log.Fatal(http.ListenAndServe(":3001", nil))
+			log.Fatal(httpServer.ListenAndServe())
+		}()
+
 		log.Println("Listening on port " + config.PortNumber)
 		log.Fatal(httpServer.ListenAndServeTLS("", ""))
 	} else {

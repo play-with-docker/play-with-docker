@@ -21,7 +21,7 @@ const (
 var NameFilter = regexp.MustCompile(PWDHostPortGroupRegex)
 var AliasFilter = regexp.MustCompile(AliasPortGroupRegex)
 
-var SSLPortNumber, PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, PWDCName, HashKey, SSHKeyPath, L2RouterIP string
+var PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, PWDCName, HashKey, SSHKeyPath, L2RouterIP string
 var UseLetsEncrypt bool
 var LetsEncryptCertsDir string
 var LetsEncryptDomains stringslice
@@ -41,7 +41,7 @@ func ParseFlags() {
 	flag.Var(&LetsEncryptDomains, "letsencrypt-domain", "List of domains to validate with let's encrypt")
 	flag.StringVar(&LetsEncryptCertsDir, "letsencrypt-certs-dir", "/certs", "Path where let's encrypt certs will be stored")
 	flag.BoolVar(&UseLetsEncrypt, "use-letsencrypt", false, "Enabled let's encrypt tls certificates")
-	flag.StringVar(&PortNumber, "port", "3000", "Give a TCP port to run the application")
+	flag.StringVar(&PortNumber, "port", "3000", "Port number")
 	flag.StringVar(&Key, "key", "./pwd/server-key.pem", "Server key for SSL")
 	flag.StringVar(&Cert, "cert", "./pwd/server.pem", "Give a SSL cert")
 	flag.StringVar(&SessionsFile, "save", "./pwd/sessions", "Tell where to store sessions file")
