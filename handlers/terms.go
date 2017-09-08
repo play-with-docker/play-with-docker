@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -50,9 +51,17 @@ type info struct {
 	name string
 	data []byte
 }
+
+type state struct {
+	name   string
+	status string
+}
+
 type manager struct {
+	session   *types.Session
 	sendCh    chan info
 	receiveCh chan info
+	stateCh   chan state
 	terminals map[string]*terminal
 	errorCh   chan *types.Instance
 	instances map[string]*types.Instance
@@ -67,6 +76,12 @@ func (m *manager) Receive(cb func(name string, data []byte)) {
 		cb(i.name, i.data)
 	}
 }
+func (m *manager) Status(cb func(name, status string)) {
+	for s := range m.stateCh {
+		cb(s.name, s.status)
+	}
+}
+
 func (m *manager) connect(instance *types.Instance) error {
 	if !m.trackingInstance(instance) {
 		return nil
@@ -87,6 +102,7 @@ func (m *manager) connectTerminal(instance *types.Instance) error {
 	t := terminal{conn: conn, write: chw, instance: instance}
 	m.terminals[instance.Name] = &t
 	t.Go(m.receiveCh, m.errorCh)
+	m.stateCh <- state{name: instance.Name, status: "connect"}
 
 	return nil
 }
@@ -156,8 +172,10 @@ func (m *manager) process() {
 				log.Println("Instance doesn't exist anymore. Won't reconnect")
 				continue
 			}
-			log.Println("Reconnecting")
-			m.connect(instance)
+			m.stateCh <- state{name: instance.Name, status: "reconnect"}
+			time.AfterFunc(time.Second, func() {
+				m.connect(instance)
+			})
 		}
 	}
 }
@@ -167,23 +185,30 @@ func (m *manager) Close() {
 	}
 }
 
-func NewManager(s *types.Session) (*manager, error) {
-	m := &manager{
-		sendCh:    make(chan info),
-		receiveCh: make(chan info),
-		terminals: make(map[string]*terminal),
-		errorCh:   make(chan *types.Instance),
-		instances: make(map[string]*types.Instance),
-	}
-
-	instances, err := core.InstanceFindBySession(s)
+func (m *manager) Start() error {
+	instances, err := core.InstanceFindBySession(m.session)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	for _, i := range instances {
 		m.instances[i.Name] = i
 		m.connect(i)
 	}
+	go m.process()
+	return nil
+}
+
+func NewManager(s *types.Session) (*manager, error) {
+	m := &manager{
+		session:   s,
+		sendCh:    make(chan info, 10),
+		receiveCh: make(chan info, 10),
+		stateCh:   make(chan state, 10),
+		terminals: make(map[string]*terminal),
+		errorCh:   make(chan *types.Instance, 10),
+		instances: make(map[string]*types.Instance),
+	}
+
 	e.On(event.INSTANCE_NEW, func(sessionId string, args ...interface{}) {
 		if sessionId != s.Id {
 			return
@@ -211,6 +236,5 @@ func NewManager(s *types.Session) (*manager, error) {
 		m.disconnect(instance)
 	})
 
-	go m.process()
 	return m, nil
 }

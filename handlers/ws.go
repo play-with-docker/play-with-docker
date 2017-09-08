@@ -37,6 +37,15 @@ func WS(so socketio.Socket) {
 	go m.Receive(func(name string, data []byte) {
 		so.Emit("instance terminal out", name, string(data))
 	})
+	go m.Status(func(name, status string) {
+		so.Emit("instance terminal status", name, status)
+	})
+
+	err = m.Start()
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	so.On("session close", func() {
 		m.Close()

@@ -174,6 +174,11 @@
 
         var socket = io({ path: '/sessions/' + sessionId + '/ws' });
 
+        socket.on('instance terminal status', function(name, status) {
+            var instance = $scope.idx[name];
+            instance.status = status;
+        });
+
         socket.on('session ready', function(ready) {
           $scope.setSessionState(ready);
         });
