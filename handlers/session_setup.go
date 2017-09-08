@@ -19,7 +19,6 @@ func SessionSetup(rw http.ResponseWriter, req *http.Request) {
 
 	s := core.SessionGet(sessionId)
 
-	s.Host = req.Host
 	err := core.SessionSetup(s, body)
 	if err != nil {
 		if pwd.SessionNotEmpty(err) {
