@@ -53,7 +53,7 @@ type info struct {
 type manager struct {
 	sendCh    chan info
 	receiveCh chan info
-	terminals map[string]terminal
+	terminals map[string]*terminal
 	errorCh   chan *types.Instance
 	instances map[string]*types.Instance
 	sync.Mutex
@@ -72,15 +72,43 @@ func (m *manager) connect(instance *types.Instance) error {
 		return nil
 	}
 
+	return m.connectTerminal(instance)
+}
+
+func (m *manager) connectTerminal(instance *types.Instance) error {
+	m.Lock()
+	defer m.Unlock()
+
 	conn, err := core.InstanceGetTerminal(instance)
 	if err != nil {
 		return err
 	}
 	chw := make(chan []byte, 10)
 	t := terminal{conn: conn, write: chw, instance: instance}
-	m.terminals[instance.Name] = t
+	m.terminals[instance.Name] = &t
 	t.Go(m.receiveCh, m.errorCh)
+
 	return nil
+}
+
+func (m *manager) disconnectTerminal(instance *types.Instance) {
+	m.Lock()
+	defer m.Unlock()
+
+	t := m.terminals[instance.Name]
+	if t != nil {
+		if t.write != nil {
+			close(t.write)
+		}
+		if t.conn != nil {
+			t.conn.Close()
+		}
+		delete(m.terminals, instance.Name)
+	}
+}
+
+func (m *manager) getTerminal(instanceName string) *terminal {
+	return m.terminals[instanceName]
 }
 
 func (m *manager) trackInstance(instance *types.Instance) {
@@ -109,13 +137,7 @@ func (m *manager) disconnect(instance *types.Instance) {
 		return
 	}
 
-	t := m.terminals[instance.Name]
-	if t.write != nil {
-		close(t.write)
-	}
-	if t.conn != nil {
-		t.conn.Close()
-	}
+	m.disconnectTerminal(instance)
 	m.untrackInstance(instance)
 }
 
@@ -123,16 +145,18 @@ func (m *manager) process() {
 	for {
 		select {
 		case i := <-m.sendCh:
-			t := m.terminals[i.name]
-			t.write <- i.data
+			t := m.getTerminal(i.name)
+			if t != nil {
+				t.write <- i.data
+			}
 		case instance := <-m.errorCh:
 			// check if it still exists before reconnecting
 			i := core.InstanceGet(&types.Session{Id: instance.SessionId}, instance.Name)
 			if i == nil {
-				log.Println("Instance doest not exist anymore. Won't reconnect")
+				log.Println("Instance doesn't exist anymore. Won't reconnect")
 				continue
 			}
-			log.Println("reconnecting")
+			log.Println("Reconnecting")
 			m.connect(instance)
 		}
 	}
@@ -147,7 +171,7 @@ func NewManager(s *types.Session) (*manager, error) {
 	m := &manager{
 		sendCh:    make(chan info),
 		receiveCh: make(chan info),
-		terminals: make(map[string]terminal),
+		terminals: make(map[string]*terminal),
 		errorCh:   make(chan *types.Instance),
 		instances: make(map[string]*types.Instance),
 	}
