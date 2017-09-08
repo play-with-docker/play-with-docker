@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
+	"time"
 
 	dockerTypes "github.com/docker/docker/api/types"
 	units "github.com/docker/go-units"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/play-with-docker/play-with-docker/router"
 )
 
 type InstanceStats struct {
@@ -23,6 +27,7 @@ type InstanceStats struct {
 type collectStats struct {
 	event   event.EventApi
 	factory docker.FactoryApi
+	cli     *http.Client
 }
 
 var CollectStatsEvent event.EventType
@@ -37,7 +42,14 @@ func (t *collectStats) Name() string {
 
 func (t *collectStats) Run(ctx context.Context, instance *types.Instance) error {
 	if instance.Type == "windows" {
-		resp, err := http.Get(fmt.Sprintf("http://%s:222/stats", instance.IP))
+		host := router.EncodeHost(instance.SessionId, instance.IP, router.HostOpts{EncodedPort: 222})
+		req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/stats", host), nil)
+		if err != nil {
+			log.Printf("Could not create request to get stats of windows instance with IP %s. Got: %v\n", instance.IP, err)
+			return fmt.Errorf("Could not create request to get stats of windows instance with IP %s. Got: %v\n", instance.IP, err)
+		}
+		req.Header.Set("X-Proxy-Host", instance.SessionHost)
+		resp, err := t.cli.Do(req)
 		if err != nil {
 			log.Printf("Could not get stats of windows instance with IP %s. Got: %v\n", instance.IP, err)
 			return fmt.Errorf("Could not get stats of windows instance with IP %s. Got: %v\n", instance.IP, err)
@@ -97,8 +109,29 @@ func (t *collectStats) Run(ctx context.Context, instance *types.Instance) error 
 	return nil
 }
 
+func proxyHost(r *http.Request) (*url.URL, error) {
+	if r.Header.Get("X-Proxy-Host") == "" {
+		return nil, nil
+	}
+	u := new(url.URL)
+	*u = *r.URL
+	u.Host = fmt.Sprintf("%s:8443", r.Header.Get("X-Proxy-Host"))
+	return u, nil
+}
+
 func NewCollectStats(e event.EventApi, f docker.FactoryApi) *collectStats {
-	return &collectStats{event: e, factory: f}
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   1 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConnsPerHost: 5,
+		Proxy:               proxyHost,
+	}
+	cli := &http.Client{
+		Transport: transport,
+	}
+	return &collectStats{event: e, factory: f, cli: cli}
 }
 
 func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *dockerTypes.StatsJSON) float64 {
