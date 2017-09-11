@@ -1,6 +1,8 @@
 package provisioner
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -119,6 +121,39 @@ func (d *windows) InstanceDelete(session *types.Session, instance *types.Instanc
 	}
 
 	return d.releaseInstance(instance.WindowsId)
+}
+
+type execRes struct {
+	ExitCode int    `json:"exit_code"`
+	Error    string `json:"error"`
+	Stdout   string `json:"stdout"`
+	Stderr   string `json:"stderr"`
+}
+
+func (d *windows) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
+	execBody := struct {
+		Cmd []string `json:"cmd"`
+	}{Cmd: cmd}
+
+	b, err := json.Marshal(execBody)
+	if err != nil {
+		return -1, err
+	}
+	resp, err := http.Post(fmt.Sprintf("http://%s:222/exec", instance.IP), "application/json", bytes.NewReader(b))
+	if err != nil {
+		log.Println(err)
+		return -1, err
+	}
+	if resp.StatusCode != 200 {
+		log.Printf("Error exec on instance %s. Got %d\n", instance.Name, resp.StatusCode)
+		return -1, fmt.Errorf("Error exec on instance %s. Got %d\n", instance.Name, resp.StatusCode)
+	}
+	var ex execRes
+	err = json.NewDecoder(resp.Body).Decode(&ex)
+	if err != nil {
+		return -1, err
+	}
+	return ex.ExitCode, nil
 }
 
 func (d *windows) releaseInstance(instanceId string) error {

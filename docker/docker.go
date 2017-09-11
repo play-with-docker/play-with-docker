@@ -30,6 +30,7 @@ const (
 )
 
 type DockerApi interface {
+	GetClient() *client.Client
 	CreateNetwork(id string, opts types.NetworkCreate) error
 	ConnectNetwork(container, network, ip string) (string, error)
 	NetworkInspect(id string) (types.NetworkResource, error)
@@ -49,7 +50,7 @@ type DockerApi interface {
 	DisconnectNetwork(containerId, networkId string) error
 	DeleteNetwork(id string) error
 	Exec(instanceName string, command []string) (int, error)
-	SwarmInit() (*SwarmTokens, error)
+	SwarmInit(advertiseAddr string) (*SwarmTokens, error)
 	SwarmJoin(addr, token string) error
 	ConfigCreate(name string, labels map[string]string, data []byte) error
 	ConfigDelete(name string) error
@@ -62,6 +63,10 @@ type SwarmTokens struct {
 
 type docker struct {
 	c *client.Client
+}
+
+func (d *docker) GetClient() *client.Client {
+	return d.c
 }
 
 func (d *docker) ConfigCreate(name string, labels map[string]string, data []byte) error {
@@ -467,53 +472,8 @@ func (d *docker) DeleteNetwork(id string) error {
 	return nil
 }
 
-/*
-func (d *docker) New(ip string, cert, key []byte) (DockerApi, error) {
-	// We check if the client needs to use TLS
-	var tlsConfig *tls.Config
-	if len(cert) > 0 && len(key) > 0 {
-		tlsConfig = tlsconfig.ClientDefault()
-		tlsConfig.InsecureSkipVerify = true
-		tlsCert, err := tls.X509KeyPair(cert, key)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.Certificates = []tls.Certificate{tlsCert}
-	}
-
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   1 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext}
-	if tlsConfig != nil {
-		transport.TLSClientConfig = tlsConfig
-	}
-	cli := &http.Client{
-		Transport: transport,
-	}
-	c, err := client.NewClient(fmt.Sprintf("http://%s:2375", ip), api.DefaultVersion, cli, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Could not connect to DinD docker daemon. %s", err)
-	}
-	// try to connect up to 5 times and then give up
-	for i := 0; i < 5; i++ {
-		_, err := c.Ping(context.Background())
-		if err != nil {
-			if client.IsErrConnectionFailed(err) {
-				// connection has failed, maybe instance is not ready yet, sleep and retry
-				log.Printf("Connection to [%s] has failed, maybe instance is not ready yet, sleeping and retrying in 1 second. Try #%d\n", fmt.Sprintf("http://%s:2375", ip), i+1)
-				time.Sleep(time.Second)
-				continue
-			}
-			return nil, err
-		}
-	}
-	return NewDocker(c), nil
-}
-*/
-func (d *docker) SwarmInit() (*SwarmTokens, error) {
-	req := swarm.InitRequest{AdvertiseAddr: "eth0", ListenAddr: "0.0.0.0:2377"}
+func (d *docker) SwarmInit(advertiseAddr string) (*SwarmTokens, error) {
+	req := swarm.InitRequest{AdvertiseAddr: advertiseAddr, ListenAddr: "0.0.0.0:2377"}
 	_, err := d.c.SwarmInit(context.Background(), req)
 
 	if err != nil {

@@ -34,10 +34,27 @@ type SessionSetupConf struct {
 }
 
 type SessionSetupInstanceConf struct {
-	Image          string `json:"image"`
-	Hostname       string `json:"hostname"`
-	IsSwarmManager bool   `json:"is_swarm_manager"`
-	IsSwarmWorker  bool   `json:"is_swarm_worker"`
+	Image          string       `json:"image"`
+	Hostname       string       `json:"hostname"`
+	IsSwarmManager bool         `json:"is_swarm_manager"`
+	IsSwarmWorker  bool         `json:"is_swarm_worker"`
+	Type           string       `json:"type"`
+	Run            [][]string   `json:"run"`
+	Expose         []ExposedApp `json:"expose"`
+}
+
+type ExposedApp struct {
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Icon        string        `json:"icon"`
+	Url         ExposedAppURL `json:"url"`
+}
+
+type ExposedAppURL struct {
+	Port   int    `json:"port"`
+	Path   string `json:"path"`
+	Query  string `json:"query"`
+	Scheme string `json:"scheme"`
 }
 
 func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName string) (*types.Session, error) {
@@ -203,6 +220,9 @@ func (p *pwd) SessionGet(sessionId string) *types.Session {
 
 func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error {
 	defer observeAction("SessionSetup", time.Now())
+
+	c := sync.NewCond(&sync.Mutex{})
+
 	var tokens *docker.SwarmTokens = nil
 	var firstSwarmManager *types.Instance = nil
 
@@ -215,83 +235,75 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 		return sessionNotEmpty
 	}
 
-	// first look for a swarm manager and create it
+	g, _ := errgroup.WithContext(context.Background())
+
 	for _, conf := range conf.Instances {
-		if conf.IsSwarmManager {
+		conf := conf
+		g.Go(func() error {
 			instanceConf := types.InstanceConfig{
 				ImageName: conf.Image,
 				Hostname:  conf.Hostname,
 				Host:      session.Host,
+				Type:      conf.Type,
 			}
 			i, err := p.InstanceNew(session, instanceConf)
 			if err != nil {
 				return err
 			}
-			dockerClient, err := p.dockerFactory.GetForInstance(i)
-			if err != nil {
-				return err
-			}
-			tkns, err := dockerClient.SwarmInit()
-			if err != nil {
-				return err
-			}
-			tokens = tkns
-			firstSwarmManager = i
-			break
-		}
-	}
 
-	// now create the rest in parallel
-
-	wg := sync.WaitGroup{}
-	for _, c := range conf.Instances {
-		if firstSwarmManager != nil && c.Hostname != firstSwarmManager.Hostname {
-			wg.Add(1)
-			go func(c SessionSetupInstanceConf) {
-				defer wg.Done()
-				instanceConf := types.InstanceConfig{
-					ImageName: c.Image,
-					Hostname:  c.Hostname,
-				}
-				i, err := p.InstanceNew(session, instanceConf)
+			if conf.IsSwarmManager || conf.IsSwarmWorker {
+				dockerClient, err := p.dockerFactory.GetForInstance(i)
 				if err != nil {
-					log.Println(err)
-					return
+					return err
 				}
+				if conf.IsSwarmManager {
+					c.L.Lock()
+					if firstSwarmManager == nil {
+						tkns, err := dockerClient.SwarmInit(i.IP)
+						if err != nil {
+							return err
+						}
+						tokens = tkns
+						firstSwarmManager = i
+						c.Broadcast()
+						c.L.Unlock()
+					} else {
+						c.L.Unlock()
+						if err := dockerClient.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Manager); err != nil {
+							return err
+						}
+					}
+				} else if conf.IsSwarmWorker {
+					c.L.Lock()
+					if firstSwarmManager == nil {
+						c.Wait()
+					}
+					c.L.Unlock()
+					err = dockerClient.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Worker)
+					if err != nil {
+						log.Println(err)
+						return err
+					}
+				}
+			}
 
-				if firstSwarmManager != nil {
-					if c.IsSwarmManager {
-						dockerClient, err := p.dockerFactory.GetForInstance(i)
-						if err != nil {
-							log.Println(err)
-							return
-						}
-						// this is a swarm manager
-						// cluster has already been initiated, join as manager
-						err = dockerClient.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Manager)
-						if err != nil {
-							log.Println(err)
-							return
-						}
-					}
-					if c.IsSwarmWorker {
-						dockerClient, err := p.dockerFactory.GetForInstance(i)
-						if err != nil {
-							log.Println(err)
-							return
-						}
-						// this is a swarm worker
-						err = dockerClient.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Worker)
-						if err != nil {
-							log.Println(err)
-							return
-						}
-					}
+			for _, cmd := range conf.Run {
+				exitCode, err := p.InstanceExec(i, cmd)
+				if err != nil {
+					return err
 				}
-			}(c)
-		}
+				if exitCode != 0 {
+					return fmt.Errorf("Command returned %d on instance %s", exitCode, i.IP)
+				}
+			}
+			return nil
+		})
 	}
-	wg.Wait()
+
+	if err := g.Wait(); err != nil {
+		log.Println(err)
+		return err
+	}
 
 	return nil
 }

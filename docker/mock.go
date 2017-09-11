@@ -6,11 +6,17 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/stretchr/testify/mock"
 )
 
 type Mock struct {
 	mock.Mock
+}
+
+func (m *Mock) GetClient() *client.Client {
+	args := m.Called()
+	return args.Get(0).(*client.Client)
 }
 
 func (m *Mock) CreateNetwork(id string, opts types.NetworkCreate) error {
@@ -96,8 +102,8 @@ func (m *Mock) Exec(instanceName string, command []string) (int, error) {
 	args := m.Called(instanceName, command)
 	return args.Int(0), args.Error(1)
 }
-func (m *Mock) SwarmInit() (*SwarmTokens, error) {
-	args := m.Called()
+func (m *Mock) SwarmInit(advertiseAddr string) (*SwarmTokens, error) {
+	args := m.Called(advertiseAddr)
 	return args.Get(0).(*SwarmTokens), args.Error(1)
 }
 func (m *Mock) SwarmJoin(addr, token string) error {

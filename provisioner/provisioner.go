@@ -17,6 +17,7 @@ func OutOfCapacity(e error) bool {
 type InstanceProvisionerApi interface {
 	InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error)
 	InstanceDelete(session *types.Session, instance *types.Instance) error
+	InstanceExec(instance *types.Instance, cmd []string) (int, error)
 
 	InstanceResizeTerminal(instance *types.Instance, cols, rows uint) error
 	InstanceGetTerminal(instance *types.Instance) (net.Conn, error)

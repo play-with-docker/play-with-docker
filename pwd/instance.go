@@ -134,10 +134,14 @@ func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*t
 func (p *pwd) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
 	defer observeAction("InstanceExec", time.Now())
 
-	dockerClient, err := p.dockerFactory.GetForSession(instance.SessionId)
+	prov, err := p.getProvisioner(instance.Type)
+	if err != nil {
+		return -1, err
+	}
+	exitCode, err := prov.InstanceExec(instance, cmd)
 	if err != nil {
 		log.Println(err)
 		return -1, err
 	}
-	return dockerClient.Exec(instance.Name, cmd)
+	return exitCode, nil
 }

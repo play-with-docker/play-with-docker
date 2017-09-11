@@ -116,6 +116,14 @@ func (d *DinD) InstanceDelete(session *types.Session, instance *types.Instance) 
 	return nil
 }
 
+func (d *DinD) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
+	dockerClient, err := d.factory.GetForSession(instance.SessionId)
+	if err != nil {
+		return -1, err
+	}
+	return dockerClient.Exec(instance.Name, cmd)
+}
+
 func (d *DinD) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) error {
 	dockerClient, err := d.factory.GetForSession(instance.SessionId)
 	if err != nil {

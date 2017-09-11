@@ -37,7 +37,11 @@ func (f *localCachedFactory) GetForSession(sessionId string) (DockerApi, error) 
 	defer f.rw.Unlock()
 
 	if f.sessionClient != nil {
-		return f.sessionClient, nil
+		if err := f.check(f.sessionClient.GetClient()); err == nil {
+			return f.sessionClient, nil
+		} else {
+			f.sessionClient.GetClient().Close()
+		}
 	}
 
 	c, err := client.NewEnvClient()
@@ -69,7 +73,11 @@ func (f *localCachedFactory) GetForInstance(instance *types.Instance) (DockerApi
 	defer c.rw.Unlock()
 
 	if c.client != nil {
-		return c.client, nil
+		if err := f.check(c.client.GetClient()); err == nil {
+			return c.client, nil
+		} else {
+			c.client.GetClient().Close()
+		}
 	}
 
 	// Need to create client to the DinD docker daemon
