@@ -46,7 +46,7 @@ type instanceInfo struct {
 	id        string
 }
 
-func NewWindows(f docker.FactoryApi, st storage.StorageApi) *windows {
+func NewWindowsASG(f docker.FactoryApi, st storage.StorageApi) *windows {
 	return &windows{factory: f, storage: st}
 }
 

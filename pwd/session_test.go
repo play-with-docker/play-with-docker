@@ -9,7 +9,6 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/provisioner"
-	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -74,6 +73,7 @@ func TestSessionNew(t *testing.T) {
 /*
 
 ************************** Not sure how to test this as it can pick any manager as the first node in the swarm cluster.
+
 
 func TestSessionSetup(t *testing.T) {
 	_d := &docker.Mock{}
@@ -165,3 +165,4 @@ func TestSessionSetup(t *testing.T) {
 	_g.AssertExpectations(t)
 	_e.M.AssertExpectations(t)
 }
+*/
