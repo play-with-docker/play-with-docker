@@ -226,19 +226,17 @@ func (d *docker) DeleteContainer(id string) error {
 }
 
 type CreateContainerOpts struct {
-	Image           string
-	WindowsEndpoint string
-	SessionId       string
-	PwdIpAddress    string
-	ContainerName   string
-	Hostname        string
-	ServerCert      []byte
-	ServerKey       []byte
-	CACert          []byte
-	Privileged      bool
-	HostFQDN        string
-	Labels          map[string]string
-	Networks        []string
+	Image         string
+	SessionId     string
+	ContainerName string
+	Hostname      string
+	ServerCert    []byte
+	ServerKey     []byte
+	CACert        []byte
+	Privileged    bool
+	HostFQDN      string
+	Labels        map[string]string
+	Networks      []string
 }
 
 func (d *docker) CreateContainer(opts CreateContainerOpts) error {
@@ -246,9 +244,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 	containerDir := "/var/run/pwd"
 	containerCertDir := fmt.Sprintf("%s/certs", containerDir)
 
-	env := []string{}
-
-	env = append(env, fmt.Sprintf("WINDOWS_ENDPOINT=%s", opts.WindowsEndpoint))
+	env := []string{fmt.Sprintf("SESSION_ID=%s", opts.SessionId)}
 
 	// Write certs to container cert dir
 	if len(opts.ServerCert) > 0 {
@@ -296,7 +292,6 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 	t := true
 	h.Resources.OomKillDisable = &t
 
-	env = append(env, fmt.Sprintf("PWD_IP_ADDRESS=%s", opts.PwdIpAddress))
 	env = append(env, fmt.Sprintf("PWD_HOST_FQDN=%s", opts.HostFQDN))
 	cf := &container.Config{
 		Hostname:     opts.Hostname,

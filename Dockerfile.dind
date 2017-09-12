@@ -1,18 +1,11 @@
-ARG VERSION=docker:17.06.0-ce-dind
+ARG VERSION=docker:17.07-dind
 FROM ${VERSION}
 
-RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh qemu-img qemu-system-x86_64
+RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh zfs
 
 ENV GOPATH /root/go
 ENV PATH $PATH:$GOPATH
 
-# Use specific moby commit due to vendoring mismatch
-ENV MOBY_COMMIT="a73c3d3667f32fd61febcd2e824aa0341a57bafd"
-
-RUN mkdir /root/go && apk add --no-cache go \
-    && go get -u -d github.com/moby/tool/cmd/moby && (cd $GOPATH/src/github.com/moby/tool/cmd/moby && git checkout $MOBY_COMMIT && go install) \
-    && go get -u github.com/linuxkit/linuxkit/src/cmd/linuxkit \
-    && rm -rf /root/go/pkg && rm -rf /root/go/src && rm -rf /usr/lib/go
 
 # Compile and install httping
 # (used in orchestration workshop, and very useful anyway)
@@ -66,7 +59,7 @@ CMD cat /etc/hosts >/etc/hosts.bak && \
     sed -i "s/\DOCKER_TLSCACERT/$DOCKER_TLSCACERT/" /etc/docker/daemon.json && \
     sed -i "s/\DOCKER_TLSCERT/$DOCKER_TLSCERT/" /etc/docker/daemon.json && \
     sed -i "s/\DOCKER_TLSKEY/$DOCKER_TLSKEY/" /etc/docker/daemon.json && \
-    umount /var/lib/docker && mount -t securityfs none /sys/kernel/security && \
+    mount -t securityfs none /sys/kernel/security && \
     echo "root:root" | chpasswd &> /dev/null && \
     /usr/sbin/sshd -o PermitRootLogin=yes -o PrintMotd=no 2>/dev/null && \
     dockerd &>/docker.log & \

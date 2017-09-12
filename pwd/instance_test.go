@@ -83,7 +83,6 @@ func TestInstanceNew(t *testing.T) {
 	expectedContainerOpts := docker.CreateContainerOpts{
 		Image:         expectedInstance.Image,
 		SessionId:     session.Id,
-		PwdIpAddress:  session.PwdIpAddress,
 		ContainerName: expectedInstance.Name,
 		Hostname:      expectedInstance.Hostname,
 		ServerCert:    nil,
@@ -153,7 +152,6 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	expectedContainerOpts := docker.CreateContainerOpts{
 		Image:         expectedInstance.Image,
 		SessionId:     session.Id,
-		PwdIpAddress:  session.PwdIpAddress,
 		ContainerName: expectedInstance.Name,
 		Hostname:      expectedInstance.Hostname,
 		ServerCert:    nil,
@@ -222,7 +220,6 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	expectedContainerOpts := docker.CreateContainerOpts{
 		Image:         expectedInstance.Image,
 		SessionId:     session.Id,
-		PwdIpAddress:  session.PwdIpAddress,
 		ContainerName: expectedInstance.Name,
 		Hostname:      expectedInstance.Hostname,
 		ServerCert:    nil,

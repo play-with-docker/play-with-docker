@@ -10,8 +10,7 @@ import (
 func GetInstanceImages(rw http.ResponseWriter, req *http.Request) {
 	instanceImages := []string{
 		config.GetDindImageName(),
-		"franela/dind:overlay2-dev",
-		"franela/ucp:2.4.1",
+		"franela/dind:dev",
 	}
 	json.NewEncoder(rw).Encode(instanceImages)
 }
