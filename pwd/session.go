@@ -34,27 +34,12 @@ type SessionSetupConf struct {
 }
 
 type SessionSetupInstanceConf struct {
-	Image          string       `json:"image"`
-	Hostname       string       `json:"hostname"`
-	IsSwarmManager bool         `json:"is_swarm_manager"`
-	IsSwarmWorker  bool         `json:"is_swarm_worker"`
-	Type           string       `json:"type"`
-	Run            [][]string   `json:"run"`
-	Expose         []ExposedApp `json:"expose"`
-}
-
-type ExposedApp struct {
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Icon        string        `json:"icon"`
-	Url         ExposedAppURL `json:"url"`
-}
-
-type ExposedAppURL struct {
-	Port   int    `json:"port"`
-	Path   string `json:"path"`
-	Query  string `json:"query"`
-	Scheme string `json:"scheme"`
+	Image          string     `json:"image"`
+	Hostname       string     `json:"hostname"`
+	IsSwarmManager bool       `json:"is_swarm_manager"`
+	IsSwarmWorker  bool       `json:"is_swarm_worker"`
+	Type           string     `json:"type"`
+	Run            [][]string `json:"run"`
 }
 
 func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName string) (*types.Session, error) {
