@@ -13,7 +13,7 @@ func SessionSetup(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
 
-	body := pwd.SessionSetupConf{}
+	body := pwd.SessionSetupConf{PlaygroundFQDN: req.Host}
 
 	json.NewDecoder(req.Body).Decode(&body)
 

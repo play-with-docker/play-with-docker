@@ -97,7 +97,7 @@ func TestInstanceNew(t *testing.T) {
 	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
-	instance, err := p.InstanceNew(session, types.InstanceConfig{Host: "something.play-with-docker.com"})
+	instance, err := p.InstanceNew(session, types.InstanceConfig{PlaygroundFQDN: "something.play-with-docker.com"})
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedInstance, *instance)

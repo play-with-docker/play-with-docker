@@ -16,7 +16,7 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
 
-	body := types.InstanceConfig{Host: req.Host}
+	body := types.InstanceConfig{PlaygroundFQDN: req.Host}
 
 	json.NewDecoder(req.Body).Decode(&body)
 

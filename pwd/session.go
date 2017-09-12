@@ -30,7 +30,8 @@ func (s *sessionBuilderWriter) Write(p []byte) (n int, err error) {
 }
 
 type SessionSetupConf struct {
-	Instances []SessionSetupInstanceConf `json:"instances"`
+	Instances      []SessionSetupInstanceConf `json:"instances"`
+	PlaygroundFQDN string
 }
 
 type SessionSetupInstanceConf struct {
@@ -150,7 +151,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 
 	s.Ready = false
 	p.event.Emit(event.SESSION_READY, s.Id, false)
-	i, err := p.InstanceNew(s, types.InstanceConfig{ImageName: s.ImageName, Host: s.Host})
+	i, err := p.InstanceNew(s, types.InstanceConfig{ImageName: s.ImageName, PlaygroundFQDN: s.Host})
 	if err != nil {
 		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
 		return err
@@ -203,7 +204,7 @@ func (p *pwd) SessionGet(sessionId string) *types.Session {
 	return s
 }
 
-func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error {
+func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error {
 	defer observeAction("SessionSetup", time.Now())
 
 	c := sync.NewCond(&sync.Mutex{})
@@ -222,14 +223,14 @@ func (p *pwd) SessionSetup(session *types.Session, conf SessionSetupConf) error 
 
 	g, _ := errgroup.WithContext(context.Background())
 
-	for _, conf := range conf.Instances {
+	for _, conf := range sconf.Instances {
 		conf := conf
 		g.Go(func() error {
 			instanceConf := types.InstanceConfig{
-				ImageName: conf.Image,
-				Hostname:  conf.Hostname,
-				Host:      session.Host,
-				Type:      conf.Type,
+				ImageName:      conf.Image,
+				Hostname:       conf.Hostname,
+				PlaygroundFQDN: sconf.PlaygroundFQDN,
+				Type:           conf.Type,
 			}
 			i, err := p.InstanceNew(session, instanceConf)
 			if err != nil {

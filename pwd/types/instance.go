@@ -27,13 +27,13 @@ type WindowsInstance struct {
 }
 
 type InstanceConfig struct {
-	ImageName  string
-	Hostname   string
-	ServerCert []byte
-	ServerKey  []byte
-	CACert     []byte
-	Cert       []byte
-	Key        []byte
-	Host       string
-	Type       string
+	ImageName      string
+	Hostname       string
+	ServerCert     []byte
+	ServerKey      []byte
+	CACert         []byte
+	Cert           []byte
+	Key            []byte
+	PlaygroundFQDN string
+	Type           string
 }
