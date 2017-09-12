@@ -1,0 +1,41 @@
+ARG VERSION=franela/docker:17.06.2-dind-ubuntu
+FROM ${VERSION}
+
+RUN apt-get update \ 
+    && apt-get install -y git tmux apache2-utils vim curl zfs jq bash-completion \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# Add bash completion and set bash as default shell
+#RUN mkdir /etc/bash_completion.d \
+#    && curl https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker \
+#    && sed -i "s/ash/bash/" /etc/passwd
+ 
+# Replace modprobe with a no-op to get rid of spurious warnings
+# (note: we can't just symlink to /bin/true because it might be busybox)
+RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/modprobe
+
+# Install a nice vimrc file and prompt (by soulshake)
+COPY ["docker-prompt", "ucp.sh", "/usr/local/bin/"]
+COPY [".vimrc",".profile", ".inputrc", ".gitconfig","./root/"]
+COPY ["motd", "/etc/motd"]
+COPY ["daemon.json", "/etc/docker/"]
+
+# Move to our home
+WORKDIR /root
+
+# Setup certs and uploads folders
+RUN mkdir -p /var/run/pwd/certs && mkdir -p /var/run/pwd/uploads
+
+# Remove IPv6 alias for localhost and start docker in the background ...
+CMD cat /etc/hosts >/etc/hosts.bak && \
+    sed 's/^::1.*//' /etc/hosts.bak > /etc/hosts && \
+    sed -i "s/\PWD_IP_ADDRESS/$PWD_IP_ADDRESS/" /etc/docker/daemon.json && \
+    sed -i "s/\DOCKER_TLSENABLE/$DOCKER_TLSENABLE/" /etc/docker/daemon.json && \
+    sed -i "s/\DOCKER_TLSCACERT/$DOCKER_TLSCACERT/" /etc/docker/daemon.json && \
+    sed -i "s/\DOCKER_TLSCERT/$DOCKER_TLSCERT/" /etc/docker/daemon.json && \
+    sed -i "s/\DOCKER_TLSKEY/$DOCKER_TLSKEY/" /etc/docker/daemon.json && \
+    mount -t securityfs none /sys/kernel/security && \
+    dockerd > /docker.log 2>&1 & \
+    while true ; do script -q -c "/bin/bash -l" /dev/null ; done
+# ... and then put a shell in the foreground, restarting it if it exits
