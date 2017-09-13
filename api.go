@@ -27,15 +27,16 @@ func main() {
 
 	core := pwd.NewPWD(f, e, s, sp, ipf)
 
-	sch, err := scheduler.NewScheduler(s, e, core)
+	tasks := []scheduler.Task{
+		task.NewCheckPorts(e, f),
+		task.NewCheckSwarmPorts(e, f),
+		task.NewCheckSwarmStatus(e, f),
+		task.NewCollectStats(e, f),
+	}
+	sch, err := scheduler.NewScheduler(tasks, s, e, core)
 	if err != nil {
 		log.Fatal("Error initializing the scheduler: ", err)
 	}
-
-	sch.AddTask(task.NewCheckPorts(e, f))
-	sch.AddTask(task.NewCheckSwarmPorts(e, f))
-	sch.AddTask(task.NewCheckSwarmStatus(e, f))
-	sch.AddTask(task.NewCollectStats(e, f))
 
 	sch.Start()
 

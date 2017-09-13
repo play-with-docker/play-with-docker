@@ -247,6 +247,7 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 					if firstSwarmManager == nil {
 						tkns, err := dockerClient.SwarmInit(i.IP)
 						if err != nil {
+							log.Printf("Cannot initialize swarm on instance %s. Got: %v\n", i.Name, err)
 							return err
 						}
 						tokens = tkns
@@ -256,6 +257,7 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 					} else {
 						c.L.Unlock()
 						if err := dockerClient.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Manager); err != nil {
+							log.Printf("Cannot join manager %s to swarm. Got: %v\n", i.Name, err)
 							return err
 						}
 					}
@@ -267,7 +269,7 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 					c.L.Unlock()
 					err = dockerClient.SwarmJoin(fmt.Sprintf("%s:2377", firstSwarmManager.IP), tokens.Worker)
 					if err != nil {
-						log.Println(err)
+						log.Printf("Cannot join worker %s to swarm. Got: %v\n", i.Name, err)
 						return err
 					}
 				}
