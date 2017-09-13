@@ -58,7 +58,7 @@ func (f *localCachedFactory) GetForSession(sessionId string) (DockerApi, error) 
 }
 
 func (f *localCachedFactory) GetForInstance(instance *types.Instance) (DockerApi, error) {
-	key := instance.SessionId + instance.IP
+	key := instance.Name
 
 	f.irw.Lock()
 	c, found := f.instanceClients[key]
