@@ -31,6 +31,7 @@ type scheduledInstance struct {
 	instance *types.Instance
 	ticker   *time.Ticker
 	cancel   context.CancelFunc
+	fails    int
 }
 
 type scheduler struct {
@@ -91,8 +92,16 @@ func (s *scheduler) processInstance(ctx context.Context, si *scheduledInstance) 
 				err := task.Run(ctx, si.instance)
 				if err != nil {
 					log.Printf("Error running task %s on instance %s. Got: %v\n", task.Name(), si.instance.Name, err)
+					// Since one task failed, we just assume something might be wrong with the instance, so we don't try to process the rest of the tasks.
+					si.fails++
+					if si.fails > 5 {
+						log.Printf("Instance %s has failed to execute tasks too many times. Giving up.\n", si.instance.Name)
+						return
+					}
+					continue
 				}
 			}
+			si.fails = 0
 		case <-ctx.Done():
 			log.Printf("Processing tasks for instance %s has been canceled.\n", si.instance.Name)
 			return
