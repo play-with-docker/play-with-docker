@@ -130,12 +130,22 @@ func (p *pwd) SessionGetSmallestViewPort(sessionId string) types.ViewPort {
 		log.Printf("Session [%s] doesn't have clients. Returning default viewport\n", sessionId)
 		return types.ViewPort{Rows: 24, Cols: 80}
 	}
-	minRows := clients[0].ViewPort.Rows
-	minCols := clients[0].ViewPort.Cols
+	var minRows uint
+	var minCols uint
 
 	for _, c := range clients {
-		minRows = uint(math.Min(float64(minRows), float64(c.ViewPort.Rows)))
-		minCols = uint(math.Min(float64(minCols), float64(c.ViewPort.Cols)))
+		if c.ViewPort.Rows > 0 && c.ViewPort.Cols > 0 {
+			minRows = uint(c.ViewPort.Rows)
+			minCols = uint(c.ViewPort.Cols)
+			break
+		}
+	}
+
+	for _, c := range clients {
+		if c.ViewPort.Rows > 0 && c.ViewPort.Cols > 0 {
+			minRows = uint(math.Min(float64(minRows), float64(c.ViewPort.Rows)))
+			minCols = uint(math.Min(float64(minCols), float64(c.ViewPort.Cols)))
+		}
 	}
 
 	return types.ViewPort{Rows: minRows, Cols: minCols}
