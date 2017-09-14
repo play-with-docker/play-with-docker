@@ -9,6 +9,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/id"
 	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/router"
@@ -21,9 +22,9 @@ func TestInstanceResizeTerminal(t *testing.T) {
 	_d := &docker.Mock{}
 	_f := &docker.FactoryMock{}
 	_s := &storage.Mock{}
-	_g := &mockGenerator{}
+	_g := &id.MockGenerator{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_d.On("ContainerResize", "foobar", uint(24), uint(80)).Return(nil)
@@ -45,9 +46,9 @@ func TestInstanceNew(t *testing.T) {
 	_d := &docker.Mock{}
 	_f := &docker.FactoryMock{}
 	_s := &storage.Mock{}
-	_g := &mockGenerator{}
+	_g := &id.MockGenerator{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -71,7 +72,7 @@ func TestInstanceNew(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{
-		Name:        fmt.Sprintf("%s_node1", session.Id[:8]),
+		Name:        fmt.Sprintf("%s_aaaabbbbcccc", session.Id[:8]),
 		Hostname:    "node1",
 		IP:          "10.0.0.1",
 		RoutableIP:  "10.0.0.1",
@@ -95,7 +96,7 @@ func TestInstanceNew(t *testing.T) {
 	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
 	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
-	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
+	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{PlaygroundFQDN: "something.play-with-docker.com"})
 	assert.Nil(t, err)
@@ -113,9 +114,9 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	_d := &docker.Mock{}
 	_f := &docker.FactoryMock{}
 	_s := &storage.Mock{}
-	_g := &mockGenerator{}
+	_g := &id.MockGenerator{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -140,7 +141,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{
-		Name:        fmt.Sprintf("%s_node1", session.Id[:8]),
+		Name:        fmt.Sprintf("%s_aaaabbbbcccc", session.Id[:8]),
 		Hostname:    "node1",
 		IP:          "10.0.0.1",
 		RoutableIP:  "10.0.0.1",
@@ -163,7 +164,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
 	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
-	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_node1", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
+	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis"})
 	assert.Nil(t, err)
@@ -181,10 +182,10 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	_d := &docker.Mock{}
 	_f := &docker.FactoryMock{}
 	_s := &storage.Mock{}
-	_g := &mockGenerator{}
+	_g := &id.MockGenerator{}
 	_e := &event.Mock{}
 
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -208,7 +209,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{
-		Name:        fmt.Sprintf("%s_redis-master", session.Id[:8]),
+		Name:        fmt.Sprintf("%s_aaaabbbbcccc", session.Id[:8]),
 		Hostname:    "redis-master",
 		IP:          "10.0.0.1",
 		RoutableIP:  "10.0.0.1",
@@ -232,7 +233,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
 	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
-	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_redis-master", "10.0.0.1", "redis-master", "ip10-0-0-1-aaaabbbbcccc"}).Return()
+	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "redis-master", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis", Hostname: "redis-master"})
 

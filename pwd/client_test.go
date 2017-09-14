@@ -8,6 +8,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/id"
 	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
@@ -18,11 +19,11 @@ import (
 func TestClientNew(t *testing.T) {
 	_s := &storage.Mock{}
 	_f := &docker.FactoryMock{}
-	_g := &mockGenerator{}
+	_g := &id.MockGenerator{}
 	_d := &docker.Mock{}
 	_e := &event.Mock{}
 
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -59,10 +60,10 @@ func TestClientNew(t *testing.T) {
 func TestClientCount(t *testing.T) {
 	_s := &storage.Mock{}
 	_f := &docker.FactoryMock{}
-	_g := &mockGenerator{}
+	_g := &id.MockGenerator{}
 	_d := &docker.Mock{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
@@ -98,10 +99,10 @@ func TestClientCount(t *testing.T) {
 func TestClientResizeViewPort(t *testing.T) {
 	_s := &storage.Mock{}
 	_f := &docker.FactoryMock{}
-	_g := &mockGenerator{}
+	_g := &id.MockGenerator{}
 	_d := &docker.Mock{}
 	_e := &event.Mock{}
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_f, _s))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")

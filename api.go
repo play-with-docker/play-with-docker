@@ -8,6 +8,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/handlers"
+	"github.com/play-with-docker/play-with-docker/id"
 	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/scheduler"
@@ -22,7 +23,7 @@ func main() {
 	s := initStorage()
 	f := initFactory(s)
 
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(f, s), provisioner.NewDinD(f, s))
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(f, s), provisioner.NewDinD(id.XIDGenerator{}, f, s))
 	sp := provisioner.NewOverlaySessionProvisioner(f)
 
 	core := pwd.NewPWD(f, e, s, sp, ipf)

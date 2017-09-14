@@ -8,12 +8,11 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/id"
 	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rs/xid"
-	"github.com/stretchr/testify/mock"
 )
 
 var (
@@ -52,32 +51,12 @@ type pwd struct {
 	dockerFactory              docker.FactoryApi
 	event                      event.EventApi
 	storage                    storage.StorageApi
-	generator                  IdGenerator
+	generator                  id.Generator
 	clientCount                int32
 	sessionProvisioner         provisioner.SessionProvisionerApi
 	instanceProvisionerFactory provisioner.InstanceProvisionerFactoryApi
 	windowsProvisioner         provisioner.InstanceProvisionerApi
 	dindProvisioner            provisioner.InstanceProvisionerApi
-}
-
-type IdGenerator interface {
-	NewId() string
-}
-
-type xidGenerator struct {
-}
-
-func (x xidGenerator) NewId() string {
-	return xid.New().String()
-}
-
-type mockGenerator struct {
-	mock.Mock
-}
-
-func (m *mockGenerator) NewId() string {
-	args := m.Called()
-	return args.String(0)
 }
 
 var sessionComplete = errors.New("Session is complete")
@@ -118,18 +97,11 @@ type PWDApi interface {
 
 func NewPWD(f docker.FactoryApi, e event.EventApi, s storage.StorageApi, sp provisioner.SessionProvisionerApi, ipf provisioner.InstanceProvisionerFactoryApi) *pwd {
 	//  windowsProvisioner: provisioner.NewWindowsASG(f, s), dindProvisioner: provisioner.NewDinD(f)
-	return &pwd{dockerFactory: f, event: e, storage: s, generator: xidGenerator{}, sessionProvisioner: sp, instanceProvisionerFactory: ipf}
+	return &pwd{dockerFactory: f, event: e, storage: s, generator: id.XIDGenerator{}, sessionProvisioner: sp, instanceProvisionerFactory: ipf}
 }
 
 func (p *pwd) getProvisioner(t string) (provisioner.InstanceProvisionerApi, error) {
 	return p.instanceProvisionerFactory.GetProvisioner(t)
-	/*
-		if t == "windows" {
-			return p.windowsProvisioner, nil
-		} else {
-			return p.dindProvisioner, nil
-		}
-	*/
 }
 
 func (p *pwd) setGauges() {

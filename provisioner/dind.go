@@ -12,19 +12,20 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
+	"github.com/play-with-docker/play-with-docker/id"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/router"
 	"github.com/play-with-docker/play-with-docker/storage"
-	"github.com/rs/xid"
 )
 
 type DinD struct {
-	factory docker.FactoryApi
-	storage storage.StorageApi
+	factory   docker.FactoryApi
+	storage   storage.StorageApi
+	generator id.Generator
 }
 
-func NewDinD(f docker.FactoryApi, s storage.StorageApi) *DinD {
-	return &DinD{factory: f, storage: s}
+func NewDinD(generator id.Generator, f docker.FactoryApi, s storage.StorageApi) *DinD {
+	return &DinD{generator: generator, factory: f, storage: s}
 }
 
 func checkHostnameExists(sessionId, hostname string, instances []*types.Instance) bool {
@@ -59,7 +60,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		}
 		conf.Hostname = nodeName
 	}
-	containerName := fmt.Sprintf("%s_%s", session.Id[:8], xid.New().String())
+	containerName := fmt.Sprintf("%s_%s", session.Id[:8], d.generator.NewId())
 	opts := docker.CreateContainerOpts{
 		Image:         conf.ImageName,
 		SessionId:     session.Id,
