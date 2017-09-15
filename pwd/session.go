@@ -41,6 +41,7 @@ type SessionSetupInstanceConf struct {
 	IsSwarmWorker  bool       `json:"is_swarm_worker"`
 	Type           string     `json:"type"`
 	Run            [][]string `json:"run"`
+	Tls            bool       `json:"tls"`
 }
 
 func (p *pwd) SessionNew(duration time.Duration, stack, stackName, imageName string) (*types.Session, error) {
@@ -241,6 +242,7 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 				Hostname:       conf.Hostname,
 				PlaygroundFQDN: sconf.PlaygroundFQDN,
 				Type:           conf.Type,
+				Tls:            conf.Tls,
 			}
 			i, err := p.InstanceNew(session, instanceConf)
 			if err != nil {

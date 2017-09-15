@@ -13,6 +13,7 @@ type Instance struct {
 	CACert      []byte          `json:"ca_cert" bson:"ca_cert"`
 	Cert        []byte          `json:"cert" bson:"cert"`
 	Key         []byte          `json:"key" bson:"key"`
+	Tls         bool            `json:"tls" bson:"tls"`
 	SessionId   string          `json:"session_id" bson:"session_id"`
 	ProxyHost   string          `json:"proxy_host" bson:"proxy_host"`
 	SessionHost string          `json:"session_host" bson:"session_host"`
@@ -34,6 +35,7 @@ type InstanceConfig struct {
 	CACert         []byte
 	Cert           []byte
 	Key            []byte
+	Tls            bool
 	PlaygroundFQDN string
 	Type           string
 }

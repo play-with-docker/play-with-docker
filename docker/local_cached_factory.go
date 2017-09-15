@@ -83,14 +83,16 @@ func (f *localCachedFactory) GetForInstance(instance *types.Instance) (DockerApi
 	// Need to create client to the DinD docker daemon
 	// We check if the client needs to use TLS
 	var tlsConfig *tls.Config
-	if len(instance.Cert) > 0 && len(instance.Key) > 0 {
+	if (len(instance.Cert) > 0 && len(instance.Key) > 0) || instance.Tls {
 		tlsConfig = tlsconfig.ClientDefault()
 		tlsConfig.InsecureSkipVerify = true
-		tlsCert, err := tls.X509KeyPair(instance.Cert, instance.Key)
-		if err != nil {
-			return nil, fmt.Errorf("Could not load X509 key pair: %v. Make sure the key is not encrypted", err)
+		if len(instance.Cert) > 0 && len(instance.Key) > 0 {
+			tlsCert, err := tls.X509KeyPair(instance.Cert, instance.Key)
+			if err != nil {
+				return nil, fmt.Errorf("Could not load X509 key pair: %v. Make sure the key is not encrypted", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{tlsCert}
 		}
-		tlsConfig.Certificates = []tls.Certificate{tlsCert}
 	}
 
 	proxyUrl, _ := url.Parse("http://l2:443")
