@@ -13,8 +13,9 @@ function deploy_ucp {
     wait_for_url "http://localhost:2375"
     docker run --rm  --name ucp \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        docker/ucp:2.2.2 install --force-insecure-tcp \
+        docker/ucp:2.2.3 install --force-insecure-tcp \
         --san *.direct.${PWD_HOST_FQDN} \
+        --license $(cat $HOME/workshop.lic) \
         --admin-username admin \
         --admin-password admin1234
 }
