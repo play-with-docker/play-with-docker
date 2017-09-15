@@ -26,6 +26,7 @@ var UseLetsEncrypt bool
 var LetsEncryptCertsDir string
 var LetsEncryptDomains stringslice
 var MaxLoadAvg float64
+var ForceTLS bool
 
 type stringslice []string
 
@@ -41,6 +42,7 @@ func ParseFlags() {
 	flag.Var(&LetsEncryptDomains, "letsencrypt-domain", "List of domains to validate with let's encrypt")
 	flag.StringVar(&LetsEncryptCertsDir, "letsencrypt-certs-dir", "/certs", "Path where let's encrypt certs will be stored")
 	flag.BoolVar(&UseLetsEncrypt, "use-letsencrypt", false, "Enabled let's encrypt tls certificates")
+	flag.BoolVar(&ForceTLS, "tls", false, "Use TLS to connect to docker daemons")
 	flag.StringVar(&PortNumber, "port", "3000", "Port number")
 	flag.StringVar(&Key, "key", "./pwd/server-key.pem", "Server key for SSL")
 	flag.StringVar(&Cert, "cert", "./pwd/server.pem", "Give a SSL cert")

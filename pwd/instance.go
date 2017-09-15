@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
@@ -113,6 +114,11 @@ func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*t
 	if err != nil {
 		return nil, err
 	}
+
+	if config.ForceTLS {
+		conf.Tls = true
+	}
+
 	instance, err := prov.InstanceNew(session, conf)
 	if err != nil {
 		log.Println(err)
