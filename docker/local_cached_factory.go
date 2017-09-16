@@ -2,20 +2,13 @@ package docker
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log"
-	"net"
-	"net/http"
-	"net/url"
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api"
 	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/tlsconfig"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/play-with-docker/play-with-docker/router"
 	"github.com/play-with-docker/play-with-docker/storage"
 )
 
@@ -80,39 +73,9 @@ func (f *localCachedFactory) GetForInstance(instance *types.Instance) (DockerApi
 		}
 	}
 
-	// Need to create client to the DinD docker daemon
-	// We check if the client needs to use TLS
-	var tlsConfig *tls.Config
-	if (len(instance.Cert) > 0 && len(instance.Key) > 0) || instance.Tls {
-		tlsConfig = tlsconfig.ClientDefault()
-		tlsConfig.InsecureSkipVerify = true
-		if len(instance.Cert) > 0 && len(instance.Key) > 0 {
-			tlsCert, err := tls.X509KeyPair(instance.Cert, instance.Key)
-			if err != nil {
-				return nil, fmt.Errorf("Could not load X509 key pair: %v. Make sure the key is not encrypted", err)
-			}
-			tlsConfig.Certificates = []tls.Certificate{tlsCert}
-		}
-	}
-
-	proxyUrl, _ := url.Parse("http://l2:443")
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   1 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		MaxIdleConnsPerHost: 5,
-		Proxy:               http.ProxyURL(proxyUrl),
-	}
-	if tlsConfig != nil {
-		transport.TLSClientConfig = tlsConfig
-	}
-	cli := &http.Client{
-		Transport: transport,
-	}
-	dc, err := client.NewClient(fmt.Sprintf("http://%s", router.EncodeHost(instance.SessionId, instance.IP, router.HostOpts{EncodedPort: 2375})), api.DefaultVersion, cli, nil)
+	dc, err := NewClient(instance, "l2:443")
 	if err != nil {
-		return nil, fmt.Errorf("Could not connect to DinD docker daemon", err)
+		return nil, err
 	}
 	err = f.check(dc)
 	if err != nil {
@@ -129,7 +92,7 @@ func (f *localCachedFactory) check(c *client.Client) error {
 	for i := 0; i < 5; i++ {
 		_, err := c.Ping(context.Background())
 		if err != nil {
-			log.Printf("Connection to [%s] has failed, maybe instance is not ready yet, sleeping and retrying in 1 second. Try #%d\n", c.DaemonHost(), i+1)
+			log.Printf("Connection to [%s] has failed, maybe instance is not ready yet, sleeping and retrying in 1 second. Try #%d. Got: %v\n", c.DaemonHost(), i+1, err)
 			time.Sleep(time.Second)
 			continue
 		}

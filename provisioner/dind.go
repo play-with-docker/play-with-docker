@@ -99,6 +99,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	instance.ServerCert = conf.ServerCert
 	instance.ServerKey = conf.ServerKey
 	instance.CACert = conf.CACert
+	instance.Tls = conf.Tls
 	instance.ProxyHost = router.EncodeHost(session.Id, instance.RoutableIP, router.HostOpts{})
 	instance.SessionHost = session.Host
 
