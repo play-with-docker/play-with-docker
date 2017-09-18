@@ -10,12 +10,13 @@ function wait_for_url {
 }
 
 function deploy_ucp {
-    wait_for_url "http://localhost:2375"
+    wait_for_url "https://localhost:2376"
     docker run --rm  --name ucp \
         -v /var/run/docker.sock:/var/run/docker.sock \
         docker/ucp:2.2.3 install --force-insecure-tcp \
         --san *.direct.${PWD_HOST_FQDN} \
         --license $(cat $HOME/workshop.lic) \
+        --swarm-port 2375 \
         --admin-username admin \
         --admin-password admin1234
 }

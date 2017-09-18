@@ -2,7 +2,7 @@ ARG VERSION=franela/docker:17.06.2-dind-ubuntu
 FROM ${VERSION}
 
 RUN apt-get update \ 
-    && apt-get install -y git tmux apache2-utils vim curl zfs jq bash-completion \
+    && apt-get install -y git tmux apache2-utils vim curl jq bash-completion \
     && rm -rf /var/lib/apt/lists/*
 
 

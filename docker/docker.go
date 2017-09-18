@@ -288,7 +288,13 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 		}
 	}
 	h.Resources.PidsLimit = pidsLimit
-	h.Resources.Memory = 4092 * Megabyte
+
+	if memLimit := os.Getenv("MAX_MEMORY_MB"); memLimit != "" {
+		if i, err := strconv.Atoi(memLimit); err == nil {
+			h.Resources.Memory = int64(i) * Megabyte
+		}
+	}
+
 	t := true
 	h.Resources.OomKillDisable = &t
 
