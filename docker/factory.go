@@ -21,11 +21,12 @@ type FactoryApi interface {
 }
 
 func NewClient(instance *types.Instance, proxyHost string) (*client.Client, error) {
-	host := router.EncodeHost(instance.SessionId, instance.RoutableIP, router.HostOpts{EncodedPort: 2375})
+	var host string
 	var durl string
 
 	var tlsConfig *tls.Config
 	if (len(instance.Cert) > 0 && len(instance.Key) > 0) || instance.Tls {
+		host = router.EncodeHost(instance.SessionId, instance.RoutableIP, router.HostOpts{EncodedPort: 2376})
 		tlsConfig = tlsconfig.ClientDefault()
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.ServerName = host
@@ -36,6 +37,8 @@ func NewClient(instance *types.Instance, proxyHost string) (*client.Client, erro
 			}
 			tlsConfig.Certificates = []tls.Certificate{tlsCert}
 		}
+	} else {
+		host = router.EncodeHost(instance.SessionId, instance.RoutableIP, router.HostOpts{EncodedPort: 2376})
 	}
 
 	transport := &http.Transport{
