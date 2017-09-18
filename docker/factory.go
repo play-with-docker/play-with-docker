@@ -21,7 +21,7 @@ type FactoryApi interface {
 }
 
 func NewClient(instance *types.Instance, proxyHost string) (*client.Client, error) {
-	host := router.EncodeHost(instance.SessionId, instance.IP, router.HostOpts{EncodedPort: 2375})
+	host := router.EncodeHost(instance.SessionId, instance.RoutableIP, router.HostOpts{EncodedPort: 2375})
 	var durl string
 
 	var tlsConfig *tls.Config
