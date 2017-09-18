@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/play-with-docker/play-with-docker/docker"
@@ -53,17 +52,12 @@ func (t *checkSwarmPorts) Run(ctx context.Context, instance *types.Instance) err
 		log.Println(err)
 		return err
 	}
-	instances := make([]string, len(hosts))
-	sessionPrefix := instance.SessionId[:8]
-	for i, host := range hosts {
-		instances[i] = fmt.Sprintf("%s_%s", sessionPrefix, host)
-	}
 	ports := make([]int, len(ps))
 	for i, port := range ps {
 		ports[i] = int(port)
 	}
 
-	t.event.Emit(CheckSwarmPortsEvent, instance.SessionId, DockerSwarmPorts{Manager: instance.Name, Instances: instances, Ports: ports})
+	t.event.Emit(CheckSwarmPortsEvent, instance.SessionId, DockerSwarmPorts{Manager: instance.Name, Instances: hosts, Ports: ports})
 	return nil
 }
 

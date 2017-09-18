@@ -23,6 +23,7 @@
     $scope.sessionId = SessionService.getCurrentSessionId();
     $scope.instances = [];
     $scope.idx = {};
+    $scope.idxByHostname = {};
     $scope.selectedInstance = null;
     $scope.isAlive = true;
     $scope.ttl = '--:--:--';
@@ -106,6 +107,7 @@
         $scope.instances.push(i);
         i.buffer = '';
         $scope.idx[i.name] = i;
+        $scope.idxByHostname[i.hostname] = i;
       } else {
         $scope.idx[i.name].ip = i.ip;
         $scope.idx[i.name].hostname = i.hostname;
@@ -170,6 +172,7 @@
           var instance = i.instances[k];
           $scope.instances.push(instance);
           $scope.idx[instance.name] = instance;
+          $scope.idxByHostname[instance.hostname] = instance;
         }
 
         var socket = io({ path: '/sessions/' + sessionId + '/ws' });
@@ -267,7 +270,7 @@
         socket.on('instance docker swarm ports', function(status) {
             for(var i in status.instances) {
                 var instance = status.instances[i];
-                $scope.idx[instance].swarmPorts = status.ports;
+                $scope.idxByHostname[instance].swarmPorts = status.ports;
             }
             $scope.$apply();
         });

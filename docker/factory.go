@@ -38,7 +38,7 @@ func NewClient(instance *types.Instance, proxyHost string) (*client.Client, erro
 			tlsConfig.Certificates = []tls.Certificate{tlsCert}
 		}
 	} else {
-		host = router.EncodeHost(instance.SessionId, instance.RoutableIP, router.HostOpts{EncodedPort: 2376})
+		host = router.EncodeHost(instance.SessionId, instance.RoutableIP, router.HostOpts{EncodedPort: 2375})
 	}
 
 	transport := &http.Transport{

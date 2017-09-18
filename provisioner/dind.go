@@ -29,10 +29,9 @@ func NewDinD(generator id.Generator, f docker.FactoryApi, s storage.StorageApi) 
 }
 
 func checkHostnameExists(sessionId, hostname string, instances []*types.Instance) bool {
-	containerName := fmt.Sprintf("%s_%s", sessionId[:8], hostname)
 	exists := false
 	for _, instance := range instances {
-		if instance.Name == containerName {
+		if instance.Hostname == hostname {
 			exists = true
 			break
 		}
