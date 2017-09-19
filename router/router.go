@@ -329,12 +329,15 @@ func (r *proxyRouter) ListenSshAddress() string {
 func (r *proxyRouter) handleConnection(c net.Conn) {
 	defer c.Close()
 	// first try tls
+	start := time.Now()
 	vhostConn, err := vhost.TLS(c)
+	discoverElapsed := time.Since(start)
 
 	if err == nil {
 		// It is a TLS connection
 		defer vhostConn.Close()
 		host := vhostConn.ClientHelloMsg.ServerName
+		log.Printf("Proxying TLS connection to %s. Discover took %s\n", host, discoverElapsed)
 		dstHost, err := r.director(ProtocolHTTPS, host)
 		if err != nil {
 			log.Printf("Error directing request: %v\n", err)
@@ -351,7 +354,9 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 		// it is not TLS
 		// treat it as an http connection
 
+		start := time.Now()
 		req, err := http.ReadRequest(bufio.NewReader(vhostConn))
+		httpReadElapsed := time.Since(start)
 		if err != nil {
 			// It is not http neither. So just close the connection.
 			return
@@ -360,6 +365,7 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 		if host == "" {
 			host = req.Host
 		}
+		log.Printf("Proxying http connection to %s. Discover took %s. Http read took %s\n", host, discoverElapsed, httpReadElapsed)
 		dstHost, err := r.director(ProtocolHTTP, host)
 		if err != nil {
 			log.Printf("Error directing request: %v\n", err)
