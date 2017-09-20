@@ -32,7 +32,7 @@ func main() {
 		task.NewCheckPorts(e, f),
 		task.NewCheckSwarmPorts(e, f),
 		task.NewCheckSwarmStatus(e, f),
-		task.NewCollectStats(e, f),
+		task.NewCollectStats(e, f, s),
 	}
 	sch, err := scheduler.NewScheduler(tasks, s, e, core)
 	if err != nil {

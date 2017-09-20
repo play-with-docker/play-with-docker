@@ -9,8 +9,8 @@ type FactoryMock struct {
 	mock.Mock
 }
 
-func (m *FactoryMock) GetForSession(sessionId string) (DockerApi, error) {
-	args := m.Called(sessionId)
+func (m *FactoryMock) GetForSession(session *types.Session) (DockerApi, error) {
+	args := m.Called(session)
 	return args.Get(0).(DockerApi), args.Error(1)
 }
 

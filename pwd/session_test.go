@@ -28,7 +28,7 @@ func TestSessionNew(t *testing.T) {
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
-	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
+	_f.On("GetForSession", mock.AnythingOfType("*types.Session")).Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
 	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)

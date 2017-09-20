@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/id"
@@ -22,10 +23,12 @@ type DinD struct {
 	factory   docker.FactoryApi
 	storage   storage.StorageApi
 	generator id.Generator
+	cache     *lru.Cache
 }
 
 func NewDinD(generator id.Generator, f docker.FactoryApi, s storage.StorageApi) *DinD {
-	return &DinD{generator: generator, factory: f, storage: s}
+	c, _ := lru.New(5000)
+	return &DinD{generator: generator, factory: f, storage: s, cache: c}
 }
 
 func checkHostnameExists(sessionId, hostname string, instances []*types.Instance) bool {
@@ -73,7 +76,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		Networks:      []string{session.Id},
 	}
 
-	dockerClient, err := d.factory.GetForSession(session.Id)
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +108,23 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	return instance, nil
 }
 
+func (d *DinD) getSession(sessionId string) (*types.Session, error) {
+	var session *types.Session
+	if s, found := d.cache.Get(sessionId); !found {
+		s, err := d.storage.SessionGet(sessionId)
+		if err != nil {
+			return nil, err
+		}
+		session = s
+		d.cache.Add(sessionId, s)
+	} else {
+		session = s.(*types.Session)
+	}
+	return session, nil
+}
+
 func (d *DinD) InstanceDelete(session *types.Session, instance *types.Instance) error {
-	dockerClient, err := d.factory.GetForSession(session.Id)
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return err
 	}
@@ -118,7 +136,11 @@ func (d *DinD) InstanceDelete(session *types.Session, instance *types.Instance) 
 }
 
 func (d *DinD) InstanceExec(instance *types.Instance, cmd []string) (int, error) {
-	dockerClient, err := d.factory.GetForSession(instance.SessionId)
+	session, err := d.getSession(instance.SessionId)
+	if err != nil {
+		return -1, err
+	}
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return -1, err
 	}
@@ -126,7 +148,11 @@ func (d *DinD) InstanceExec(instance *types.Instance, cmd []string) (int, error)
 }
 
 func (d *DinD) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) error {
-	dockerClient, err := d.factory.GetForSession(instance.SessionId)
+	session, err := d.getSession(instance.SessionId)
+	if err != nil {
+		return err
+	}
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return err
 	}
@@ -134,7 +160,11 @@ func (d *DinD) InstanceResizeTerminal(instance *types.Instance, rows, cols uint)
 }
 
 func (d *DinD) InstanceGetTerminal(instance *types.Instance) (net.Conn, error) {
-	dockerClient, err := d.factory.GetForSession(instance.SessionId)
+	session, err := d.getSession(instance.SessionId)
+	if err != nil {
+		return nil, err
+	}
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +181,11 @@ func (d *DinD) InstanceUploadFromUrl(instance *types.Instance, fileName, dest, u
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("Could not download file [%s]. Status code: %d\n", url, resp.StatusCode)
 	}
-	dockerClient, err := d.factory.GetForSession(instance.SessionId)
+	session, err := d.getSession(instance.SessionId)
+	if err != nil {
+		return err
+	}
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return err
 	}
@@ -166,7 +200,11 @@ func (d *DinD) InstanceUploadFromUrl(instance *types.Instance, fileName, dest, u
 }
 
 func (d *DinD) getInstanceCWD(instance *types.Instance) (string, error) {
-	dockerClient, err := d.factory.GetForSession(instance.SessionId)
+	session, err := d.getSession(instance.SessionId)
+	if err != nil {
+		return "", err
+	}
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return "", err
 	}
@@ -184,7 +222,11 @@ func (d *DinD) getInstanceCWD(instance *types.Instance) (string, error) {
 }
 
 func (d *DinD) InstanceUploadFromReader(instance *types.Instance, fileName, dest string, reader io.Reader) error {
-	dockerClient, err := d.factory.GetForSession(instance.SessionId)
+	session, err := d.getSession(instance.SessionId)
+	if err != nil {
+		return err
+	}
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return err
 	}

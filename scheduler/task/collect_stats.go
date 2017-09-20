@@ -12,10 +12,12 @@ import (
 
 	dockerTypes "github.com/docker/docker/api/types"
 	units "github.com/docker/go-units"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/router"
+	"github.com/play-with-docker/play-with-docker/storage"
 )
 
 type InstanceStats struct {
@@ -28,6 +30,8 @@ type collectStats struct {
 	event   event.EventApi
 	factory docker.FactoryApi
 	cli     *http.Client
+	cache   *lru.Cache
+	storage storage.StorageApi
 }
 
 var CollectStatsEvent event.EventType
@@ -71,7 +75,18 @@ func (t *collectStats) Run(ctx context.Context, instance *types.Instance) error 
 		t.event.Emit(CollectStatsEvent, instance.SessionId, stats)
 		return nil
 	}
-	dockerClient, err := t.factory.GetForSession(instance.SessionId)
+	var session *types.Session
+	if sess, found := t.cache.Get(instance.SessionId); !found {
+		s, err := t.storage.SessionGet(instance.SessionId)
+		if err != nil {
+			return err
+		}
+		t.cache.Add(s.Id, s)
+		session = s
+	} else {
+		session = sess.(*types.Session)
+	}
+	dockerClient, err := t.factory.GetForSession(session)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -119,7 +134,7 @@ func proxyHost(r *http.Request) (*url.URL, error) {
 	return u, nil
 }
 
-func NewCollectStats(e event.EventApi, f docker.FactoryApi) *collectStats {
+func NewCollectStats(e event.EventApi, f docker.FactoryApi, s storage.StorageApi) *collectStats {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout:   1 * time.Second,
@@ -131,7 +146,8 @@ func NewCollectStats(e event.EventApi, f docker.FactoryApi) *collectStats {
 	cli := &http.Client{
 		Transport: transport,
 	}
-	return &collectStats{event: e, factory: f, cli: cli}
+	c, _ := lru.New(5000)
+	return &collectStats{event: e, factory: f, cli: cli, cache: c, storage: s}
 }
 
 func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *dockerTypes.StatsJSON) float64 {

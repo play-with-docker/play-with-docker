@@ -25,7 +25,7 @@ type instanceEntry struct {
 	client DockerApi
 }
 
-func (f *localCachedFactory) GetForSession(sessionId string) (DockerApi, error) {
+func (f *localCachedFactory) GetForSession(session *types.Session) (DockerApi, error) {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 

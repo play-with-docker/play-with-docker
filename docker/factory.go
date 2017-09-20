@@ -16,7 +16,7 @@ import (
 )
 
 type FactoryApi interface {
-	GetForSession(sessionId string) (DockerApi, error)
+	GetForSession(session *types.Session) (DockerApi, error)
 	GetForInstance(instance *types.Instance) (DockerApi, error)
 }
 
