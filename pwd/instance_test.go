@@ -27,8 +27,10 @@ func TestInstanceResizeTerminal(t *testing.T) {
 	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
+	s := &types.Session{Id: "aaaabbbbcccc"}
 	_d.On("ContainerResize", "foobar", uint(24), uint(80)).Return(nil)
-	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
+	_s.On("SessionGet", "aaaabbbbcccc").Return(s, nil)
+	_f.On("GetForSession", s).Return(_d, nil)
 
 	p := NewPWD(_f, _e, _s, sp, ipf)
 
@@ -52,7 +54,7 @@ func TestInstanceNew(t *testing.T) {
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
-	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
+	_f.On("GetForSession", mock.AnythingOfType("*types.Session")).Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
 	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
@@ -120,7 +122,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
-	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
+	_f.On("GetForSession", mock.AnythingOfType("*types.Session")).Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
 	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
@@ -189,7 +191,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
 	_g.On("NewId").Return("aaaabbbbcccc")
-	_f.On("GetForSession", "aaaabbbbcccc").Return(_d, nil)
+	_f.On("GetForSession", mock.AnythingOfType("*types.Session")).Return(_d, nil)
 	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
 	_d.On("GetDaemonHost").Return("localhost")
 	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)

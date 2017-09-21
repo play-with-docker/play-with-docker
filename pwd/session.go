@@ -181,7 +181,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 
 	w := sessionBuilderWriter{sessionId: s.Id, event: p.event}
 
-	dockerClient, err := p.dockerFactory.GetForSession(s.Id)
+	dockerClient, err := p.dockerFactory.GetForSession(s)
 	if err != nil {
 		log.Println(err)
 		return err

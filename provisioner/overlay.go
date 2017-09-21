@@ -21,7 +21,7 @@ func NewOverlaySessionProvisioner(df docker.FactoryApi) SessionProvisionerApi {
 }
 
 func (p *overlaySessionProvisioner) SessionNew(s *types.Session) error {
-	dockerClient, err := p.dockerFactory.GetForSession(s.Id)
+	dockerClient, err := p.dockerFactory.GetForSession(s)
 	if err != nil {
 		// We assume we are out of capacity
 		return fmt.Errorf("Out of capacity")
@@ -52,7 +52,7 @@ func (p *overlaySessionProvisioner) SessionNew(s *types.Session) error {
 }
 func (p *overlaySessionProvisioner) SessionClose(s *types.Session) error {
 	// Disconnect L2 router from the network
-	dockerClient, err := p.dockerFactory.GetForSession(s.Id)
+	dockerClient, err := p.dockerFactory.GetForSession(s)
 	if err != nil {
 		log.Println(err)
 		return err

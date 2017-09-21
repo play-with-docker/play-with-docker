@@ -62,7 +62,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 	}
 	instanceName := fmt.Sprintf("%s_%s", session.Id[:8], winfo.id)
 
-	dockerClient, err := d.factory.GetForSession(session.Id)
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		d.releaseInstance(winfo.id)
 		return nil, err
@@ -94,7 +94,7 @@ func (d *windows) InstanceNew(session *types.Session, conf types.InstanceConfig)
 }
 
 func (d *windows) InstanceDelete(session *types.Session, instance *types.Instance) error {
-	dockerClient, err := d.factory.GetForSession(session.Id)
+	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return err
 	}

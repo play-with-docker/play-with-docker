@@ -32,6 +32,7 @@ func TestCheckSwarmPorts_RunWhenManager(t *testing.T) {
 		IP:        "10.0.0.1",
 		Name:      "aaaabbbb_node1",
 		SessionId: "aaaabbbbcccc",
+		Hostname:  "node1",
 	}
 	info := dockerTypes.Info{
 		Swarm: swarm.Info{
