@@ -25,12 +25,14 @@ var core pwd.PWDApi
 var e event.EventApi
 var ws *socketio.Server
 
+type HandlerExtender func(h *mux.Router)
+
 func Bootstrap(c pwd.PWDApi, ev event.EventApi) {
 	core = c
 	e = ev
 }
 
-func Register() {
+func Register(extend HandlerExtender) {
 
 	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
 
@@ -90,6 +92,10 @@ func Register() {
 	}).Methods("GET")
 
 	corsRouter.HandleFunc("/", NewSession).Methods("POST")
+
+	if extend != nil {
+		extend(corsRouter)
+	}
 
 	n := negroni.Classic()
 	r.PathPrefix("/").Handler(negroni.New(negroni.Wrap(corsHandler(corsRouter))))

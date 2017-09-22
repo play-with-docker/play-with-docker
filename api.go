@@ -42,7 +42,7 @@ func main() {
 	sch.Start()
 
 	handlers.Bootstrap(core, e)
-	handlers.Register()
+	handlers.Register(nil)
 }
 
 func initStorage() storage.StorageApi {
