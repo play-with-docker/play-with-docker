@@ -45,7 +45,7 @@ type DockerApi interface {
 	ContainerRename(old, new string) error
 	CreateAttachConnection(name string) (net.Conn, error)
 	CopyToContainer(containerName, destination, fileName string, content io.Reader) error
-	DeleteContainer(id string) error
+	DeleteContainer(name string) error
 	CreateContainer(opts CreateContainerOpts) error
 	GetContainerIPs(id string) (map[string]string, error)
 	ExecAttach(instanceName string, command []string, out io.Writer) (int, error)
@@ -223,8 +223,9 @@ func (d *docker) CopyToContainer(containerName, destination, fileName string, co
 	return d.c.CopyToContainer(context.Background(), containerName, destination, r, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
 }
 
-func (d *docker) DeleteContainer(id string) error {
-	return d.c.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
+func (d *docker) DeleteContainer(name string) error {
+	d.c.VolumeRemove(context.Background(), name, true)
+	return d.c.ContainerRemove(context.Background(), name, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
 }
 
 type CreateContainerOpts struct {
@@ -322,7 +323,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (err error) {
 			DriverOpts: map[string]string{
 				"size": config.DindVolumeSize,
 			},
-			Name: opts.SessionId,
+			Name: opts.ContainerName,
 		})
 		if err != nil {
 			return
