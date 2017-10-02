@@ -11,9 +11,6 @@ RUN apt-get update \
 #    && curl https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker \
 #    && sed -i "s/ash/bash/" /etc/passwd
  
-# Replace modprobe with a no-op to get rid of spurious warnings
-# (note: we can't just symlink to /bin/true because it might be busybox)
-RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/modprobe
 
 # Install a nice vimrc file and prompt (by soulshake)
 COPY ["docker-prompt", "ucp.sh", "/usr/local/bin/"]
