@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -21,6 +22,11 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	json.NewDecoder(req.Body).Decode(&body)
 
 	s := core.SessionGet(sessionId)
+
+	if body.Type == "windows" && config.NoWindows {
+		rw.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
 	i, err := core.InstanceNew(s, body)
 	if err != nil {

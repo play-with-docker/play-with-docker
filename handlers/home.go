@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/config"
 )
 
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -21,5 +22,9 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		go core.SessionDeployStack(s)
 	}
 
-	http.ServeFile(w, r, "./www/index.html")
+	if config.NoWindows {
+		http.ServeFile(w, r, "./www/index-nw.html")
+	} else {
+		http.ServeFile(w, r, "./www/index.html")
+	}
 }
