@@ -21,8 +21,8 @@ const (
 var NameFilter = regexp.MustCompile(PWDHostPortGroupRegex)
 var AliasFilter = regexp.MustCompile(AliasPortGroupRegex)
 
-var PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, PWDCName, HashKey, SSHKeyPath, L2RouterIP string
-var UseLetsEncrypt bool
+var PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, PWDCName, HashKey, SSHKeyPath, L2RouterIP, DindVolumeSize string
+var UseLetsEncrypt, ExternalDindVolume bool
 var LetsEncryptCertsDir string
 var LetsEncryptDomains stringslice
 var MaxLoadAvg float64
@@ -53,6 +53,8 @@ func ParseFlags() {
 	flag.StringVar(&L2Subdomain, "l2-subdomain", "direct", "Subdomain to the L2 Router")
 	flag.StringVar(&PWDCName, "cname", "", "CNAME given to this host")
 	flag.StringVar(&HashKey, "hash_key", "salmonrosado", "Hash key to use for cookies")
+	flag.StringVar(&DindVolumeSize, "dind-volume-size", "5G", "Dind volume folder size")
+	flag.BoolVar(&ExternalDindVolume, "external-dind-volume", false, "Use external dind volume")
 	flag.Float64Var(&MaxLoadAvg, "maxload", 100, "Maximum allowed load average before failing ping requests")
 	flag.StringVar(&SSHKeyPath, "ssh_key_path", "", "SSH Private Key to use")
 	flag.Parse()

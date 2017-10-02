@@ -19,8 +19,10 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/play-with-docker/play-with-docker/config"
 )
 
 const (
@@ -239,7 +241,7 @@ type CreateContainerOpts struct {
 	Networks      []string
 }
 
-func (d *docker) CreateContainer(opts CreateContainerOpts) error {
+func (d *docker) CreateContainer(opts CreateContainerOpts) (err error) {
 	// Make sure directories are available for the new instance container
 	containerDir := "/var/run/pwd"
 	containerCertDir := fmt.Sprintf("%s/certs", containerDir)
@@ -268,8 +270,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 		NetworkMode: container.NetworkMode(opts.SessionId),
 		Privileged:  opts.Privileged,
 		AutoRemove:  true,
-		//PublishAllPorts: true,
-		LogConfig: container.LogConfig{Config: map[string]string{"max-size": "10m", "max-file": "1"}},
+		LogConfig:   container.LogConfig{Config: map[string]string{"max-size": "10m", "max-file": "1"}},
 	}
 
 	if os.Getenv("APPARMOR_PROFILE") != "" {
@@ -315,49 +316,69 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) error {
 		EndpointsConfig: map[string]*network.EndpointSettings{opts.Networks[0]: &network.EndpointSettings{}},
 	}
 
+	if config.ExternalDindVolume {
+		_, err = d.c.VolumeCreate(context.Background(), volume.VolumesCreateBody{
+			Driver: "xfsvol",
+			DriverOpts: map[string]string{
+				"size": config.DindVolumeSize,
+			},
+			Name: opts.SessionId,
+		})
+		if err != nil {
+			return
+		}
+		h.Binds = []string{fmt.Sprintf("%s:/var/lib/docker", opts.SessionId)}
+
+		defer func() {
+			if err != nil {
+				d.c.VolumeRemove(context.Background(), opts.SessionId, true)
+			}
+		}()
+	}
+
 	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
 
 	if err != nil {
 		if client.IsErrImageNotFound(err) {
 			log.Printf("Unable to find image '%s' locally\n", opts.Image)
 			if err = d.pullImage(context.Background(), opts.Image); err != nil {
-				return err
+				return
 			}
 			container, err = d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
 			if err != nil {
-				return err
+				return
 			}
 		} else {
-			return err
+			return
 		}
 	}
 
 	//connect remaining networks if there are any
 	if len(opts.Networks) > 1 {
 		for _, nid := range opts.Networks {
-			err := d.c.NetworkConnect(context.Background(), nid, container.ID, &network.EndpointSettings{})
+			err = d.c.NetworkConnect(context.Background(), nid, container.ID, &network.EndpointSettings{})
 			if err != nil {
-				return err
+				return
 			}
 		}
 	}
 
-	if err := d.copyIfSet(opts.ServerCert, "cert.pem", containerCertDir, opts.ContainerName); err != nil {
-		return err
+	if err = d.copyIfSet(opts.ServerCert, "cert.pem", containerCertDir, opts.ContainerName); err != nil {
+		return
 	}
-	if err := d.copyIfSet(opts.ServerKey, "key.pem", containerCertDir, opts.ContainerName); err != nil {
-		return err
+	if err = d.copyIfSet(opts.ServerKey, "key.pem", containerCertDir, opts.ContainerName); err != nil {
+		return
 	}
-	if err := d.copyIfSet(opts.CACert, "ca.pem", containerCertDir, opts.ContainerName); err != nil {
-		return err
+	if err = d.copyIfSet(opts.CACert, "ca.pem", containerCertDir, opts.ContainerName); err != nil {
+		return
 	}
 
 	err = d.c.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{})
 	if err != nil {
-		return err
+		return
 	}
 
-	return nil
+	return
 }
 
 func (d *docker) GetContainerIPs(id string) (map[string]string, error) {

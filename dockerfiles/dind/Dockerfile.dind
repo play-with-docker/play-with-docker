@@ -1,7 +1,7 @@
-ARG VERSION=docker:17.07-dind
+ARG VERSION=docker:17-dind
 FROM ${VERSION}
 
-RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh zfs
+RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh
 
 ENV GOPATH /root/go
 ENV PATH $PATH:$GOPATH
@@ -37,9 +37,6 @@ COPY [".vimrc",".profile", ".inputrc", ".gitconfig", "./root/"]
 COPY ["motd", "/etc/motd"]
 COPY ["daemon.json", "/etc/docker/"]
 
-ARG docker_storage_driver=overlay2
-
-ENV DOCKER_STORAGE_DRIVER=$docker_storage_driver
 
 # Move to our home
 WORKDIR /root
@@ -53,7 +50,6 @@ RUN mkdir -p /var/run/pwd/certs && mkdir -p /var/run/pwd/uploads \
 # Remove IPv6 alias for localhost and start docker in the background ...
 CMD cat /etc/hosts >/etc/hosts.bak && \
     sed 's/^::1.*//' /etc/hosts.bak > /etc/hosts && \
-    sed -i "s/\DOCKER_STORAGE_DRIVER/$DOCKER_STORAGE_DRIVER/" /etc/docker/daemon.json && \
     sed -i "s/\PWD_IP_ADDRESS/$PWD_IP_ADDRESS/" /etc/docker/daemon.json && \
     sed -i "s/\DOCKER_TLSENABLE/$DOCKER_TLSENABLE/" /etc/docker/daemon.json && \
     sed -i "s/\DOCKER_TLSCACERT/$DOCKER_TLSCACERT/" /etc/docker/daemon.json && \
