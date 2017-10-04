@@ -43,7 +43,7 @@ func TestClientNew(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew(time.Hour, "", "", "")
+	session, err := p.SessionNew("", time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	client := p.ClientNew("foobar", session)
@@ -82,7 +82,7 @@ func TestClientCount(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew(time.Hour, "", "", "")
+	session, err := p.SessionNew("", time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	p.ClientNew("foobar", session)
@@ -123,7 +123,7 @@ func TestClientResizeViewPort(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew(time.Hour, "", "", "")
+	session, err := p.SessionNew("", time.Hour, "", "", "")
 	assert.Nil(t, err)
 	client := p.ClientNew("foobar", session)
 	_s.On("ClientFindBySessionId", "aaaabbbbcccc").Return([]*types.Client{client}, nil)

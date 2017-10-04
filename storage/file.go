@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 
@@ -19,10 +20,13 @@ type DB struct {
 	Instances        map[string]*types.Instance        `json:"instances"`
 	Clients          map[string]*types.Client          `json:"clients"`
 	WindowsInstances map[string]*types.WindowsInstance `json:"windows_instances"`
+	LoginRequests    map[string]*types.LoginRequest    `json:"login_requests"`
+	Users            map[string]*types.User            `json:"user"`
 
 	WindowsInstancesBySessionId map[string][]string `json:"windows_instances_by_session_id"`
 	InstancesBySessionId        map[string][]string `json:"instances_by_session_id"`
 	ClientsBySessionId          map[string][]string `json:"clients_by_session_id"`
+	UsersByProvider             map[string]string   `json:"users_by_providers"`
 }
 
 func (store *storage) SessionGet(id string) (*types.Session, error) {
@@ -300,6 +304,56 @@ func (store *storage) ClientFindBySessionId(sessionId string) ([]*types.Client, 
 	return clients, nil
 }
 
+func (store *storage) LoginRequestPut(loginRequest *types.LoginRequest) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	store.db.LoginRequests[loginRequest.Id] = loginRequest
+	return nil
+}
+func (store *storage) LoginRequestGet(id string) (*types.LoginRequest, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	if lr, found := store.db.LoginRequests[id]; !found {
+		return nil, NotFoundError
+	} else {
+		return lr, nil
+	}
+}
+func (store *storage) LoginRequestDelete(id string) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	delete(store.db.LoginRequests, id)
+	return nil
+}
+
+func (store *storage) UserFindByProvider(providerName, providerUserId string) (*types.User, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	if userId, found := store.db.UsersByProvider[fmt.Sprintf("%s_%s", providerName, providerUserId)]; !found {
+		return nil, NotFoundError
+	} else {
+		if user, found := store.db.Users[userId]; !found {
+			return nil, NotFoundError
+		} else {
+			return user, nil
+		}
+	}
+}
+
+func (store *storage) UserPut(user *types.User) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	store.db.UsersByProvider[fmt.Sprintf("%s_%s", user.Provider, user.ProviderUserId)] = user.Id
+	store.db.Users[user.Id] = user
+
+	return nil
+}
+
 func (store *storage) load() error {
 	file, err := os.Open(store.path)
 
@@ -312,13 +366,16 @@ func (store *storage) load() error {
 		}
 	} else {
 		store.db = &DB{
-			Sessions:                    map[string]*types.Session{},
-			Instances:                   map[string]*types.Instance{},
-			Clients:                     map[string]*types.Client{},
-			WindowsInstances:            map[string]*types.WindowsInstance{},
+			Sessions:         map[string]*types.Session{},
+			Instances:        map[string]*types.Instance{},
+			Clients:          map[string]*types.Client{},
+			WindowsInstances: map[string]*types.WindowsInstance{},
+			LoginRequests:    map[string]*types.LoginRequest{},
+			Users:            map[string]*types.User{},
 			WindowsInstancesBySessionId: map[string][]string{},
 			InstancesBySessionId:        map[string][]string{},
 			ClientsBySessionId:          map[string][]string{},
+			UsersByProvider:             map[string]string{},
 		}
 	}
 

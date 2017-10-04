@@ -30,13 +30,16 @@ func TestSessionPut(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{s.Id: s},
-		Instances:                   map[string]*types.Instance{},
-		Clients:                     map[string]*types.Client{},
-		WindowsInstances:            map[string]*types.WindowsInstance{},
+		Sessions:         map[string]*types.Session{s.Id: s},
+		Instances:        map[string]*types.Instance{},
+		Clients:          map[string]*types.Client{},
+		WindowsInstances: map[string]*types.WindowsInstance{},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{},
 		InstancesBySessionId:        map[string][]string{},
 		ClientsBySessionId:          map[string][]string{},
+		UsersByProvider:             map[string]string{},
 	}
 	var loadedDB *DB
 
@@ -56,13 +59,16 @@ func TestSessionPut(t *testing.T) {
 func TestSessionGet(t *testing.T) {
 	expectedSession := &types.Session{Id: "aaabbbccc"}
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{expectedSession.Id: expectedSession},
-		Instances:                   map[string]*types.Instance{},
-		Clients:                     map[string]*types.Client{},
-		WindowsInstances:            map[string]*types.WindowsInstance{},
+		Sessions:         map[string]*types.Session{expectedSession.Id: expectedSession},
+		Instances:        map[string]*types.Instance{},
+		Clients:          map[string]*types.Client{},
+		WindowsInstances: map[string]*types.WindowsInstance{},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{},
 		InstancesBySessionId:        map[string][]string{},
 		ClientsBySessionId:          map[string][]string{},
+		UsersByProvider:             map[string]string{},
 	}
 
 	tmpfile, err := ioutil.TempFile("", "pwd")
@@ -92,13 +98,16 @@ func TestSessionGetAll(t *testing.T) {
 	s1 := &types.Session{Id: "aaabbbccc"}
 	s2 := &types.Session{Id: "dddeeefff"}
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{s1.Id: s1, s2.Id: s2},
-		Instances:                   map[string]*types.Instance{},
-		Clients:                     map[string]*types.Client{},
-		WindowsInstances:            map[string]*types.WindowsInstance{},
+		Sessions:         map[string]*types.Session{s1.Id: s1, s2.Id: s2},
+		Instances:        map[string]*types.Instance{},
+		Clients:          map[string]*types.Client{},
+		WindowsInstances: map[string]*types.WindowsInstance{},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{},
 		InstancesBySessionId:        map[string][]string{},
 		ClientsBySessionId:          map[string][]string{},
+		UsersByProvider:             map[string]string{},
 	}
 
 	tmpfile, err := ioutil.TempFile("", "pwd")
@@ -154,13 +163,16 @@ func TestSessionDelete(t *testing.T) {
 func TestInstanceGet(t *testing.T) {
 	expectedInstance := &types.Instance{SessionId: "aaabbbccc", Name: "i1", IP: "10.0.0.1"}
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{},
-		Instances:                   map[string]*types.Instance{expectedInstance.Name: expectedInstance},
-		Clients:                     map[string]*types.Client{},
-		WindowsInstances:            map[string]*types.WindowsInstance{},
+		Sessions:         map[string]*types.Session{},
+		Instances:        map[string]*types.Instance{expectedInstance.Name: expectedInstance},
+		Clients:          map[string]*types.Client{},
+		WindowsInstances: map[string]*types.WindowsInstance{},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{},
 		InstancesBySessionId:        map[string][]string{expectedInstance.SessionId: []string{expectedInstance.Name}},
 		ClientsBySessionId:          map[string][]string{},
+		UsersByProvider:             map[string]string{},
 	}
 
 	tmpfile, err := ioutil.TempFile("", "pwd")
@@ -205,13 +217,16 @@ func TestInstancePut(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{s.Id: s},
-		Instances:                   map[string]*types.Instance{i.Name: i},
-		Clients:                     map[string]*types.Client{},
-		WindowsInstances:            map[string]*types.WindowsInstance{},
+		Sessions:         map[string]*types.Session{s.Id: s},
+		Instances:        map[string]*types.Instance{i.Name: i},
+		Clients:          map[string]*types.Client{},
+		WindowsInstances: map[string]*types.WindowsInstance{},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{},
 		InstancesBySessionId:        map[string][]string{i.SessionId: []string{i.Name}},
 		ClientsBySessionId:          map[string][]string{},
+		UsersByProvider:             map[string]string{},
 	}
 	var loadedDB *DB
 
@@ -265,13 +280,16 @@ func TestInstanceFindBySessionId(t *testing.T) {
 	i1 := &types.Instance{SessionId: "aaabbbccc", Name: "c1"}
 	i2 := &types.Instance{SessionId: "aaabbbccc", Name: "c2"}
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{},
-		Instances:                   map[string]*types.Instance{i1.Name: i1, i2.Name: i2},
-		Clients:                     map[string]*types.Client{},
-		WindowsInstances:            map[string]*types.WindowsInstance{},
+		Sessions:         map[string]*types.Session{},
+		Instances:        map[string]*types.Instance{i1.Name: i1, i2.Name: i2},
+		Clients:          map[string]*types.Client{},
+		WindowsInstances: map[string]*types.WindowsInstance{},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{},
 		InstancesBySessionId:        map[string][]string{i1.SessionId: []string{i1.Name, i2.Name}},
 		ClientsBySessionId:          map[string][]string{},
+		UsersByProvider:             map[string]string{},
 	}
 
 	tmpfile, err := ioutil.TempFile("", "pwd")
@@ -298,13 +316,16 @@ func TestWindowsInstanceGetAll(t *testing.T) {
 	i1 := &types.WindowsInstance{SessionId: "aaabbbccc", Id: "i1"}
 	i2 := &types.WindowsInstance{SessionId: "aaabbbccc", Id: "i2"}
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{},
-		Instances:                   map[string]*types.Instance{},
-		Clients:                     map[string]*types.Client{},
-		WindowsInstances:            map[string]*types.WindowsInstance{i1.Id: i1, i2.Id: i2},
+		Sessions:         map[string]*types.Session{},
+		Instances:        map[string]*types.Instance{},
+		Clients:          map[string]*types.Client{},
+		WindowsInstances: map[string]*types.WindowsInstance{i1.Id: i1, i2.Id: i2},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{i1.SessionId: []string{i1.Id, i2.Id}},
 		InstancesBySessionId:        map[string][]string{},
 		ClientsBySessionId:          map[string][]string{},
+		UsersByProvider:             map[string]string{},
 	}
 
 	tmpfile, err := ioutil.TempFile("", "pwd")
@@ -350,13 +371,16 @@ func TestWindowsInstancePut(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{s.Id: s},
-		Instances:                   map[string]*types.Instance{},
-		Clients:                     map[string]*types.Client{},
-		WindowsInstances:            map[string]*types.WindowsInstance{i.Id: i},
+		Sessions:         map[string]*types.Session{s.Id: s},
+		Instances:        map[string]*types.Instance{},
+		Clients:          map[string]*types.Client{},
+		WindowsInstances: map[string]*types.WindowsInstance{i.Id: i},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{i.SessionId: []string{i.Id}},
 		InstancesBySessionId:        map[string][]string{},
 		ClientsBySessionId:          map[string][]string{},
+		UsersByProvider:             map[string]string{},
 	}
 	var loadedDB *DB
 
@@ -409,13 +433,16 @@ func TestWindowsInstanceDelete(t *testing.T) {
 func TestClientGet(t *testing.T) {
 	c := &types.Client{SessionId: "aaabbbccc", Id: "c1"}
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{},
-		Instances:                   map[string]*types.Instance{},
-		Clients:                     map[string]*types.Client{c.Id: c},
-		WindowsInstances:            map[string]*types.WindowsInstance{},
+		Sessions:         map[string]*types.Session{},
+		Instances:        map[string]*types.Instance{},
+		Clients:          map[string]*types.Client{c.Id: c},
+		WindowsInstances: map[string]*types.WindowsInstance{},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{},
 		InstancesBySessionId:        map[string][]string{},
 		ClientsBySessionId:          map[string][]string{c.SessionId: []string{c.Id}},
+		UsersByProvider:             map[string]string{},
 	}
 
 	tmpfile, err := ioutil.TempFile("", "pwd")
@@ -460,13 +487,16 @@ func TestClientPut(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{s.Id: s},
-		Instances:                   map[string]*types.Instance{},
-		Clients:                     map[string]*types.Client{c.Id: c},
-		WindowsInstances:            map[string]*types.WindowsInstance{},
+		Sessions:         map[string]*types.Session{s.Id: s},
+		Instances:        map[string]*types.Instance{},
+		Clients:          map[string]*types.Client{c.Id: c},
+		WindowsInstances: map[string]*types.WindowsInstance{},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{},
 		InstancesBySessionId:        map[string][]string{},
 		ClientsBySessionId:          map[string][]string{c.SessionId: []string{c.Id}},
+		UsersByProvider:             map[string]string{},
 	}
 	var loadedDB *DB
 
@@ -520,13 +550,16 @@ func TestClientFindBySessionId(t *testing.T) {
 	c1 := &types.Client{SessionId: "aaabbbccc", Id: "c1"}
 	c2 := &types.Client{SessionId: "aaabbbccc", Id: "c2"}
 	expectedDB := &DB{
-		Sessions:                    map[string]*types.Session{},
-		Instances:                   map[string]*types.Instance{},
-		Clients:                     map[string]*types.Client{c1.Id: c1, c2.Id: c2},
-		WindowsInstances:            map[string]*types.WindowsInstance{},
+		Sessions:         map[string]*types.Session{},
+		Instances:        map[string]*types.Instance{},
+		Clients:          map[string]*types.Client{c1.Id: c1, c2.Id: c2},
+		WindowsInstances: map[string]*types.WindowsInstance{},
+		LoginRequests:    map[string]*types.LoginRequest{},
+		Users:            map[string]*types.User{},
 		WindowsInstancesBySessionId: map[string][]string{},
 		InstancesBySessionId:        map[string][]string{},
 		ClientsBySessionId:          map[string][]string{c1.SessionId: []string{c1.Id, c2.Id}},
+		UsersByProvider:             map[string]string{},
 	}
 
 	tmpfile, err := ioutil.TempFile("", "pwd")

@@ -82,3 +82,23 @@ func (m *Mock) ClientFindBySessionId(sessionId string) ([]*types.Client, error) 
 	args := m.Called(sessionId)
 	return args.Get(0).([]*types.Client), args.Error(1)
 }
+func (m *Mock) LoginRequestPut(loginRequest *types.LoginRequest) error {
+	args := m.Called(loginRequest)
+	return args.Error(0)
+}
+func (m *Mock) LoginRequestGet(id string) (*types.LoginRequest, error) {
+	args := m.Called(id)
+	return args.Get(0).(*types.LoginRequest), args.Error(1)
+}
+func (m *Mock) LoginRequestDelete(id string) error {
+	args := m.Called(id)
+	return args.Error(0)
+}
+func (m *Mock) UserFindByProvider(providerName, providerUserId string) (*types.User, error) {
+	args := m.Called(providerName, providerUserId)
+	return args.Get(0).(*types.User), args.Error(1)
+}
+func (m *Mock) UserPut(user *types.User) error {
+	args := m.Called(user)
+	return args.Error(0)
+}

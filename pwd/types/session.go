@@ -15,6 +15,7 @@ type Session struct {
 	StackName    string     `json:"stack_name" bson:"stack_name"`
 	ImageName    string     `json:"image_name" bson:"image_name"`
 	Host         string     `json:"host" bson:"host"`
+	UserId       string     `json:"user_id" bson:"user_id"`
 	rw           sync.Mutex `json:"-"`
 }
 

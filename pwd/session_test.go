@@ -45,7 +45,7 @@ func TestSessionNew(t *testing.T) {
 
 	before := time.Now()
 
-	s, e := p.SessionNew(time.Hour, "", "", "")
+	s, e := p.SessionNew("", time.Hour, "", "", "")
 	assert.Nil(t, e)
 	assert.NotNil(t, s)
 
@@ -56,7 +56,7 @@ func TestSessionNew(t *testing.T) {
 	assert.WithinDuration(t, s.ExpiresAt, before.Add(time.Hour), time.Second)
 	assert.True(t, s.Ready)
 
-	s, _ = p.SessionNew(time.Hour, "stackPath", "stackName", "imageName")
+	s, _ = p.SessionNew("", time.Hour, "stackPath", "stackName", "imageName")
 
 	assert.Equal(t, "stackPath", s.Stack)
 	assert.Equal(t, "stackName", s.StackName)

@@ -34,4 +34,11 @@ type StorageApi interface {
 	ClientDelete(id string) error
 	ClientCount() (int, error)
 	ClientFindBySessionId(sessionId string) ([]*types.Client, error)
+
+	LoginRequestPut(loginRequest *types.LoginRequest) error
+	LoginRequestGet(id string) (*types.LoginRequest, error)
+	LoginRequestDelete(id string) error
+
+	UserFindByProvider(providerName, providerUserId string) (*types.User, error)
+	UserPut(user *types.User) error
 }

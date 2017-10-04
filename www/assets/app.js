@@ -78,7 +78,7 @@
     });
 
 
-    $scope.showAlert = function(title, content, parent) {
+    $scope.showAlert = function(title, content, parent, cb) {
       $mdDialog.show(
         $mdDialog.alert()
         .parent(angular.element(document.querySelector(parent || '#popupContainer')))
@@ -86,7 +86,11 @@
         .title(title)
         .textContent(content)
         .ok('Got it!')
-      );
+      ).finally(function() {
+        if (cb) {
+           cb();
+        }
+      });
     }
 
     $scope.resize = function(geometry) {
@@ -206,7 +210,9 @@
         });
 
         socket.on('session end', function() {
-          $scope.showAlert('Session timed out!', 'Your session has expired and all of your instances have been deleted.', '#sessionEnd')
+          $scope.showAlert('Session timed out!', 'Your session has expired and all of your instances have been deleted.', '#sessionEnd', function() {
+            window.location.href = '/';
+          });
           $scope.isAlive = false;
         });
 
