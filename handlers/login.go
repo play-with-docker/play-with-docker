@@ -43,12 +43,12 @@ func Login(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	scheme := "http"
-	if req.URL.Scheme != "" {
-		scheme = req.URL.Scheme
+	if req.TLS != nil {
+		scheme = "https"
 	}
 	host := "localhost"
-	if req.URL.Host != "" {
-		host = req.URL.Host
+	if req.Host != "" {
+		host = req.Host
 	}
 	provider.RedirectURL = fmt.Sprintf("%s://%s/oauth/providers/%s/callback", scheme, host, providerName)
 	url := provider.AuthCodeURL(loginRequest.Id)
