@@ -13,7 +13,7 @@ type Mock struct {
 	mock.Mock
 }
 
-func (m *Mock) SessionNew(duration time.Duration, stack string, stackName, imageName string) (*types.Session, error) {
+func (m *Mock) SessionNew(userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error) {
 	args := m.Called(duration, stack, stackName, imageName)
 	return args.Get(0).(*types.Session), args.Error(1)
 }
@@ -103,4 +103,19 @@ func (m *Mock) ClientClose(client *types.Client) {
 func (m *Mock) ClientCount() int {
 	args := m.Called()
 	return args.Int(0)
+}
+
+func (m *Mock) UserNewLoginRequest(providerName string) (*types.LoginRequest, error) {
+	args := m.Called(providerName)
+	return args.Get(0).(*types.LoginRequest), args.Error(1)
+}
+
+func (m *Mock) UserGetLoginRequest(id string) (*types.LoginRequest, error) {
+	args := m.Called(id)
+	return args.Get(0).(*types.LoginRequest), args.Error(1)
+}
+
+func (m *Mock) UserLogin(loginRequest *types.LoginRequest, user *types.User) (*types.User, error) {
+	args := m.Called(loginRequest, user)
+	return args.Get(0).(*types.User), args.Error(1)
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -16,7 +15,6 @@ import (
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd"
-	"github.com/play-with-docker/play-with-docker/templates"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
 )
@@ -33,9 +31,6 @@ func Bootstrap(c pwd.PWDApi, ev event.EventApi) {
 }
 
 func Register(extend HandlerExtender) {
-
-	bypassCaptcha := len(os.Getenv("GOOGLE_RECAPTCHA_DISABLED")) > 0
-
 	server, err := socketio.NewServer(nil)
 	if err != nil {
 		log.Fatal(err)
@@ -81,16 +76,12 @@ func Register(extend HandlerExtender) {
 
 	// Generic routes
 	r.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		if bypassCaptcha {
-			http.ServeFile(rw, r, "./www/bypass.html")
-		} else {
-			welcome, tmplErr := templates.GetWelcomeTemplate()
-			if tmplErr != nil {
-				log.Fatal(tmplErr)
-			}
-			rw.Write(welcome)
-		}
+		http.ServeFile(rw, r, "./www/landing.html")
 	}).Methods("GET")
+
+	r.HandleFunc("/oauth/providers", ListProviders).Methods("GET")
+	r.HandleFunc("/oauth/providers/{provider}/login", Login).Methods("GET")
+	r.HandleFunc("/oauth/providers/{provider}/callback", LoginCallback).Methods("GET")
 
 	corsRouter.HandleFunc("/", NewSession).Methods("POST")
 

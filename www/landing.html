@@ -1,0 +1,116 @@
+
+<!DOCTYPE html>
+<html lang="en" ng-app="PWDLanding" ng-controller="LoginController">
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.6/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.6/angular-cookies.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Play with Docker</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+
+    <!-- Custom styles for this template -->
+    <link href="/assets/landing.css" rel="stylesheet">
+    <script>
+        angular.module('PWDLanding', ['ngCookies'])
+            .controller('LoginController', ['$cookies', '$scope', '$http', function($cookies, $scope, $http) {
+                $scope.providers = [];
+                $scope.loggedIn = $cookies.get('id') !== undefined;
+
+                $http({
+                    method: 'GET',
+                    url: '/oauth/providers'
+                }).then(function(response) {
+                    $scope.providers = response.data;
+                    if ($scope.providers.length == 0) {
+                        $scope.loggedIn = true;
+                    }
+                }, function(response) {
+                    console.log('ERROR', response);
+                });
+
+                $scope.start = function() {
+                    function getParameterByName(name, url) {
+                        if (!url) url = window.location.href;
+                        name = name.replace(/[\[\]]/g, "\\$&");
+                        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                            results = regex.exec(url);
+                        if (!results) return null;
+                        if (!results[2]) return '';
+                        return decodeURIComponent(results[2].replace(/\+/g, " "));
+                    }
+
+                    var stack = getParameterByName('stack');
+                    if (stack) {
+                        document.getElementById('stack').value = stack;
+                    }
+                    var stackName = getParameterByName('stack_name');
+                    if (stackName) {
+                        document.getElementById('stack_name').value = stackName;
+                    }
+                    var imageName = getParameterByName('image_name');
+                    if (imageName) {
+                        document.getElementById('image_name').value = imageName;
+                    }
+                    document.getElementById('landingForm').submit();
+                }
+            }]);
+    </script>
+  </head>
+
+  <body>
+
+    <div class="container">
+      <div class="header clearfix">
+        <nav>
+          <ul class="nav nav-pills float-right">
+            <li class="nav-item">
+              <a class="nav-link" href="https://github.com/play-with-docker/play-with-docker">Contribute</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="jumbotron" ng-cloak> 
+        <img src="https://www.docker.com/sites/default/files/Whale%20Logo332_5.png" />
+        <h1 class="display-3">Play with Docker</h1>
+        <p class="lead">A simple, interactive and fun playground to learn Docker</p>
+        <div ng-hide="loggedIn" class="btn-group" role="group">
+          <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Login
+          </button>
+          <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+              <a ng-repeat="provider in providers" class="dropdown-item" href="/oauth/providers/{{provider}}/login">{{provider}}</a>
+          </div>
+        </div>        
+        <form id="landingForm" method="POST" action="/">
+            <p ng-show="loggedIn"><a class="btn btn-lg btn-success" href="#" ng-click="start()" role="button">Start</a></p>
+                <input id="stack" type="hidden" name="stack" value=""/>
+                <input id="stack_name" type="hidden" name="stack_name" value=""/>
+                <input id="image_name" type="hidden" name="image_name" value=""/>
+        </form>
+      </div>
+
+      <div class="row marketing">
+        <div class="col-lg-12">
+            <p>Play with Docker (PWD) is a project hacked by <a href="https://www.twitter.com/marcosnils">Marcos Liljedhal</a> and <a href="https://www.twitter.com/xetorthio">Jonathan Leibiusky</a> and sponsored by Docker Inc.</p>
+            <p>PWD is a Docker playground which allows users to run Docker commands in a matter of seconds. It gives the experience of having a free Alpine Linux Virtual Machine in browser, where you can build and run Docker containers and even create clusters in <a href="https://docs.docker.com/engine/swarm/">Docker Swarm Mode</a>. Under the hood Docker-in-Docker (DinD) is used to give the effect of multiple VMs/PCs. In addition to the playground, PWD also includes a training site composed of a large set of Docker labs and quizzes from beginner to advanced level available at <a href="http://training.play-with-docker.com/">training.play-with-docker.com</a>.</p>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <p>&copy; Play with Docker 2017</p>
+      </footer>
+
+    </div> 
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  </body>
+</html>
+

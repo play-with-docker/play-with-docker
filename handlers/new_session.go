@@ -10,7 +10,6 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/provisioner"
-	"github.com/play-with-docker/play-with-docker/recaptcha"
 )
 
 type NewSessionResponse struct {
@@ -20,10 +19,16 @@ type NewSessionResponse struct {
 
 func NewSession(rw http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
-	if !recaptcha.IsHuman(req, rw) {
-		// User it not a human
-		rw.WriteHeader(http.StatusForbidden)
-		return
+
+	userId := ""
+	if len(config.Providers) > 0 {
+		cookie, err := ReadCookie(req)
+		if err != nil {
+			// User it not a human
+			rw.WriteHeader(http.StatusForbidden)
+			return
+		}
+		userId = cookie.Id
 	}
 
 	reqDur := req.Form.Get("session-duration")
@@ -45,7 +50,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 
 	}
 	duration := config.GetDuration(reqDur)
-	s, err := core.SessionNew(duration, stack, stackName, imageName)
+	s, err := core.SessionNew(userId, duration, stack, stackName, imageName)
 	if err != nil {
 		if provisioner.OutOfCapacity(err) {
 			http.Redirect(rw, req, "/ooc", http.StatusFound)

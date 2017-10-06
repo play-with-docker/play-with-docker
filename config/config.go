@@ -6,6 +6,12 @@ import (
 	"os"
 	"regexp"
 	"time"
+
+	"github.com/gorilla/securecookie"
+
+	"golang.org/x/oauth2"
+	oauth2FB "golang.org/x/oauth2/facebook"
+	oauth2Github "golang.org/x/oauth2/github"
 )
 
 const (
@@ -21,12 +27,17 @@ const (
 var NameFilter = regexp.MustCompile(PWDHostPortGroupRegex)
 var AliasFilter = regexp.MustCompile(AliasPortGroupRegex)
 
-var PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, PWDCName, HashKey, SSHKeyPath, L2RouterIP, DindVolumeSize string
+var PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, PWDCName, HashKey, SSHKeyPath, L2RouterIP, DindVolumeSize, CookieHashKey, CookieBlockKey string
 var UseLetsEncrypt, ExternalDindVolume, NoWindows bool
 var LetsEncryptCertsDir string
 var LetsEncryptDomains stringslice
 var MaxLoadAvg float64
 var ForceTLS bool
+var Providers map[string]*oauth2.Config
+var SecureCookie *securecookie.SecureCookie
+
+var GithubClientID, GithubClientSecret string
+var FacebookClientID, FacebookClientSecret string
 
 type stringslice []string
 
@@ -58,8 +69,46 @@ func ParseFlags() {
 	flag.BoolVar(&ExternalDindVolume, "external-dind-volume", false, "Use external dind volume")
 	flag.Float64Var(&MaxLoadAvg, "maxload", 100, "Maximum allowed load average before failing ping requests")
 	flag.StringVar(&SSHKeyPath, "ssh_key_path", "", "SSH Private Key to use")
+	flag.StringVar(&CookieHashKey, "cookie-hash-key", "", "Hash key to use to validate cookies")
+	flag.StringVar(&CookieBlockKey, "cookie-block-key", "", "Block key to use to encrypt cookies")
+
+	flag.StringVar(&GithubClientID, "github-client-id", "", "Github OAuth Client ID")
+	flag.StringVar(&GithubClientSecret, "github-client-secret", "", "Github OAuth Client Secret")
+
+	flag.StringVar(&FacebookClientID, "facebook-client-id", "", "Facebook OAuth Client ID")
+	flag.StringVar(&FacebookClientSecret, "facebook-client-secret", "", "Facebook OAuth Client Secret")
+
 	flag.Parse()
+
+	SecureCookie = securecookie.New([]byte(CookieHashKey), []byte(CookieBlockKey))
+
+	registerOAuthProviders()
 }
+
+func registerOAuthProviders() {
+	Providers = map[string]*oauth2.Config{}
+	if GithubClientID != "" && GithubClientSecret != "" {
+		conf := &oauth2.Config{
+			ClientID:     GithubClientID,
+			ClientSecret: GithubClientSecret,
+			Scopes:       []string{"user:email"},
+			Endpoint:     oauth2Github.Endpoint,
+		}
+
+		Providers["github"] = conf
+	}
+	if FacebookClientID != "" && FacebookClientSecret != "" {
+		conf := &oauth2.Config{
+			ClientID:     FacebookClientID,
+			ClientSecret: FacebookClientSecret,
+			Scopes:       []string{"email", "public_profile"},
+			Endpoint:     oauth2FB.Endpoint,
+		}
+
+		Providers["facebook"] = conf
+	}
+}
+
 func GetDindImageName() string {
 	dindImage := os.Getenv("DIND_IMAGE")
 	defaultDindImageName := "franela/dind"
