@@ -224,8 +224,9 @@ func (d *docker) CopyToContainer(containerName, destination, fileName string, co
 }
 
 func (d *docker) DeleteContainer(name string) error {
+	err := d.c.ContainerRemove(context.Background(), name, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
 	d.c.VolumeRemove(context.Background(), name, true)
-	return d.c.ContainerRemove(context.Background(), name, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
+	return err
 }
 
 type CreateContainerOpts struct {
@@ -328,7 +329,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (err error) {
 		if err != nil {
 			return
 		}
-		h.Binds = []string{fmt.Sprintf("%s:/var/lib/docker", opts.SessionId)}
+		h.Binds = []string{fmt.Sprintf("%s:/var/lib/docker", opts.ContainerName)}
 
 		defer func() {
 			if err != nil {
