@@ -66,7 +66,7 @@ func ParseFlags() {
 	flag.StringVar(&HashKey, "hash_key", "salmonrosado", "Hash key to use for cookies")
 	flag.StringVar(&DindVolumeSize, "dind-volume-size", "5G", "Dind volume folder size")
 	flag.BoolVar(&NoWindows, "no-windows", false, "Don't allow windows instances")
-	flag.BoolVar(&ExternalDindVolume, "external-dind-volume", false, "Use external dind volume")
+	flag.BoolVar(&ExternalDindVolume, "external-dind-volume", false, "Use external dind volume though XFS volume driver")
 	flag.Float64Var(&MaxLoadAvg, "maxload", 100, "Maximum allowed load average before failing ping requests")
 	flag.StringVar(&SSHKeyPath, "ssh_key_path", "", "SSH Private Key to use")
 	flag.StringVar(&CookieHashKey, "cookie-hash-key", "", "Hash key to use to validate cookies")
