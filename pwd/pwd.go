@@ -97,6 +97,7 @@ type PWDApi interface {
 	UserNewLoginRequest(providerName string) (*types.LoginRequest, error)
 	UserGetLoginRequest(id string) (*types.LoginRequest, error)
 	UserLogin(loginRequest *types.LoginRequest, user *types.User) (*types.User, error)
+	UserGet(id string) (*types.User, error)
 }
 
 func NewPWD(f docker.FactoryApi, e event.EventApi, s storage.StorageApi, sp provisioner.SessionProvisionerApi, ipf provisioner.InstanceProvisionerFactoryApi) *pwd {

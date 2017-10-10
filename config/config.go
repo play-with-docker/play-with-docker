@@ -38,6 +38,7 @@ var SecureCookie *securecookie.SecureCookie
 
 var GithubClientID, GithubClientSecret string
 var FacebookClientID, FacebookClientSecret string
+var DockerClientID, DockerClientSecret string
 
 type stringslice []string
 
@@ -78,6 +79,9 @@ func ParseFlags() {
 	flag.StringVar(&FacebookClientID, "oauth-facebook-client-id", "", "Facebook OAuth Client ID")
 	flag.StringVar(&FacebookClientSecret, "oauth-facebook-client-secret", "", "Facebook OAuth Client Secret")
 
+	flag.StringVar(&DockerClientID, "oauth-docker-client-id", "", "Docker OAuth Client ID")
+	flag.StringVar(&DockerClientSecret, "oauth-docker-client-secret", "", "Docker OAuth Client Secret")
+
 	flag.Parse()
 
 	SecureCookie = securecookie.New([]byte(CookieHashKey), []byte(CookieBlockKey))
@@ -106,6 +110,20 @@ func registerOAuthProviders() {
 		}
 
 		Providers["facebook"] = conf
+	}
+	if DockerClientID != "" && DockerClientSecret != "" {
+		oauth2.RegisterBrokenAuthHeaderProvider(".id.docker.com")
+		conf := &oauth2.Config{
+			ClientID:     DockerClientID,
+			ClientSecret: DockerClientSecret,
+			Scopes:       []string{"openid"},
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://id.docker.com/id/oauth/authorize/",
+				TokenURL: "https://id.docker.com/id/oauth/token",
+			},
+		}
+
+		Providers["docker"] = conf
 	}
 }
 

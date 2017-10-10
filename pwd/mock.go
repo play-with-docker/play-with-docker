@@ -119,3 +119,7 @@ func (m *Mock) UserLogin(loginRequest *types.LoginRequest, user *types.User) (*t
 	args := m.Called(loginRequest, user)
 	return args.Get(0).(*types.User), args.Error(1)
 }
+func (m *Mock) UserGet(id string) (*types.User, error) {
+	args := m.Called(id)
+	return args.Get(0).(*types.User), args.Error(1)
+}

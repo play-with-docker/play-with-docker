@@ -14,7 +14,24 @@ import (
 	fb "github.com/huandu/facebook"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/twinj/uuid"
 )
+
+func LoggedInUser(rw http.ResponseWriter, req *http.Request) {
+	cookie, err := ReadCookie(req)
+	if err != nil {
+		log.Println("Cannot read cookie")
+		rw.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	user, err := core.UserGet(cookie.Id)
+	if err != nil {
+		log.Printf("Couldn't get user with id %s. Got: %v\n", cookie.Id, err)
+		rw.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	json.NewEncoder(rw).Encode(user)
+}
 
 func ListProviders(rw http.ResponseWriter, req *http.Request) {
 	providers := []string{}
@@ -51,7 +68,7 @@ func Login(rw http.ResponseWriter, req *http.Request) {
 		host = req.Host
 	}
 	provider.RedirectURL = fmt.Sprintf("%s://%s/oauth/providers/%s/callback", scheme, host, providerName)
-	url := provider.AuthCodeURL(loginRequest.Id)
+	url := provider.AuthCodeURL(loginRequest.Id, oauth2.SetAuthURLParam("nonce", uuid.NewV4().String()))
 
 	http.Redirect(rw, req, url, http.StatusFound)
 }
@@ -125,6 +142,28 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		user.Name = res.Get("name").(string)
 		user.Avatar = res.Get("picture.data.url").(string)
 		user.Email = res.Get("email").(string)
+	} else if providerName == "docker" {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: tok.AccessToken},
+		)
+		tc := oauth2.NewClient(ctx, ts)
+		resp, err := tc.Get("https://id.docker.com/api/id/v1/openid/userinfo")
+		if err != nil {
+			log.Printf("Could not get user from docker. Got: %v\n", err)
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		userInfo := map[string]string{}
+		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+			log.Printf("Could not decode user info. Got: %v\n", err)
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		user.ProviderUserId = userInfo["sub"]
+		user.Name = userInfo["preferred_username"]
+		user.Email = userInfo["email"]
 	}
 
 	user, err = core.UserLogin(loginRequest, user)
@@ -142,5 +181,5 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	http.Redirect(rw, req, "/", http.StatusFound)
+	fmt.Fprintf(rw, `<html><head><script>window.close();</script></head><body></body></html>`)
 }

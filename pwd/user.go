@@ -41,3 +41,10 @@ func (p *pwd) UserLogin(loginRequest *types.LoginRequest, user *types.User) (*ty
 
 	return user, nil
 }
+func (p *pwd) UserGet(id string) (*types.User, error) {
+	if user, err := p.storage.UserGet(id); err != nil {
+		return nil, err
+	} else {
+		return user, nil
+	}
+}

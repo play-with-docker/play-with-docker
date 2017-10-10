@@ -102,3 +102,7 @@ func (m *Mock) UserPut(user *types.User) error {
 	args := m.Called(user)
 	return args.Error(0)
 }
+func (m *Mock) UserGet(id string) (*types.User, error) {
+	args := m.Called(id)
+	return args.Get(0).(*types.User), args.Error(1)
+}

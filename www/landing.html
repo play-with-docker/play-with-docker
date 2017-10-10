@@ -41,7 +41,7 @@
             Login
           </button>
           <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-              <a ng-repeat="provider in providers" class="dropdown-item" href="/oauth/providers/{{provider}}/login">{{provider}}</a>
+              <a ng-repeat="provider in providers" class="dropdown-item" ng-click="login(provider)">{{provider}}</a>
           </div>
         </div>        
         <form id="landingForm" method="POST" action="/">
@@ -68,10 +68,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
     <script>
-        angular.module('PWDLanding', ['ngCookies'])
-            .controller('LoginController', ['$cookies', '$scope', '$http', function($cookies, $scope, $http) {
+        angular.module('PWDLanding', [])
+            .controller('LoginController', ['$scope', '$http', '$window', function($scope, $http, $window) {
                 $scope.providers = [];
-                $scope.loggedIn = $cookies.get('id') !== undefined;
+                $scope.loggedIn = false;
+                $scope.user = null;
+
+                function checkLoggedIn() {
+                    $http({
+                        method: 'GET',
+                        url: '/users/me'
+                    }).then(function(response) {
+                        $scope.user = response.data;
+                        $scope.loggedIn = true;
+                    }, function(response) {
+                        console.log('ERROR', response);
+                        $scope.user = null;
+                        $scope.loggedIn = false;
+                    });
+                }
+
+                checkLoggedIn();
 
                 $http({
                     method: 'GET',
@@ -84,6 +101,18 @@
                 }, function(response) {
                     console.log('ERROR', response);
                 });
+
+
+                $scope.login = function(provider) {
+                    var width = screen.width*0.6;
+                    var height = screen.height*0.6;
+                    var x = screen.width/2 - width/2;
+                    var y = screen.height/2 - height/2;
+                    var loginWnd = $window.open('/oauth/providers/' + provider + '/login', 'PWDLogin', 'width='+width+',height='+height+',left='+x+',top='+y);
+                    loginWnd.onunload = function() {
+                        checkLoggedIn();
+                    }
+                }
 
                 $scope.start = function() {
                     function getParameterByName(name, url) {

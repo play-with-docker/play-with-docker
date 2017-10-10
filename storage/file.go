@@ -353,6 +353,16 @@ func (store *storage) UserPut(user *types.User) error {
 
 	return nil
 }
+func (store *storage) UserGet(id string) (*types.User, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	if user, found := store.db.Users[id]; !found {
+		return nil, NotFoundError
+	} else {
+		return user, nil
+	}
+}
 
 func (store *storage) load() error {
 	file, err := os.Open(store.path)

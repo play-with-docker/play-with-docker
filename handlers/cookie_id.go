@@ -15,10 +15,11 @@ type CookieID struct {
 func (c *CookieID) SetCookie(rw http.ResponseWriter) error {
 	if encoded, err := config.SecureCookie.Encode("id", c); err == nil {
 		cookie := &http.Cookie{
-			Name:   "id",
-			Value:  encoded,
-			Path:   "/",
-			Secure: config.UseLetsEncrypt,
+			Name:     "id",
+			Value:    encoded,
+			Path:     "/",
+			Secure:   config.UseLetsEncrypt,
+			HttpOnly: true,
 		}
 		http.SetCookie(rw, cookie)
 	} else {
