@@ -341,7 +341,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (err error) {
 	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
 
 	if err != nil {
-		if client.IsErrImageNotFound(err) {
+		if client.IsErrNotFound(err) {
 			log.Printf("Unable to find image '%s' locally\n", opts.Image)
 			if err = d.pullImage(context.Background(), opts.Image); err != nil {
 				return
