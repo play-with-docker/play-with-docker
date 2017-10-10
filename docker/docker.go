@@ -431,7 +431,7 @@ func (d *docker) ExecAttach(instanceName string, command []string, out io.Writer
 	if err != nil {
 		return 0, err
 	}
-	resp, err := d.c.ContainerExecAttach(context.Background(), e.ID, types.ExecConfig{AttachStdout: true, AttachStderr: true, Tty: true})
+	resp, err := d.c.ContainerExecAttach(context.Background(), e.ID, types.ExecStartCheck{Tty: true})
 	if err != nil {
 		return 0, err
 	}
