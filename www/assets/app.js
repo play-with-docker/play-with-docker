@@ -395,7 +395,7 @@
       term.open(terminalContainer);
 
       // Set geometry during the next tick, to avoid race conditions.
-    
+
         /*
       setTimeout(function() {
         $scope.resize(term.proposeGeometry());

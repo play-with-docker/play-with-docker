@@ -108,10 +108,16 @@
                     var height = screen.height*0.6;
                     var x = screen.width/2 - width/2;
                     var y = screen.height/2 - height/2;
-                    var loginWnd = $window.open('/oauth/providers/' + provider + '/login', 'PWDLogin', 'width='+width+',height='+height+',left='+x+',top='+y);
-                    loginWnd.onunload = function() {
+                    $window.open('/oauth/providers/' + provider + '/login', 'PWDLogin', 'width='+width+',height='+height+',left='+x+',top='+y);
+                    var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+                    var eventer = window[eventMethod];
+                    var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+                    // Listen to message from child window
+                    eventer(messageEvent,function(e) {
+                      if (e.data === 'done') {
                         checkLoggedIn();
-                    }
+                      }
+                    }, false);
                 }
 
                 $scope.start = function() {
