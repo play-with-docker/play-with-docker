@@ -181,5 +181,20 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(rw, `<html><head><script>window.close();</script></head><body></body></html>`)
+	fmt.Fprintf(rw, `
+<html>
+    <head>
+	<script>
+	if (window.opener && !window.opener.closed) {
+	    try {
+	      window.opener.postMessage('done','*')
+	    }
+	    catch(e) {  }
+	    window.close();
+	}
+	</script>
+    </head>
+    <body>
+    </body>
+</html>`)
 }
