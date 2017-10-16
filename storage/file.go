@@ -351,7 +351,7 @@ func (store *storage) UserPut(user *types.User) error {
 	store.db.UsersByProvider[fmt.Sprintf("%s_%s", user.Provider, user.ProviderUserId)] = user.Id
 	store.db.Users[user.Id] = user
 
-	return nil
+	return store.save()
 }
 func (store *storage) UserGet(id string) (*types.User, error) {
 	store.rw.Lock()
