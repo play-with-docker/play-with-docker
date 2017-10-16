@@ -6,6 +6,7 @@ import (
 
 	"github.com/googollee/go-socket.io"
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/event"
 )
 
 func WS(so socketio.Socket) {
@@ -64,6 +65,10 @@ func WS(so socketio.Socket) {
 	so.On("disconnection", func() {
 		m.Close()
 		core.ClientClose(client)
+	})
+
+	so.On("session keep alive", func() {
+		e.Emit(event.SESSION_KEEP_ALIVE, sessionId)
 	})
 }
 

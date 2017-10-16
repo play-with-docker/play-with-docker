@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"time"
@@ -39,6 +40,8 @@ var SecureCookie *securecookie.SecureCookie
 var GithubClientID, GithubClientSecret string
 var FacebookClientID, FacebookClientSecret string
 var DockerClientID, DockerClientSecret string
+var SessionKeepAlive time.Duration
+var sessionKeepAlive string
 
 type stringslice []string
 
@@ -72,6 +75,7 @@ func ParseFlags() {
 	flag.StringVar(&SSHKeyPath, "ssh_key_path", "", "SSH Private Key to use")
 	flag.StringVar(&CookieHashKey, "cookie-hash-key", "", "Hash key to use to validate cookies")
 	flag.StringVar(&CookieBlockKey, "cookie-block-key", "", "Block key to use to encrypt cookies")
+	flag.StringVar(&sessionKeepAlive, "session-keep-alive", "5m", "Duration for which a session will be kept alive when no more heartbeats arrive")
 
 	flag.StringVar(&GithubClientID, "oauth-github-client-id", "", "Github OAuth Client ID")
 	flag.StringVar(&GithubClientSecret, "oauth-github-client-secret", "", "Github OAuth Client Secret")
@@ -85,6 +89,12 @@ func ParseFlags() {
 	flag.Parse()
 
 	SecureCookie = securecookie.New([]byte(CookieHashKey), []byte(CookieBlockKey))
+
+	dur, err := time.ParseDuration(sessionKeepAlive)
+	if err != nil {
+		log.Fatalf("Cannot parse duration of flag [-session-keep-alive]. Got: %v\n", err)
+	}
+	SessionKeepAlive = dur
 
 	registerOAuthProviders()
 }
