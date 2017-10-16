@@ -15,7 +15,6 @@ var (
 	SESSION_END              = EventType("session end")
 	SESSION_READY            = EventType("session ready")
 	SESSION_BUILDER_OUT      = EventType("session builder out")
-	SESSION_KEEP_ALIVE       = EventType("session keep alive")
 )
 
 type Handler func(sessionId string, args ...interface{})

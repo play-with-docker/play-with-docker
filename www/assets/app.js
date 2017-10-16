@@ -181,8 +181,6 @@
 
         var socket = io({ path: '/sessions/' + sessionId + '/ws' });
 
-	
-
         socket.on('instance terminal status', function(name, status) {
             var instance = $scope.idx[name];
             instance.status = status;
@@ -249,11 +247,8 @@
         socket.on('connect_error', function() {
           $scope.connected = false;
         });
-        socket.on('connect', function(s) {
+        socket.on('connect', function() {
           $scope.connected = true;
-  	  setInterval(function() {
-        	socket.emit('session keep alive', 'keep me alive please! ' + new Date());
-	  }, 30*1000);
         });
 
         socket.on('instance stats', function(stats) {

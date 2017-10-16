@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -24,9 +23,8 @@ type SchedulerApi interface {
 }
 
 type scheduledSession struct {
-	session   *types.Session
-	keepAlive *time.Timer
-	cancel    context.CancelFunc
+	session *types.Session
+	cancel  context.CancelFunc
 }
 
 type scheduledInstance struct {
@@ -70,10 +68,6 @@ func (s *scheduler) processSession(ctx context.Context, ss *scheduledSession) {
 		// Session has expired. Need to close the session.
 		s.pwd.SessionClose(ss.session)
 		return
-	case <-ss.keepAlive.C:
-		// No keep alive has been received after the defined interval
-		log.Printf("No keep alive has been received for session %s after %s. Closing.\n", ss.session.Id, config.SessionKeepAlive)
-		s.pwd.SessionClose(ss.session)
 	case <-ctx.Done():
 		return
 	}
@@ -147,7 +141,6 @@ func (s *scheduler) scheduleSession(session *types.Session) {
 	s.scheduledSessions[session.Id] = ss
 	ctx, cancel := context.WithCancel(context.Background())
 	ss.cancel = cancel
-	ss.keepAlive = time.NewTimer(config.SessionKeepAlive)
 	go s.processSession(ctx, ss)
 	log.Printf("Scheduled session %s\n", session.Id)
 }
@@ -231,18 +224,6 @@ func (s *scheduler) Start() error {
 		log.Printf("EVENT: Instance Delete %s\n", instanceName)
 		instance := &types.Instance{Name: instanceName}
 		s.unscheduleInstance(instance)
-	})
-	s.event.On(event.SESSION_KEEP_ALIVE, func(sessionId string, args ...interface{}) {
-		log.Printf("Keep alive recevied for session %s\n", sessionId)
-		if _, found := s.scheduledSessions[sessionId]; !found {
-			log.Printf("Session %s was not found. Ignoring.\n", sessionId)
-			return
-		}
-		ss := s.scheduledSessions[sessionId]
-		if ss.keepAlive.Stop() {
-			log.Printf("Keep alive reset for session %s\n", sessionId)
-			ss.keepAlive.Reset(config.SessionKeepAlive)
-		}
 	})
 	s.started = true
 
