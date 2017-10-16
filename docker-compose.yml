@@ -23,6 +23,7 @@ services:
             - sessions:/pwd
         environment:
             GOOGLE_RECAPTCHA_DISABLED: "true"
+            DIND_IMAGE: "franela/dind:hybrid"
     l2:
         container_name: l2
         # use the latest golang image
