@@ -164,6 +164,9 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		user.ProviderUserId = userInfo["sub"]
 		user.Name = userInfo["preferred_username"]
 		user.Email = userInfo["email"]
+		// Since DockerID doesn't return a user avatar, we try with twitter through avatars.io
+		// Worst case we get a generic avatar
+		user.Avatar = fmt.Sprintf("https://avatars.io/twitter/%s", user.Name)
 	}
 
 	user, err = core.UserLogin(loginRequest, user)
