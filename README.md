@@ -57,7 +57,7 @@ If you want to make changes to the `dind` image being used, make your changes to
 ### How can I connect to a published port from the outside world?
 
 
-If you need to access your services from outside, use the following URL pattern `http://pwd<underscore_ip>-<port>.<host#>.labs.play-with-docker.com` (i.e: http://pwd10_2_135_3-80.host3.labs.play-with-docker.com/).
+If you need to access your services from outside, use the following URL pattern `http://pwd<underscore_ip>-<port>.<host#>.labs.play-with-docker.com` (i.e: http://pwd10-2-135-3-80.host3.labs.play-with-docker.com/).
 
 ### Why is PWD running in ports 80 and 443?, Can I change that?.
 
