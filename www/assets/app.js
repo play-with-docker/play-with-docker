@@ -179,7 +179,53 @@
           $scope.idxByHostname[instance.hostname] = instance;
         }
 
-        var socket = io({ path: '/sessions/' + sessionId + '/ws' });
+	var base = '';
+	if (window.location.protocol == 'http:') {
+		base = 'ws://';
+	} else {
+		base = 'wss://';
+	}
+	base += window.location.host;
+	if (window.location.port) {
+		base += ':' + window.location.port;
+	}
+
+	var socket = new WebSocket(base + '/sessions/' + sessionId + '/ws/');
+	socket.listeners = {};
+
+	socket.on = function(name, cb) {
+		if (!socket.listeners[name]) {
+			socket.listeners[name] = [];
+		}
+		socket.listeners[name].push(cb);
+	}
+
+	socket.emit = function() {
+		var name = arguments[0]
+		var args = [];
+		for (var i = 1; i < arguments.length; i++) {
+			args.push(arguments[i]);
+		}
+		socket.send(JSON.stringify({name: name, args: args}));
+	}
+
+	socket.addEventListener('open', function (event) {
+		console.log('open', event);
+	});
+	socket.addEventListener('close', function (event) {
+		console.log('close', event);
+	});
+	socket.addEventListener('message', function (event) {
+		var m = JSON.parse(event.data);
+		var ls = socket.listeners[m.name];
+		if (ls) {
+			for (var i=0; i<ls.length; i++) {
+				var l = ls[i];
+				l.apply(l, m.args);
+			}
+		}
+	});
+
 
         socket.on('instance terminal status', function(name, status) {
             var instance = $scope.idx[name];
