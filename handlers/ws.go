@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/googollee/go-socket.io"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/play-with-docker/play-with-docker/event"
@@ -198,8 +197,4 @@ func ws(so *socket) {
 			so.Emit(eventType.String(), args...)
 		}
 	})
-}
-
-func WSError(so socketio.Socket) {
-	log.Println("error ws")
 }
