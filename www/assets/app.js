@@ -27,14 +27,13 @@
     $scope.selectedInstance = null;
     $scope.isAlive = true;
     $scope.ttl = '--:--:--';
-    $scope.connected = true;
+    $scope.connected = false;
     $scope.type = {windows: false};
     $scope.isInstanceBeingCreated = false;
     $scope.newInstanceBtnText = '+ Add new instance';
     $scope.deleteInstanceBtnText = 'Delete';
     $scope.isInstanceBeingDeleted = false;
     $scope.uploadProgress = 0;
-
 
     $scope.uploadFiles = function (files, invalidFiles) {
         let total = files.length;
@@ -190,7 +189,7 @@
 		base += ':' + window.location.port;
 	}
 
-	var socket = new WebSocket(base + '/sessions/' + sessionId + '/ws/');
+	var socket = new ReconnectingWebSocket(base + '/sessions/' + sessionId + '/ws/', null, {reconnectInterval: 1000});
 	socket.listeners = {};
 
 	socket.on = function(name, cb) {
@@ -210,10 +209,22 @@
 	}
 
 	socket.addEventListener('open', function (event) {
-		console.log('open', event);
+          $scope.connected = true;
+	  for (var i in $scope.instances) {
+		  var instance = $scope.instances[i];
+		  if (instance.term) {
+			  instance.term.setOption('disableStdin', false);
+		  }
+	  }
 	});
 	socket.addEventListener('close', function (event) {
-		console.log('close', event);
+          $scope.connected = false;
+	  for (var i in $scope.instances) {
+		  var instance = $scope.instances[i];
+		  if (instance.term) {
+			  instance.term.setOption('disableStdin', true);
+		  }
+	  }
 	});
 	socket.addEventListener('message', function (event) {
 		var m = JSON.parse(event.data);
@@ -288,13 +299,6 @@
                 }
               }
           });
-        });
-
-        socket.on('connect_error', function() {
-          $scope.connected = false;
-        });
-        socket.on('connect', function() {
-          $scope.connected = true;
         });
 
         socket.on('instance stats', function(stats) {

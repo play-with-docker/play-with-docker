@@ -27,6 +27,7 @@ type socket struct {
 	listeners map[string][]func(args ...interface{})
 	r         *http.Request
 	id        string
+	closed    bool
 }
 
 func newSocket(r *http.Request, c *websocket.Conn) *socket {
@@ -46,8 +47,13 @@ func (s *socket) Request() *http.Request {
 	return s.r
 }
 
+func (s *socket) Close() {
+	s.closed = true
+	s.onMessage(message{Name: "close"})
+}
+
 func (s *socket) process() {
-	defer s.onMessage(message{Name: "close"})
+	defer s.Close()
 	for {
 		mt, m, err := s.c.ReadMessage()
 		if err != nil {
@@ -85,6 +91,11 @@ func (s *socket) onMessage(msg message) {
 func (s *socket) Emit(ev string, args ...interface{}) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
+
+	if s.closed {
+		return
+	}
+
 	m := message{Name: ev, Args: args}
 	b, err := json.Marshal(m)
 	if err != nil {
@@ -93,6 +104,7 @@ func (s *socket) Emit(ev string, args ...interface{}) {
 	}
 	if err := s.c.WriteMessage(websocket.TextMessage, b); err != nil {
 		log.Printf("Cannot write event to websocket connection. Got: %v\n", err)
+		s.Close()
 		return
 	}
 }
