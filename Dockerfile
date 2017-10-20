@@ -1,4 +1,4 @@
-FROM golang:1.8
+FROM golang:1.9
 
 COPY . /go/src/github.com/play-with-docker/play-with-docker
 

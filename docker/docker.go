@@ -14,13 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/distribution/reference"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/volume"
-	"github.com/docker/docker/client"
+	client "docker.io/go-docker"
+	"docker.io/go-docker/api/types"
+	"docker.io/go-docker/api/types/container"
+	"docker.io/go-docker/api/types/network"
+	"docker.io/go-docker/api/types/swarm"
+	"docker.io/go-docker/api/types/volume"
+	"github.com/containerd/containerd/reference"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/play-with-docker/play-with-docker/config"
 )
@@ -398,7 +398,7 @@ func (d *docker) GetContainerIPs(id string) (map[string]string, error) {
 }
 
 func (d *docker) pullImage(ctx context.Context, image string) error {
-	_, err := reference.ParseNormalizedNamed(image)
+	_, err := reference.Parse(image)
 	if err != nil {
 		return err
 	}
@@ -431,7 +431,7 @@ func (d *docker) ExecAttach(instanceName string, command []string, out io.Writer
 	if err != nil {
 		return 0, err
 	}
-	resp, err := d.c.ContainerExecAttach(context.Background(), e.ID, types.ExecStartCheck{Tty: true})
+	resp, err := d.c.ContainerExecAttach(context.Background(), e.ID, types.ExecConfig{AttachStdout: true, AttachStderr: true, Tty: true})
 	if err != nil {
 		return 0, err
 	}

@@ -7,7 +7,7 @@ import (
 	"io"
 	"testing"
 
-	dockerTypes "github.com/docker/docker/api/types"
+	dockerTypes "docker.io/go-docker/api/types"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd/types"

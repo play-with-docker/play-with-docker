@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/client"
+	client "docker.io/go-docker"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 )

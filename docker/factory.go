@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/docker/docker/api"
-	"github.com/docker/docker/client"
+	"docker.io/go-docker/api"
+	client "docker.io/go-docker"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/router"
