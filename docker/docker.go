@@ -275,18 +275,18 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (string, error) {
 	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
 
 	if err != nil {
-		if client.IsErrImageNotFound(err) {
-			log.Printf("Unable to find image '%s' locally\n", opts.Image)
-			if err = d.pullImage(context.Background(), opts.Image); err != nil {
-				return "", err
-			}
-			container, err = d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
-			if err != nil {
-				return "", err
-			}
-		} else {
-			return "", err
-		}
+		//if client.IsErrImageNotFound(err) {
+		//log.Printf("Unable to find image '%s' locally\n", opts.Image)
+		//if err = d.pullImage(context.Background(), opts.Image); err != nil {
+		//return "", err
+		//}
+		//container, err = d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
+		//if err != nil {
+		//return "", err
+		//}
+		//} else {
+		return "", err
+		//}
 	}
 
 	if err := d.copyIfSet(opts.ServerCert, "cert.pem", containerCertDir, opts.ContainerName); err != nil {
@@ -346,7 +346,7 @@ func (d *docker) ExecAttach(instanceName string, command []string, out io.Writer
 	if err != nil {
 		return 0, err
 	}
-	resp, err := d.c.ContainerExecAttach(context.Background(), e.ID, types.ExecConfig{AttachStdout: true, AttachStderr: true, Tty: true})
+	resp, err := d.c.ContainerExecAttach(context.Background(), e.ID, types.ExecStartCheck{Tty: true})
 	if err != nil {
 		return 0, err
 	}
