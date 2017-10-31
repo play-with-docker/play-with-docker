@@ -27,7 +27,13 @@ const (
 	ProtocolDNS
 )
 
-type Director func(protocol Protocol, host string) (*net.TCPAddr, error)
+type DirectorInfo struct {
+	Dst            *net.TCPAddr
+	SSHUser        string
+	SSHAuthMethods []ssh.AuthMethod
+}
+
+type Director func(protocol Protocol, host string) (*DirectorInfo, error)
 
 type proxyRouter struct {
 	sync.Mutex
@@ -121,7 +127,7 @@ func (r *proxyRouter) sshHandle(nConn net.Conn) {
 		return
 	}
 
-	dstHost, err := r.director(ProtocolSSH, sshCon.User())
+	info, err := r.director(ProtocolSSH, sshCon.User())
 	if err != nil {
 		nConn.Close()
 		return
@@ -148,19 +154,22 @@ func (r *proxyRouter) sshHandle(nConn net.Conn) {
 
 	stderr := channel.Stderr()
 
-	fmt.Fprintf(stderr, "Connecting to %s\r\n", dstHost.String())
+	fmt.Fprintf(stderr, "Connecting to %s\r\n", info.Dst.String())
 
-	clientConfig := &ssh.ClientConfig{
-		User: "root",
+	/*
 		Auth: []ssh.AuthMethod{
 			ssh.Password("root"),
 		},
+	*/
+	clientConfig := &ssh.ClientConfig{
+		User: info.SSHUser,
+		Auth: info.SSHAuthMethods,
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 			return nil
 		},
 	}
 
-	client, err := ssh.Dial("tcp", dstHost.String(), clientConfig)
+	client, err := ssh.Dial("tcp", info.Dst.String(), clientConfig)
 	if err != nil {
 		fmt.Fprintf(stderr, "Connect failed: %v\r\n", err)
 		channel.Close()
@@ -232,7 +241,7 @@ func (r *proxyRouter) dnsRequest(w dns.ResponseWriter, req *dns.Msg) {
 			return
 		}
 
-		dstHost, err := r.director(ProtocolDNS, strings.TrimSuffix(question, "."))
+		info, err := r.director(ProtocolDNS, strings.TrimSuffix(question, "."))
 		if err != nil {
 			// Director couldn't resolve it, try to lookup in the system's DNS
 			ips, err := net.LookupIP(question)
@@ -265,6 +274,7 @@ func (r *proxyRouter) dnsRequest(w dns.ResponseWriter, req *dns.Msg) {
 			w.WriteMsg(m)
 			return
 		}
+		dstHost := info.Dst
 
 		m := new(dns.Msg)
 		m.SetReply(req)
@@ -338,11 +348,12 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 		defer vhostConn.Close()
 		host := vhostConn.ClientHelloMsg.ServerName
 		log.Printf("Proxying TLS connection to %s. Discover took %s\n", host, discoverElapsed)
-		dstHost, err := r.director(ProtocolHTTPS, host)
+		info, err := r.director(ProtocolHTTPS, host)
 		if err != nil {
 			log.Printf("Error directing request: %v\n", err)
 			return
 		}
+		dstHost := info.Dst
 		d, err := r.dialer.Dial("tcp", dstHost.String())
 		if err != nil {
 			log.Printf("Error dialing backend %s: %v\n", dstHost.String(), err)
@@ -366,11 +377,12 @@ func (r *proxyRouter) handleConnection(c net.Conn) {
 			host = req.Host
 		}
 		log.Printf("Proxying http connection to %s. Discover took %s. Http read took %s\n", host, discoverElapsed, httpReadElapsed)
-		dstHost, err := r.director(ProtocolHTTP, host)
+		info, err := r.director(ProtocolHTTP, host)
 		if err != nil {
 			log.Printf("Error directing request: %v\n", err)
 			return
 		}
+		dstHost := info.Dst
 		d, err := r.dialer.Dial("tcp", dstHost.String())
 		if err != nil {
 			log.Printf("Error dialing backend %s: %v\n", dstHost.String(), err)

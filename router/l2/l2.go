@@ -10,10 +10,12 @@ import (
 	"os"
 	"time"
 
+	"golang.org/x/crypto/ssh"
+
+	client "docker.io/go-docker"
 	"docker.io/go-docker/api/types"
 	"docker.io/go-docker/api/types/filters"
 	"docker.io/go-docker/api/types/network"
-	client "docker.io/go-docker"
 	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/router"
@@ -21,7 +23,7 @@ import (
 	"github.com/urfave/negroni"
 )
 
-func director(protocol router.Protocol, host string) (*net.TCPAddr, error) {
+func director(protocol router.Protocol, host string) (*router.DirectorInfo, error) {
 	info, err := router.DecodeHost(host)
 	if err != nil {
 		return nil, err
@@ -33,6 +35,7 @@ func director(protocol router.Protocol, host string) (*net.TCPAddr, error) {
 		port = info.EncodedPort
 	}
 
+	i := router.DirectorInfo{}
 	if port == 0 {
 		if protocol == router.ProtocolHTTP {
 			port = 80
@@ -40,6 +43,8 @@ func director(protocol router.Protocol, host string) (*net.TCPAddr, error) {
 			port = 443
 		} else if protocol == router.ProtocolSSH {
 			port = 22
+			i.SSHUser = "root"
+			i.SSHAuthMethods = []ssh.AuthMethod{ssh.Password("root")}
 		} else if protocol == router.ProtocolDNS {
 			port = 53
 		}
@@ -49,7 +54,8 @@ func director(protocol router.Protocol, host string) (*net.TCPAddr, error) {
 	if err != nil {
 		return nil, err
 	}
-	return t, nil
+	i.Dst = t
+	return &i, nil
 }
 
 func connectNetworks() error {

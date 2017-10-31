@@ -8,49 +8,50 @@ import (
 )
 
 func TestDirector(t *testing.T) {
-	addr, err := director(router.ProtocolHTTP, "ip10-0-0-1-aabb-8080.foo.bar")
+	info, err := director(router.ProtocolHTTP, "ip10-0-0-1-aabb-8080.foo.bar")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:8080", addr.String())
+	assert.Equal(t, "10.0.0.1:8080", info.Dst.String())
 
-	addr, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb.foo.bar")
+	info, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb.foo.bar")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:80", addr.String())
+	assert.Equal(t, "10.0.0.1:80", info.Dst.String())
 
-	addr, err = director(router.ProtocolHTTPS, "ip10-0-0-1-aabb.foo.bar")
+	info, err = director(router.ProtocolHTTPS, "ip10-0-0-1-aabb.foo.bar")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:443", addr.String())
+	assert.Equal(t, "10.0.0.1:443", info.Dst.String())
 
-	addr, err = director(router.ProtocolSSH, "ip10-0-0-1-aabb.foo.bar")
+	info, err = director(router.ProtocolSSH, "ip10-0-0-1-aabb.foo.bar")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:22", addr.String())
+	assert.Equal(t, "10.0.0.1:22", info.Dst.String())
+	assert.Equal(t, "root", info.SSHUser)
 
-	addr, err = director(router.ProtocolDNS, "ip10-0-0-1-aabb.foo.bar")
+	info, err = director(router.ProtocolDNS, "ip10-0-0-1-aabb.foo.bar")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:53", addr.String())
+	assert.Equal(t, "10.0.0.1:53", info.Dst.String())
 
-	addr, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb.foo.bar:9090")
+	info, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb.foo.bar:9090")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:9090", addr.String())
+	assert.Equal(t, "10.0.0.1:9090", info.Dst.String())
 
-	addr, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb-2222.foo.bar:9090")
+	info, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb-2222.foo.bar:9090")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:2222", addr.String())
+	assert.Equal(t, "10.0.0.1:2222", info.Dst.String())
 
-	addr, err = director(router.ProtocolHTTP, "lala.ip10-0-0-1-aabb-2222.foo.bar")
+	info, err = director(router.ProtocolHTTP, "lala.ip10-0-0-1-aabb-2222.foo.bar")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:2222", addr.String())
+	assert.Equal(t, "10.0.0.1:2222", info.Dst.String())
 
-	addr, err = director(router.ProtocolHTTP, "lala.ip10-0-0-1-aabb-2222")
+	info, err = director(router.ProtocolHTTP, "lala.ip10-0-0-1-aabb-2222")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:2222", addr.String())
+	assert.Equal(t, "10.0.0.1:2222", info.Dst.String())
 
-	addr, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb-2222")
+	info, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb-2222")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:2222", addr.String())
+	assert.Equal(t, "10.0.0.1:2222", info.Dst.String())
 
-	addr, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb")
+	info, err = director(router.ProtocolHTTP, "ip10-0-0-1-aabb")
 	assert.Nil(t, err)
-	assert.Equal(t, "10.0.0.1:80", addr.String())
+	assert.Equal(t, "10.0.0.1:80", info.Dst.String())
 
 	_, err = director(router.ProtocolHTTP, "lala10-0-0-1-aabb.foo.bar")
 	assert.NotNil(t, err)

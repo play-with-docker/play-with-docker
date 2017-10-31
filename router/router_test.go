@@ -231,12 +231,12 @@ func TestProxy_TLS(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	r := NewRouter(func(protocol Protocol, host string) (*net.TCPAddr, error) {
+	r := NewRouter(func(protocol Protocol, host string) (*DirectorInfo, error) {
 		receivedHost = host
 		receivedProtocol = protocol
 		u, _ := url.Parse(ts.URL)
 		a, _ := net.ResolveTCPAddr("tcp", u.Host)
-		return a, nil
+		return &DirectorInfo{Dst: a}, nil
 	}, private)
 	r.Listen(":0", ":0", ":0")
 	defer r.Close()
@@ -268,12 +268,12 @@ func TestProxy_Http(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	r := NewRouter(func(protocol Protocol, host string) (*net.TCPAddr, error) {
+	r := NewRouter(func(protocol Protocol, host string) (*DirectorInfo, error) {
 		receivedHost = host
 		receivedProtocol = protocol
 		u, _ := url.Parse(ts.URL)
 		a, _ := net.ResolveTCPAddr("tcp", u.Host)
-		return a, nil
+		return &DirectorInfo{Dst: a}, nil
 	}, private)
 	r.Listen(":0", ":0", ":0")
 	defer r.Close()
@@ -323,10 +323,10 @@ func TestProxy_WS(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	r := NewRouter(func(protocol Protocol, host string) (*net.TCPAddr, error) {
+	r := NewRouter(func(protocol Protocol, host string) (*DirectorInfo, error) {
 		u, _ := url.Parse(ts.URL)
 		a, _ := net.ResolveTCPAddr("tcp", u.Host)
-		return a, nil
+		return &DirectorInfo{Dst: a}, nil
 	}, private)
 	r.Listen(":0", ":0", ":0")
 	defer r.Close()
@@ -381,10 +381,10 @@ func TestProxy_WSS(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	r := NewRouter(func(protocol Protocol, host string) (*net.TCPAddr, error) {
+	r := NewRouter(func(protocol Protocol, host string) (*DirectorInfo, error) {
 		u, _ := url.Parse(ts.URL)
 		a, _ := net.ResolveTCPAddr("tcp", u.Host)
-		return a, nil
+		return &DirectorInfo{Dst: a}, nil
 	}, private)
 	r.Listen(":0", ":0", ":0")
 	defer r.Close()
@@ -419,12 +419,12 @@ func TestProxy_DNS_UDP(t *testing.T) {
 	var receivedHost string
 	var receivedProtocol Protocol
 
-	r := NewRouter(func(protocol Protocol, host string) (*net.TCPAddr, error) {
+	r := NewRouter(func(protocol Protocol, host string) (*DirectorInfo, error) {
 		receivedHost = host
 		receivedProtocol = protocol
 		if host == "10_0_0_1.foo.bar" {
 			a, _ := net.ResolveTCPAddr("tcp", "10.0.0.1:0")
-			return a, nil
+			return &DirectorInfo{Dst: a}, nil
 		} else {
 			return nil, fmt.Errorf("Not recognized")
 		}
@@ -463,11 +463,11 @@ func TestProxy_DNS_TCP(t *testing.T) {
 
 	var receivedHost string
 
-	r := NewRouter(func(protocol Protocol, host string) (*net.TCPAddr, error) {
+	r := NewRouter(func(protocol Protocol, host string) (*DirectorInfo, error) {
 		receivedHost = host
 		if host == "10_0_0_1.foo.bar" {
 			a, _ := net.ResolveTCPAddr("tcp", "10.0.0.1:0")
-			return a, nil
+			return &DirectorInfo{Dst: a}, nil
 		} else {
 			return nil, fmt.Errorf("Not recognized")
 		}
@@ -517,13 +517,13 @@ func TestProxy_SSH(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	r := NewRouter(func(protocol Protocol, host string) (*net.TCPAddr, error) {
+	r := NewRouter(func(protocol Protocol, host string) (*DirectorInfo, error) {
 		receivedHost = host
 		receivedProtocol = protocol
 		if host == "10-0-0-1-aaaabbbb" {
 			chunks := strings.Split(laddr, ":")
 			a, _ := net.ResolveTCPAddr("tcp", fmt.Sprintf("127.0.0.1:%s", chunks[len(chunks)-1]))
-			return a, nil
+			return &DirectorInfo{Dst: a, SSHUser: "root", SSHAuthMethods: []ssh.AuthMethod{ssh.Password("root")}}, nil
 		} else {
 			return nil, fmt.Errorf("Not recognized")
 		}

@@ -246,10 +246,10 @@
   revision = "1a9d0bb9f541897e62256577b352fdbc1fb4fd94"
 
 [[projects]]
+  branch = "master"
   name = "github.com/stretchr/testify"
   packages = ["assert","mock"]
-  revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
-  version = "v1.1.4"
+  revision = "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f"
 
 [[projects]]
   name = "github.com/twinj/uuid"
@@ -308,6 +308,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "249dcabc7186697e454650b01760349e95271e2af78fe1621965d5d2327bf80c"
+  inputs-digest = "cb4ed32010df0327d18dee3e1c736249d8d1df75e45f90c2fad5b2c1c5028b98"
   solver-name = "gps-cdcl"
   solver-version = 1
