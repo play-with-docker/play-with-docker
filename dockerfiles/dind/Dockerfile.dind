@@ -32,7 +32,7 @@ RUN mkdir /etc/bash_completion.d \
 RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/modprobe
 
 # Install a nice vimrc file and prompt (by soulshake)
-COPY ["docker-prompt","/usr/local/bin/"]
+COPY ["docker-prompt","sudo","/usr/local/bin/"]
 COPY [".vimrc",".profile", ".inputrc", ".gitconfig", "./root/"]
 COPY ["motd", "/etc/motd"]
 COPY ["daemon.json", "/etc/docker/"]

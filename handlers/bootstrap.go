@@ -101,6 +101,7 @@ func Register(extend HandlerExtender) {
 		IdleTimeout:       30 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
+
 	if config.UseLetsEncrypt {
 		certManager := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
@@ -127,7 +128,6 @@ func Register(extend HandlerExtender) {
 		log.Println("Listening on port " + config.PortNumber)
 		log.Fatal(httpServer.ListenAndServe())
 	}
-
 }
 
 func RegisterEvents(s *socketio.Server) {

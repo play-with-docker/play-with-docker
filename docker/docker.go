@@ -340,18 +340,18 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (err error) {
 	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
 
 	if err != nil {
-		if client.IsErrNotFound(err) {
-			log.Printf("Unable to find image '%s' locally\n", opts.Image)
-			if err = d.pullImage(context.Background(), opts.Image); err != nil {
-				return
-			}
-			container, err = d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
-			if err != nil {
-				return
-			}
-		} else {
-			return
-		}
+		//if client.IsErrImageNotFound(err) {
+		//log.Printf("Unable to find image '%s' locally\n", opts.Image)
+		//if err = d.pullImage(context.Background(), opts.Image); err != nil {
+		//return "", err
+		//}
+		//container, err = d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
+		//if err != nil {
+		//return "", err
+		//}
+		//} else {
+		return err
+		//}
 	}
 
 	//connect remaining networks if there are any

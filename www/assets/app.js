@@ -214,6 +214,7 @@
             window.location.href = '/';
           });
           $scope.isAlive = false;
+          socket.close();
         });
 
         socket.on('instance new', function(name, ip, hostname, proxyHost) {
