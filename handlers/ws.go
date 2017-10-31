@@ -13,7 +13,9 @@ import (
 	"github.com/twinj/uuid"
 )
 
-var upgrader = websocket.Upgrader{}
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
 
 type message struct {
 	Name string        `json:"name"`
