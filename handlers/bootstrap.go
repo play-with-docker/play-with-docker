@@ -9,7 +9,6 @@ import (
 
 	"golang.org/x/crypto/acme/autocert"
 
-	"github.com/googollee/go-socket.io"
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/config"
@@ -21,7 +20,6 @@ import (
 
 var core pwd.PWDApi
 var e event.EventApi
-var ws *socketio.Server
 
 type HandlerExtender func(h *mux.Router)
 
@@ -31,15 +29,6 @@ func Bootstrap(c pwd.PWDApi, ev event.EventApi) {
 }
 
 func Register(extend HandlerExtender) {
-	server, err := socketio.NewServer(nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	server.On("connection", WS)
-	server.On("error", WSError)
-
-	RegisterEvents(server)
-
 	r := mux.NewRouter()
 	corsRouter := mux.NewRouter()
 
@@ -71,7 +60,7 @@ func Register(extend HandlerExtender) {
 		http.ServeFile(rw, r, "www/sdk.js")
 	})
 
-	corsRouter.Handle("/sessions/{sessionId}/ws/", server)
+	corsRouter.HandleFunc("/sessions/{sessionId}/ws/", WSH)
 	r.Handle("/metrics", promhttp.Handler())
 
 	// Generic routes
@@ -128,13 +117,4 @@ func Register(extend HandlerExtender) {
 		log.Println("Listening on port " + config.PortNumber)
 		log.Fatal(httpServer.ListenAndServe())
 	}
-}
-
-func RegisterEvents(s *socketio.Server) {
-	ws = s
-	e.OnAny(broadcastEvent)
-}
-
-func broadcastEvent(eventType event.EventType, sessionId string, args ...interface{}) {
-	ws.BroadcastTo(sessionId, eventType.String(), args...)
 }

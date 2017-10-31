@@ -27,14 +27,13 @@
     $scope.selectedInstance = null;
     $scope.isAlive = true;
     $scope.ttl = '--:--:--';
-    $scope.connected = true;
+    $scope.connected = false;
     $scope.type = {windows: false};
     $scope.isInstanceBeingCreated = false;
     $scope.newInstanceBtnText = '+ Add new instance';
     $scope.deleteInstanceBtnText = 'Delete';
     $scope.isInstanceBeingDeleted = false;
     $scope.uploadProgress = 0;
-
 
     $scope.uploadFiles = function (files, invalidFiles) {
         let total = files.length;
@@ -179,7 +178,65 @@
           $scope.idxByHostname[instance.hostname] = instance;
         }
 
-        var socket = io({ path: '/sessions/' + sessionId + '/ws' });
+	var base = '';
+	if (window.location.protocol == 'http:') {
+		base = 'ws://';
+	} else {
+		base = 'wss://';
+	}
+	base += window.location.host;
+	if (window.location.port) {
+		base += ':' + window.location.port;
+	}
+
+	var socket = new ReconnectingWebSocket(base + '/sessions/' + sessionId + '/ws/', null, {reconnectInterval: 1000});
+	socket.listeners = {};
+
+	socket.on = function(name, cb) {
+		if (!socket.listeners[name]) {
+			socket.listeners[name] = [];
+		}
+		socket.listeners[name].push(cb);
+	}
+
+	socket.emit = function() {
+		var name = arguments[0]
+		var args = [];
+		for (var i = 1; i < arguments.length; i++) {
+			args.push(arguments[i]);
+		}
+		socket.send(JSON.stringify({name: name, args: args}));
+	}
+
+	socket.addEventListener('open', function (event) {
+          $scope.connected = true;
+	  for (var i in $scope.instances) {
+		  var instance = $scope.instances[i];
+		  if (instance.term) {
+			  instance.term.setOption('disableStdin', false);
+		  }
+	  }
+	});
+	socket.addEventListener('close', function (event) {
+          $scope.connected = false;
+	  for (var i in $scope.instances) {
+		  var instance = $scope.instances[i];
+		  if (instance.term) {
+			  instance.term.setOption('disableStdin', true);
+		  }
+	  }
+	});
+	socket.addEventListener('message', function (event) {
+		var m = JSON.parse(event.data);
+		var ls = socket.listeners[m.name];
+		if (ls) {
+			for (var i=0; i<ls.length; i++) {
+				var l = ls[i];
+				l.apply(l, m.args);
+			}
+		}
+	});
+
 
         socket.on('instance terminal status', function(name, status) {
             var instance = $scope.idx[name];
@@ -243,13 +300,6 @@
                 }
               }
           });
-        });
-
-        socket.on('connect_error', function() {
-          $scope.connected = false;
-        });
-        socket.on('connect', function() {
-          $scope.connected = true;
         });
 
         socket.on('instance stats', function(stats) {
