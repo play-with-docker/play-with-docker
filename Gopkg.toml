@@ -26,10 +26,6 @@
   version = "2.6.2"
 
 [[constraint]]
-  name = "github.com/docker/docker"
-  version = "1.13.1"
-
-[[constraint]]
   name = "github.com/docker/go-connections"
   version = "0.3.0"
 

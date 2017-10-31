@@ -21,7 +21,6 @@ import (
 	"docker.io/go-docker/api/types/swarm"
 	"docker.io/go-docker/api/types/volume"
 	"github.com/containerd/containerd/reference"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/play-with-docker/play-with-docker/config"
 )
 
@@ -409,14 +408,9 @@ func (d *docker) pullImage(ctx context.Context, image string) error {
 	if err != nil {
 		return err
 	}
-	defer responseBody.Close()
+	_, err = io.Copy(ioutil.Discard, responseBody)
 
-	return jsonmessage.DisplayJSONMessagesStream(
-		responseBody,
-		os.Stderr,
-		os.Stdout.Fd(),
-		false,
-		nil)
+	return err
 }
 
 func (d *docker) copyIfSet(content []byte, fileName, path, containerName string) error {
