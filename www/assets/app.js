@@ -240,7 +240,9 @@
 
         socket.on('instance terminal status', function(name, status) {
             var instance = $scope.idx[name];
-            instance.status = status;
+            if (instance) {
+                instance.status = status;
+            }
         });
 
         socket.on('session ready', function(ready) {
@@ -253,6 +255,9 @@
 
         socket.on('instance terminal out', function(name, data) {
           var instance = $scope.idx[name];
+          if (!instance) {
+            return;
+          }
 
           if (!instance) {
             // instance is new and was created from another client, we should add it
@@ -303,12 +308,18 @@
         });
 
         socket.on('instance stats', function(stats) {
+          if (! $scope.idx[stats.instance]) {
+              return
+          }
           $scope.idx[stats.instance].mem = stats.mem;
           $scope.idx[stats.instance].cpu = stats.cpu;
           $scope.$apply();
         });
 
         socket.on('instance docker swarm status', function(status) {
+            if (!$scope.idx[status.instance]) {
+                return
+            }
             if (status.is_manager) {
                 $scope.idx[status.instance].isManager = true
             } else if (status.is_worker) {
@@ -316,20 +327,23 @@
             } else {
                 $scope.idx[status.instance].isManager = null
             }
-          $scope.$apply();
+            $scope.$apply();
         });
 
         socket.on('instance docker ports', function(status) {
-          if ($scope.idx[status.instance]) {
-              $scope.idx[status.instance].ports = status.ports;
-              $scope.$apply();
+          if (!$scope.idx[status.instance]) {
+              return
           }
+          $scope.idx[status.instance].ports = status.ports;
+          $scope.$apply();
         });
 
         socket.on('instance docker swarm ports', function(status) {
             for(var i in status.instances) {
                 var instance = status.instances[i];
-                $scope.idxByHostname[instance].swarmPorts = status.ports;
+                if ($scope.idxByHostname[instance]) {
+                    $scope.idxByHostname[instance].swarmPorts = status.ports;
+                }
             }
             $scope.$apply();
         });
