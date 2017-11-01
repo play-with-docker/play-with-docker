@@ -320,8 +320,10 @@
         });
 
         socket.on('instance docker ports', function(status) {
-          $scope.idx[status.instance].ports = status.ports;
-          $scope.$apply();
+          if ($scope.idx[status.instance]) {
+              $scope.idx[status.instance].ports = status.ports;
+              $scope.$apply();
+          }
         });
 
         socket.on('instance docker swarm ports', function(status) {
