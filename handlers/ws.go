@@ -151,6 +151,9 @@ func ws(so *socket) {
 	}
 
 	client := core.ClientNew(so.Id(), session)
+	if client == nil {
+		log.Printf("ERROR: Client was not created for session id %s and socket id %s\n", session.Id, so.Id())
+	}
 
 	m, err := NewManager(session)
 	if err != nil {
