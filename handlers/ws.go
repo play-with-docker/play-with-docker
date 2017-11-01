@@ -177,16 +177,20 @@ func ws(so *socket) {
 	})
 
 	so.On("instance terminal in", func(args ...interface{}) {
-		name := args[0].(string)
-		data := args[1].(string)
-		m.Send(name, []byte(data))
+		if len(args) == 2 && args[0] != nil && args[1] != nil {
+			name := args[0].(string)
+			data := args[1].(string)
+			m.Send(name, []byte(data))
+		}
 	})
 
 	so.On("instance viewport resize", func(args ...interface{}) {
-		// User resized his viewport
-		cols := args[0].(float64)
-		rows := args[1].(float64)
-		core.ClientResizeViewPort(client, uint(cols), uint(rows))
+		if len(args) == 2 && args[0] != nil && args[1] != nil {
+			// User resized his viewport
+			cols := args[0].(float64)
+			rows := args[1].(float64)
+			core.ClientResizeViewPort(client, uint(cols), uint(rows))
+		}
 	})
 
 	so.On("close", func(args ...interface{}) {
