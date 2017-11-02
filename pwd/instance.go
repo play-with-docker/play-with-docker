@@ -97,8 +97,6 @@ func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) e
 
 func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error) {
 	defer observeAction("InstanceNew", time.Now())
-	session.Lock()
-	defer session.Unlock()
 
 	instances, err := p.storage.InstanceFindBySessionId(session.Id)
 	if err != nil {
