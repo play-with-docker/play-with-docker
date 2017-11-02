@@ -50,6 +50,9 @@ body {
   padding: .75rem 1.5rem;
   font-size: 1.5rem;
 }
+.btn.dropdown-toggle, .dropdown-menu a {
+  cursor: pointer;
+}
 
 /* Supporting marketing content */
 .marketing {
