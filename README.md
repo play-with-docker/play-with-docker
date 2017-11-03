@@ -24,7 +24,7 @@ Start the Docker daemon on your machine and run `docker pull franela/dind`.
 
 1) Install go 1.7.1+ with `brew` on Mac or through a package manager.
 
-2) `go get -v -d -t ./...`
+2) Install [dep](https://github.com/golang/dep) and run `dep ensure` to pull dependencies
 
 3) Start PWD as a container with docker-compose up.
 
