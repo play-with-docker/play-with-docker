@@ -105,7 +105,8 @@
 
                 $scope.login = function(provider) {
                     var width = screen.width*0.6;
-                    var height = screen.height*0.6;
+                    // fixed height as the login window is not responsive
+                    var height = 620;
                     var x = screen.width/2 - width/2;
                     var y = screen.height/2 - height/2;
                     $window.open('/oauth/providers/' + provider + '/login', 'PWDLogin', 'width='+width+',height='+height+',left='+x+',top='+y);
