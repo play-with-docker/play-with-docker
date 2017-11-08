@@ -13,7 +13,7 @@ RUN apt-get update \
  
 
 # Install a nice vimrc file and prompt (by soulshake)
-COPY ["docker-prompt", "ucp.sh", "/usr/local/bin/"]
+COPY ["docker-prompt", "sudo", "ucp.sh", "/usr/local/bin/"]
 COPY [".vimrc",".profile", ".inputrc", ".gitconfig", "workshop.lic", "./root/"]
 COPY ["motd", "/etc/motd"]
 COPY ["ee/daemon.json", "/etc/docker/"]
