@@ -5,7 +5,7 @@ where you can build and run Docker containers and even create clusters with Dock
 
 Under the hood DIND or Docker-in-Docker is used to give the effect of multiple VMs/PCs.
 
-A live version is available at: http://play-with-docker.com/
+A live version is available at: https://play-with-docker.com/
 
 ## Requirements
 
@@ -57,7 +57,7 @@ If you want to make changes to the `dind` image being used, make your changes to
 ### How can I connect to a published port from the outside world?
 
 
-If you need to access your services from outside, use the following URL pattern `http://pwd<hyphen-ip>-<port>.<host#>.labs.play-with-docker.com` (i.e: http://pwd10-2-135-3-80.host3.labs.play-with-docker.com/).
+If you need to access your services from outside, use the following URL pattern `http://pwd<hyphen-ip>-<port>.<host#>.labs.play-with-docker.com` (i.e: http://<i></i>pwd10-2-135-3-80.host3.labs.play-with-docker.com).
 
 ### Why is PWD running in ports 80 and 443?, Can I change that?.
 
