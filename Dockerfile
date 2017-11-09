@@ -4,8 +4,6 @@ COPY . /go/src/github.com/play-with-docker/play-with-docker
 
 WORKDIR /go/src/github.com/play-with-docker/play-with-docker
 
-RUN go get -v -d ./...
-
 RUN ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null
 
 RUN CGO_ENABLED=0 go build -a -installsuffix nocgo -o /go/bin/play-with-docker .

@@ -85,18 +85,6 @@
   revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/googollee/go-engine.io"
-  packages = [".","message","parser","polling","transport","websocket"]
-  revision = "80ae0e43aca17b4c5a6834999d0f2eaa16b9afda"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/googollee/go-socket.io"
-  packages = ["."]
-  revision = "5447e71f36d394766bf855d5714a487596809f0d"
-
-[[projects]]
   name = "github.com/gorilla/context"
   packages = ["."]
   revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
@@ -290,6 +278,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "235d01ea73c9f692dddf5fcf203a99dcd2ad75c6ef0fc3d51a60bf949d4fbdc9"
+  inputs-digest = "b4e3f9681dc0f331b539efe648984eff43aaf82270bee1adfad1a7aa07732ffa"
   solver-name = "gps-cdcl"
   solver-version = 1

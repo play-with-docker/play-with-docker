@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/docker/docker/client"
+	docker "docker.io/go-docker"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/shirou/gopsutil/load"
 )
@@ -14,7 +14,7 @@ import (
 func Ping(rw http.ResponseWriter, req *http.Request) {
 	// Get system load average of the last 5 minutes and compare it against a threashold.
 
-	c, err := client.NewEnvClient()
+	c, err := docker.NewEnvClient()
 
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
