@@ -103,12 +103,22 @@ func Register(extend HandlerExtender) {
 		}
 
 		go func() {
-			http.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+			rr := mux.NewRouter()
+			rr.HandleFunc("/ping", Ping).Methods("GET")
+			rr.Handle("/metrics", promhttp.Handler())
+			rr.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
 				http.Redirect(rw, r, fmt.Sprintf("https://%s", r.Host), http.StatusMovedPermanently)
 			})
+			nr := negroni.Classic()
+			nr.UseHandler(rr)
 			log.Println("Starting redirect server")
-			log.Fatal(http.ListenAndServe(":3001", nil))
-			log.Fatal(httpServer.ListenAndServe())
+			redirectServer := http.Server{
+				Addr:              "0.0.0.0:3001",
+				Handler:           nr,
+				IdleTimeout:       30 * time.Second,
+				ReadHeaderTimeout: 5 * time.Second,
+			}
+			log.Fatal(redirectServer.ListenAndServe())
 		}()
 
 		log.Println("Listening on port " + config.PortNumber)
