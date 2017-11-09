@@ -17,22 +17,6 @@ import (
 	"github.com/twinj/uuid"
 )
 
-func LoggedInUser(rw http.ResponseWriter, req *http.Request) {
-	cookie, err := ReadCookie(req)
-	if err != nil {
-		log.Println("Cannot read cookie")
-		rw.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-	user, err := core.UserGet(cookie.Id)
-	if err != nil {
-		log.Printf("Couldn't get user with id %s. Got: %v\n", cookie.Id, err)
-		rw.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-	json.NewEncoder(rw).Encode(user)
-}
-
 func ListProviders(rw http.ResponseWriter, req *http.Request) {
 	providers := []string{}
 	for name, _ := range config.Providers {
