@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# This is shim to help with the case were pasted commands from a readme assume you are not root. Since this isto be run by root, it should effectively be a dummy command that allows the parameters to pass through.
+
+exec $@
