@@ -18,7 +18,6 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.Stack != "" {
-		s.Host = r.Host
 		go core.SessionDeployStack(s)
 	}
 
