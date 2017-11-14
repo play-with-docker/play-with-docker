@@ -65,6 +65,11 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		if d > playground.DefaultSessionDuration {
+			log.Printf("Specified session duration was %s but maximum allowed by this playground is %d\n", d.String(), playground.DefaultSessionDuration.String())
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		duration = d
 	} else {
 		duration = playground.DefaultSessionDuration
