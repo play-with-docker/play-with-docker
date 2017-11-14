@@ -106,3 +106,15 @@ func (m *Mock) UserGet(id string) (*types.User, error) {
 	args := m.Called(id)
 	return args.Get(0).(*types.User), args.Error(1)
 }
+func (m *Mock) PlaygroundPut(playground *types.Playground) error {
+	args := m.Called(playground)
+	return args.Error(0)
+}
+func (m *Mock) PlaygroundGet(id string) (*types.Playground, error) {
+	args := m.Called(id)
+	return args.Get(0).(*types.Playground), args.Error(1)
+}
+func (m *Mock) PlaygroundGetAll() ([]*types.Playground, error) {
+	args := m.Called()
+	return args.Get(0).([]*types.Playground), args.Error(1)
+}

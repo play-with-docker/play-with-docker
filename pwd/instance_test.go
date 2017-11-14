@@ -70,7 +70,11 @@ func TestInstanceNew(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew("", time.Hour, "", "", "")
+	playground := &types.Playground{Id: "foobar", DefaultDinDInstanceImage: "franela/dind"}
+
+	_s.On("PlaygroundGet", "foobar").Return(playground, nil)
+
+	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{
@@ -78,7 +82,7 @@ func TestInstanceNew(t *testing.T) {
 		Hostname:    "node1",
 		IP:          "10.0.0.1",
 		RoutableIP:  "10.0.0.1",
-		Image:       config.GetDindImageName(),
+		Image:       "franela/dind",
 		SessionId:   session.Id,
 		SessionHost: session.Host,
 		ProxyHost:   router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
@@ -138,7 +142,8 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew("", time.Hour, "", "", "")
+	playground := &types.Playground{Id: "foobar"}
+	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
 
 	assert.Nil(t, err)
 
@@ -207,7 +212,8 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew("", time.Hour, "", "", "")
+	playground := &types.Playground{Id: "foobar"}
+	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{

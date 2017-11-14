@@ -72,7 +72,7 @@ func SessionNotEmpty(e error) bool {
 }
 
 type PWDApi interface {
-	SessionNew(userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error)
+	SessionNew(playground *types.Playground, userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error)
 	SessionClose(session *types.Session) error
 	SessionGetSmallestViewPort(sessionId string) types.ViewPort
 	SessionDeployStack(session *types.Session) error
@@ -98,6 +98,11 @@ type PWDApi interface {
 	UserGetLoginRequest(id string) (*types.LoginRequest, error)
 	UserLogin(loginRequest *types.LoginRequest, user *types.User) (*types.User, error)
 	UserGet(id string) (*types.User, error)
+
+	PlaygroundNew(playground types.Playground) (*types.Playground, error)
+	PlaygroundGet(id string) *types.Playground
+	PlaygroundFindByDomain(domain string) *types.Playground
+	PlaygroundList() ([]*types.Playground, error)
 }
 
 func NewPWD(f docker.FactoryApi, e event.EventApi, s storage.StorageApi, sp provisioner.SessionProvisionerApi, ipf provisioner.InstanceProvisionerFactoryApi) *pwd {

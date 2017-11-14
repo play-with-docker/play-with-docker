@@ -2,10 +2,7 @@ package config
 
 import (
 	"flag"
-	"fmt"
-	"os"
 	"regexp"
-	"time"
 
 	"github.com/gorilla/securecookie"
 
@@ -27,10 +24,9 @@ const (
 var NameFilter = regexp.MustCompile(PWDHostPortGroupRegex)
 var AliasFilter = regexp.MustCompile(AliasPortGroupRegex)
 
-var PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, PWDCName, HashKey, SSHKeyPath, L2RouterIP, DindVolumeSize, CookieHashKey, CookieBlockKey string
+var PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, HashKey, SSHKeyPath, L2RouterIP, DindVolumeSize, CookieHashKey, CookieBlockKey, DefaultDinDImage, DefaultSessionDuration string
 var UseLetsEncrypt, ExternalDindVolume, NoWindows bool
 var LetsEncryptCertsDir string
-var LetsEncryptDomains stringslice
 var MaxLoadAvg float64
 var ForceTLS bool
 var Providers map[string]*oauth2.Config
@@ -40,18 +36,9 @@ var GithubClientID, GithubClientSecret string
 var FacebookClientID, FacebookClientSecret string
 var DockerClientID, DockerClientSecret string
 
-type stringslice []string
-
-func (i *stringslice) String() string {
-	return fmt.Sprintf("%s", *i)
-}
-func (i *stringslice) Set(value string) error {
-	*i = append(*i, value)
-	return nil
-}
+var PlaygroundDomain string
 
 func ParseFlags() {
-	flag.Var(&LetsEncryptDomains, "letsencrypt-domain", "List of domains to validate with let's encrypt")
 	flag.StringVar(&LetsEncryptCertsDir, "letsencrypt-certs-dir", "/certs", "Path where let's encrypt certs will be stored")
 	flag.BoolVar(&UseLetsEncrypt, "letsencrypt-enable", false, "Enabled let's encrypt tls certificates")
 	flag.BoolVar(&ForceTLS, "tls", false, "Use TLS to connect to docker daemons")
@@ -63,7 +50,6 @@ func ParseFlags() {
 	flag.StringVar(&L2ContainerName, "l2", "l2", "Container name used to run L2 Router")
 	flag.StringVar(&L2RouterIP, "l2-ip", "", "Host IP address for L2 router ping response")
 	flag.StringVar(&L2Subdomain, "l2-subdomain", "direct", "Subdomain to the L2 Router")
-	flag.StringVar(&PWDCName, "cname", "", "CNAME given to this host")
 	flag.StringVar(&HashKey, "hash_key", "salmonrosado", "Hash key to use for cookies")
 	flag.StringVar(&DindVolumeSize, "dind-volume-size", "5G", "Dind volume folder size")
 	flag.BoolVar(&NoWindows, "win-disable", false, "Disable windows instances")
@@ -72,6 +58,8 @@ func ParseFlags() {
 	flag.StringVar(&SSHKeyPath, "ssh_key_path", "", "SSH Private Key to use")
 	flag.StringVar(&CookieHashKey, "cookie-hash-key", "", "Hash key to use to validate cookies")
 	flag.StringVar(&CookieBlockKey, "cookie-block-key", "", "Block key to use to encrypt cookies")
+	flag.StringVar(&DefaultDinDImage, "default-dind-image", "franela/dind", "Default DinD image to use if not specified otherwise")
+	flag.StringVar(&DefaultSessionDuration, "default-session-duration", "4h", "Default session duration if not specified otherwise")
 
 	flag.StringVar(&GithubClientID, "oauth-github-client-id", "", "Github OAuth Client ID")
 	flag.StringVar(&GithubClientSecret, "oauth-github-client-secret", "", "Github OAuth Client Secret")
@@ -81,6 +69,8 @@ func ParseFlags() {
 
 	flag.StringVar(&DockerClientID, "oauth-docker-client-id", "", "Docker OAuth Client ID")
 	flag.StringVar(&DockerClientSecret, "oauth-docker-client-secret", "", "Docker OAuth Client Secret")
+
+	flag.StringVar(&PlaygroundDomain, "playground-domain", "localhost", "Domain to use for the playground")
 
 	flag.Parse()
 
@@ -125,39 +115,4 @@ func registerOAuthProviders() {
 
 		Providers["docker"] = conf
 	}
-}
-
-func GetDindImageName() string {
-	dindImage := os.Getenv("DIND_IMAGE")
-	defaultDindImageName := "franela/dind"
-	if len(dindImage) == 0 {
-		dindImage = defaultDindImageName
-	}
-	return dindImage
-}
-
-func GetSSHImage() string {
-	sshImage := os.Getenv("SSH_IMAGE")
-	defaultSSHImage := "franela/ssh"
-	if len(sshImage) == 0 {
-		return defaultSSHImage
-	}
-	return sshImage
-}
-
-func GetDuration(reqDur string) time.Duration {
-	var defaultDuration = 4 * time.Hour
-	if reqDur != "" {
-		if dur, err := time.ParseDuration(reqDur); err == nil && dur <= defaultDuration {
-			return dur
-		}
-		return defaultDuration
-	}
-
-	envDur := os.Getenv("EXPIRY")
-	if dur, err := time.ParseDuration(envDur); err == nil {
-		return dur
-	}
-
-	return defaultDuration
 }

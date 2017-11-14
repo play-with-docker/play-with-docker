@@ -13,7 +13,7 @@ type Mock struct {
 	mock.Mock
 }
 
-func (m *Mock) SessionNew(userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error) {
+func (m *Mock) SessionNew(playground *types.Playground, userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error) {
 	args := m.Called(duration, stack, stackName, imageName)
 	return args.Get(0).(*types.Session), args.Error(1)
 }
@@ -119,7 +119,27 @@ func (m *Mock) UserLogin(loginRequest *types.LoginRequest, user *types.User) (*t
 	args := m.Called(loginRequest, user)
 	return args.Get(0).(*types.User), args.Error(1)
 }
+
 func (m *Mock) UserGet(id string) (*types.User, error) {
 	args := m.Called(id)
 	return args.Get(0).(*types.User), args.Error(1)
+}
+
+func (m *Mock) PlaygroundNew(playground types.Playground) (*types.Playground, error) {
+	args := m.Called(playground)
+	return args.Get(0).(*types.Playground), args.Error(1)
+}
+
+func (m *Mock) PlaygroundGet(id string) *types.Playground {
+	args := m.Called(id)
+	return args.Get(0).(*types.Playground)
+}
+
+func (m *Mock) PlaygroundFindByDomain(domain string) *types.Playground {
+	args := m.Called(domain)
+	return args.Get(0).(*types.Playground)
+}
+func (m *Mock) PlaygroundList() ([]*types.Playground, error) {
+	args := m.Called()
+	return args.Get(0).([]*types.Playground), args.Error(1)
 }
