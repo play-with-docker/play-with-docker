@@ -119,7 +119,23 @@ func (m *Mock) UserLogin(loginRequest *types.LoginRequest, user *types.User) (*t
 	args := m.Called(loginRequest, user)
 	return args.Get(0).(*types.User), args.Error(1)
 }
+
 func (m *Mock) UserGet(id string) (*types.User, error) {
 	args := m.Called(id)
 	return args.Get(0).(*types.User), args.Error(1)
+}
+
+func (m *Mock) PlaygroundNew(playground types.Playground) (*types.Playground, error) {
+	args := m.Called(playground)
+	return args.Get(0).(*types.Playground), args.Error(1)
+}
+
+func (m *Mock) PlaygroundGet(id string) *types.Playground {
+	args := m.Called(id)
+	return args.Get(0).(*types.Playground)
+}
+
+func (m *Mock) PlaygroundFindByDomain(domain string) *types.Playground {
+	args := m.Called(domain)
+	return args.Get(0).(*types.Playground)
 }
