@@ -42,4 +42,7 @@ type StorageApi interface {
 	UserFindByProvider(providerName, providerUserId string) (*types.User, error)
 	UserPut(user *types.User) error
 	UserGet(id string) (*types.User, error)
+
+	PlaygroundPut(playground *types.Playground) error
+	PlaygroundGet(id string) (*types.Playground, error)
 }

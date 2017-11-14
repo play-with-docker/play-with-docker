@@ -22,6 +22,7 @@ type DB struct {
 	WindowsInstances map[string]*types.WindowsInstance `json:"windows_instances"`
 	LoginRequests    map[string]*types.LoginRequest    `json:"login_requests"`
 	Users            map[string]*types.User            `json:"user"`
+	Playgrounds      map[string]*types.Playground      `json:"playgrounds"`
 
 	WindowsInstancesBySessionId map[string][]string `json:"windows_instances_by_session_id"`
 	InstancesBySessionId        map[string][]string `json:"instances_by_session_id"`
@@ -364,6 +365,25 @@ func (store *storage) UserGet(id string) (*types.User, error) {
 	}
 }
 
+func (store *storage) PlaygroundPut(playground *types.Playground) error {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	store.db.Playgrounds[playground.Id] = playground
+
+	return store.save()
+}
+func (store *storage) PlaygroundGet(id string) (*types.Playground, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+	if playground, found := store.db.Playgrounds[id]; !found {
+		return nil, NotFoundError
+	} else {
+		return playground, nil
+	}
+	return nil, NotFoundError
+}
+
 func (store *storage) load() error {
 	file, err := os.Open(store.path)
 
@@ -376,12 +396,13 @@ func (store *storage) load() error {
 		}
 	} else {
 		store.db = &DB{
-			Sessions:         map[string]*types.Session{},
-			Instances:        map[string]*types.Instance{},
-			Clients:          map[string]*types.Client{},
-			WindowsInstances: map[string]*types.WindowsInstance{},
-			LoginRequests:    map[string]*types.LoginRequest{},
-			Users:            map[string]*types.User{},
+			Sessions:                    map[string]*types.Session{},
+			Instances:                   map[string]*types.Instance{},
+			Clients:                     map[string]*types.Client{},
+			WindowsInstances:            map[string]*types.WindowsInstance{},
+			LoginRequests:               map[string]*types.LoginRequest{},
+			Users:                       map[string]*types.User{},
+			Playgrounds:                 map[string]*types.Playground{},
 			WindowsInstancesBySessionId: map[string][]string{},
 			InstancesBySessionId:        map[string][]string{},
 			ClientsBySessionId:          map[string][]string{},
