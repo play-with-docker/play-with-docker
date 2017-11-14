@@ -10,9 +10,9 @@ import (
 	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/twinj/uuid"
 )
 
 func TestPlaygroundNew(t *testing.T) {
@@ -35,7 +35,7 @@ func TestPlaygroundNew(t *testing.T) {
 	assert.Nil(t, e)
 	assert.NotNil(t, playground)
 
-	expectedPlayground.Id = uuid.NewV5(uuid.NameSpaceURL, uuid.Name("localhost")).String()
+	expectedPlayground.Id = uuid.NewV5(uuid.NamespaceOID, "localhost").String()
 	assert.Equal(t, expectedPlayground, *playground)
 
 	_d.AssertExpectations(t)

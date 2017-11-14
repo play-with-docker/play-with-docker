@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/twinj/uuid"
 )
 
 func TestPlayground_Extras_GetInt(t *testing.T) {

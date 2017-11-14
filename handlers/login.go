@@ -14,7 +14,7 @@ import (
 	fb "github.com/huandu/facebook"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/twinj/uuid"
+	"github.com/satori/go.uuid"
 )
 
 func LoggedInUser(rw http.ResponseWriter, req *http.Request) {

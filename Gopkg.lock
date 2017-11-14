@@ -204,6 +204,12 @@
   version = "v1.1"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
+
+[[projects]]
   name = "github.com/shirou/gopsutil"
   packages = ["internal/common","load"]
   revision = "6e221c482653ef05c9f6a7bf71ddceea0e40bac5"
@@ -220,12 +226,6 @@
   name = "github.com/stretchr/testify"
   packages = ["assert","mock"]
   revision = "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f"
-
-[[projects]]
-  name = "github.com/twinj/uuid"
-  packages = ["."]
-  revision = "835a10bbd6bce40820349a68b1368a62c3c5617c"
-  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/urfave/negroni"
@@ -278,6 +278,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b4e3f9681dc0f331b539efe648984eff43aaf82270bee1adfad1a7aa07732ffa"
+  inputs-digest = "c44df7b948bc670608433a44e0c0b7997ab6efe72869b805669503c1c66d651b"
   solver-name = "gps-cdcl"
   solver-version = 1

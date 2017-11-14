@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/play-with-docker/play-with-docker/event"
-	"github.com/twinj/uuid"
+	"github.com/satori/go.uuid"
 )
 
 var upgrader = websocket.Upgrader{
