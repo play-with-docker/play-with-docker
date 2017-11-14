@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
@@ -42,7 +43,12 @@ func main() {
 
 	sch.Start()
 
-	playground := types.Playground{Domain: config.PlaygroundDomain, DefaultDinDInstanceImage: config.GetDindImageName(), AllowWindowsInstances: config.NoWindows, DefaultSessionDuration: config.GetDuration("")}
+	d, err := time.ParseDuration(config.DefaultSessionDuration)
+	if err != nil {
+		log.Fatalf("Cannot parse duration %s. Got: %v", config.DefaultSessionDuration, err)
+	}
+
+	playground := types.Playground{Domain: config.PlaygroundDomain, DefaultDinDInstanceImage: config.DefaultDinDImage, AllowWindowsInstances: config.NoWindows, DefaultSessionDuration: d, AvailableDinDInstanceImages: []string{config.DefaultDinDImage}}
 	if _, err := core.PlaygroundNew(playground); err != nil {
 		log.Fatalf("Cannot create default playground. Got: %v", err)
 	}

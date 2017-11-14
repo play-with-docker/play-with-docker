@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"log"
@@ -11,6 +12,7 @@ import (
 
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd"
@@ -92,10 +94,22 @@ func Register(extend HandlerExtender) {
 	}
 
 	if config.UseLetsEncrypt {
+		domainCache, err := lru.New(5000)
+		if err != nil {
+			log.Fatalf("Could not start domain cache. Got: %v", err)
+		}
 		certManager := autocert.Manager{
-			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist(config.LetsEncryptDomains...),
-			Cache:      autocert.DirCache(config.LetsEncryptCertsDir),
+			Prompt: autocert.AcceptTOS,
+			HostPolicy: func(ctx context.Context, host string) error {
+				if _, found := domainCache.Get(host); !found {
+					if playground := core.PlaygroundFindByDomain(host); playground == nil {
+						return fmt.Errorf("Playground for domain %s was not found", host)
+					}
+					domainCache.Add(host, true)
+				}
+				return nil
+			},
+			Cache: autocert.DirCache(config.LetsEncryptCertsDir),
 		}
 
 		httpServer.TLSConfig = &tls.Config{

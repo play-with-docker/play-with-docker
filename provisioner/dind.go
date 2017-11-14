@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/id"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -44,7 +43,11 @@ func checkHostnameExists(sessionId, hostname string, instances []*types.Instance
 
 func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error) {
 	if conf.ImageName == "" {
-		conf.ImageName = config.GetDindImageName()
+		playground, err := d.storage.PlaygroundGet(session.PlaygroundId)
+		if err != nil {
+			return nil, err
+		}
+		conf.ImageName = playground.DefaultDinDInstanceImage
 	}
 	log.Printf("NewInstance - using image: [%s]\n", conf.ImageName)
 	if conf.Hostname == "" {

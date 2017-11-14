@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -23,7 +22,14 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 
 	s := core.SessionGet(sessionId)
 
-	if body.Type == "windows" && config.NoWindows {
+	playground := core.PlaygroundGet(s.PlaygroundId)
+	if playground == nil {
+		log.Printf("Playground with id %s for session %s was not found!", s.PlaygroundId, s.Id)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if body.Type == "windows" && !playground.AllowWindowsInstances {
 		rw.WriteHeader(http.StatusUnauthorized)
 		return
 	}

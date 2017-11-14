@@ -114,3 +114,7 @@ func (m *Mock) PlaygroundGet(id string) (*types.Playground, error) {
 	args := m.Called(id)
 	return args.Get(0).(*types.Playground), args.Error(1)
 }
+func (m *Mock) PlaygroundGetAll() ([]*types.Playground, error) {
+	args := m.Called()
+	return args.Get(0).([]*types.Playground), args.Error(1)
+}

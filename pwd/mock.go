@@ -139,3 +139,7 @@ func (m *Mock) PlaygroundFindByDomain(domain string) *types.Playground {
 	args := m.Called(domain)
 	return args.Get(0).(*types.Playground)
 }
+func (m *Mock) PlaygroundList() ([]*types.Playground, error) {
+	args := m.Called()
+	return args.Get(0).([]*types.Playground), args.Error(1)
+}

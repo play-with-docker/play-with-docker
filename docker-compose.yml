@@ -14,16 +14,13 @@ services:
         # use the latest golang image
         image: golang
         # go to the right place and starts the app
-        command: /bin/sh -c 'ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null; cd /go/src/github.com/play-with-docker/play-with-docker; go run api.go -save /pwd/sessions -name l2'
+        command: /bin/sh -c 'ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null; cd /go/src/github.com/play-with-docker/play-with-docker; go run api.go -save /pwd/sessions -name l2 -default-dind-image franela/dind:hybrid'
         volumes:
             # since this app creates networks and launches containers, we need to talk to docker daemon
             - /var/run/docker.sock:/var/run/docker.sock
             # mount the box mounted shared folder to the container
             - $GOPATH/src:/go/src
             - sessions:/pwd
-        environment:
-            GOOGLE_RECAPTCHA_DISABLED: "true"
-            DIND_IMAGE: "franela/dind:hybrid"
     l2:
         container_name: l2
         # use the latest golang image

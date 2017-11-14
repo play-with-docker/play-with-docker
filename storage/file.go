@@ -413,6 +413,19 @@ func (store *storage) load() error {
 	file.Close()
 	return nil
 }
+func (store *storage) PlaygroundGetAll() ([]*types.Playground, error) {
+	store.rw.Lock()
+	defer store.rw.Unlock()
+
+	playgrounds := make([]*types.Playground, len(store.db.Playgrounds))
+	i := 0
+	for _, p := range store.db.Playgrounds {
+		playgrounds[i] = p
+		i++
+	}
+
+	return playgrounds, nil
+}
 
 func (store *storage) save() error {
 	file, err := os.Create(store.path)

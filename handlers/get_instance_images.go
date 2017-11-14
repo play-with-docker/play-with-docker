@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
-
-	"github.com/play-with-docker/play-with-docker/config"
 )
 
 func GetInstanceImages(rw http.ResponseWriter, req *http.Request) {
-	instanceImages := []string{
-		config.GetDindImageName(),
-		"franela/dind:dev",
+	playground := core.PlaygroundFindByDomain(req.Host)
+	if playground == nil {
+		log.Printf("Playground for domain %s was not found!", req.Host)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
 	}
-	json.NewEncoder(rw).Encode(instanceImages)
+	json.NewEncoder(rw).Encode(playground.AvailableDinDInstanceImages)
 }

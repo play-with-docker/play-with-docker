@@ -112,3 +112,41 @@ func TestPlaygroundFindByDomain(t *testing.T) {
 	_g.AssertExpectations(t)
 	_e.M.AssertExpectations(t)
 }
+
+func TestPlaygroundList(t *testing.T) {
+	_d := &docker.Mock{}
+	_f := &docker.FactoryMock{}
+	_s := &storage.Mock{}
+	_g := &id.MockGenerator{}
+	_e := &event.Mock{}
+
+	_s.On("PlaygroundPut", mock.AnythingOfType("*types.Playground")).Return(nil)
+
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
+
+	p := NewPWD(_f, _e, _s, sp, ipf)
+	p.generator = _g
+
+	pd := types.Playground{Domain: "localhost1", DefaultDinDInstanceImage: "franela/dind", AllowWindowsInstances: false, DefaultSessionDuration: time.Hour * 3, Extras: types.PlaygroundExtras{"foo": "bar"}}
+	p1, e := p.PlaygroundNew(pd)
+	assert.Nil(t, e)
+	assert.NotNil(t, p1)
+
+	pd = types.Playground{Domain: "localhost2", DefaultDinDInstanceImage: "franela/dind", AllowWindowsInstances: false, DefaultSessionDuration: time.Hour * 3, Extras: types.PlaygroundExtras{"foo": "bar"}}
+	p2, e := p.PlaygroundNew(pd)
+	assert.Nil(t, e)
+	assert.NotNil(t, p2)
+
+	_s.On("PlaygroundGetAll").Return([]*types.Playground{p1, p2}, nil)
+
+	received, err := p.PlaygroundList()
+	assert.Nil(t, err)
+	assert.NotNil(t, received)
+
+	_d.AssertExpectations(t)
+	_f.AssertExpectations(t)
+	_s.AssertExpectations(t)
+	_g.AssertExpectations(t)
+	_e.M.AssertExpectations(t)
+}

@@ -30,3 +30,7 @@ func (p *pwd) PlaygroundFindByDomain(domain string) *types.Playground {
 	id := uuid.NewV5(uuid.NameSpaceURL, uuid.Name(domain)).String()
 	return p.PlaygroundGet(id)
 }
+
+func (p *pwd) PlaygroundList() ([]*types.Playground, error) {
+	return p.storage.PlaygroundGetAll()
+}

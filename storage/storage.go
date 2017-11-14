@@ -45,4 +45,5 @@ type StorageApi interface {
 
 	PlaygroundPut(playground *types.Playground) error
 	PlaygroundGet(id string) (*types.Playground, error)
+	PlaygroundGetAll() ([]*types.Playground, error)
 }

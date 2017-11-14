@@ -102,6 +102,7 @@ type PWDApi interface {
 	PlaygroundNew(playground types.Playground) (*types.Playground, error)
 	PlaygroundGet(id string) *types.Playground
 	PlaygroundFindByDomain(domain string) *types.Playground
+	PlaygroundList() ([]*types.Playground, error)
 }
 
 func NewPWD(f docker.FactoryApi, e event.EventApi, s storage.StorageApi, sp provisioner.SessionProvisionerApi, ipf provisioner.InstanceProvisionerFactoryApi) *pwd {

@@ -673,3 +673,39 @@ func TestPlaygroundPut(t *testing.T) {
 
 	assert.EqualValues(t, expectedDB, loadedDB)
 }
+
+func TestPlaygroundGetAll(t *testing.T) {
+	p1 := &types.Playground{Id: "aaabbbccc"}
+	p2 := &types.Playground{Id: "dddeeefff"}
+	expectedDB := &DB{
+		Sessions:                    map[string]*types.Session{},
+		Instances:                   map[string]*types.Instance{},
+		Clients:                     map[string]*types.Client{},
+		WindowsInstances:            map[string]*types.WindowsInstance{},
+		LoginRequests:               map[string]*types.LoginRequest{},
+		Users:                       map[string]*types.User{},
+		Playgrounds:                 map[string]*types.Playground{p1.Id: p1, p2.Id: p2},
+		WindowsInstancesBySessionId: map[string][]string{},
+		InstancesBySessionId:        map[string][]string{},
+		ClientsBySessionId:          map[string][]string{},
+		UsersByProvider:             map[string]string{},
+	}
+
+	tmpfile, err := ioutil.TempFile("", "pwd")
+	if err != nil {
+		log.Fatal(err)
+	}
+	encoder := json.NewEncoder(tmpfile)
+	err = encoder.Encode(&expectedDB)
+	assert.Nil(t, err)
+	tmpfile.Close()
+	defer os.Remove(tmpfile.Name())
+
+	storage, err := NewFileStorage(tmpfile.Name())
+
+	assert.Nil(t, err)
+
+	found, err := storage.PlaygroundGetAll()
+	assert.Nil(t, err)
+	assert.Equal(t, []*types.Playground{p1, p2}, found)
+}

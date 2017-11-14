@@ -72,10 +72,12 @@ func (e PlaygroundExtras) GetDuration(name string) (time.Duration, bool) {
 }
 
 type Playground struct {
-	Id                       string           `json:"id" bson:"id"`
-	Domain                   string           `json:"domain" bson:"domain"`
-	DefaultDinDInstanceImage string           `json:"default_dind_instance_image" bson:"default_dind_instance_image"`
-	AllowWindowsInstances    bool             `json:"allow_windows_instances" bson:"allow_windows_instances"`
-	DefaultSessionDuration   time.Duration    `json:"default_session_duration" bson:"default_session_duration"`
-	Extras                   PlaygroundExtras `json:"extras" bson:"extras"`
+	Id                          string           `json:"id" bson:"id"`
+	Domain                      string           `json:"domain" bson:"domain"`
+	DefaultDinDInstanceImage    string           `json:"default_dind_instance_image" bson:"default_dind_instance_image"`
+	AvailableDinDInstanceImages []string         `json:"available_dind_instance_images" bson:"available_dind_instance_images"`
+	AllowWindowsInstances       bool             `json:"allow_windows_instances" bson:"allow_windows_instances"`
+	DefaultSessionDuration      time.Duration    `json:"default_session_duration" bson:"default_session_duration"`
+	L2RouterIP                  string           `json:"l2_router_ip" bson:"l2_router_ip"`
+	Extras                      PlaygroundExtras `json:"extras" bson:"extras"`
 }

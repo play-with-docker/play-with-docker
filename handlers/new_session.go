@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/provisioner"
@@ -49,7 +50,6 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		}
 
 	}
-	duration := config.GetDuration(reqDur)
 
 	playground := core.PlaygroundFindByDomain(req.Host)
 	if playground == nil {
@@ -57,6 +57,19 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	var duration time.Duration
+	if reqDur != "" {
+		d, err := time.ParseDuration(reqDur)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		duration = d
+	} else {
+		duration = playground.DefaultSessionDuration
+	}
+
 	s, err := core.SessionNew(playground, userId, duration, stack, stackName, imageName)
 	if err != nil {
 		if provisioner.OutOfCapacity(err) {
@@ -69,9 +82,6 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		//TODO: Return some error code
 	} else {
 		hostname := req.Host
-		if config.PWDCName != "" {
-			hostname = fmt.Sprintf("%s.%s", config.PWDCName, req.Host)
-		}
 		// If request is not a form, return sessionId in the body
 		if req.Header.Get("X-Requested-With") == "XMLHttpRequest" {
 			resp := NewSessionResponse{SessionId: s.Id, Hostname: hostname}

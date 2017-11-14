@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/play-with-docker/play-with-docker/config"
 )
 
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +21,14 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		go core.SessionDeployStack(s)
 	}
 
-	if config.NoWindows {
+	playground := core.PlaygroundGet(s.PlaygroundId)
+	if playground == nil {
+		log.Printf("Playground with id %s for session %s was not found!", s.PlaygroundId, s.Id)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if !playground.AllowWindowsInstances {
 		http.ServeFile(w, r, "./www/index-nw.html")
 	} else {
 		http.ServeFile(w, r, "./www/index.html")
