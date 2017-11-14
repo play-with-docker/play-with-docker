@@ -13,7 +13,7 @@ type Mock struct {
 	mock.Mock
 }
 
-func (m *Mock) SessionNew(userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error) {
+func (m *Mock) SessionNew(playground *types.Playground, userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error) {
 	args := m.Called(duration, stack, stackName, imageName)
 	return args.Get(0).(*types.Session), args.Error(1)
 }

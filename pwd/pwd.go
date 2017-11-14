@@ -72,7 +72,7 @@ func SessionNotEmpty(e error) bool {
 }
 
 type PWDApi interface {
-	SessionNew(userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error)
+	SessionNew(playground *types.Playground, userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error)
 	SessionClose(session *types.Session) error
 	SessionGetSmallestViewPort(sessionId string) types.ViewPort
 	SessionDeployStack(session *types.Session) error

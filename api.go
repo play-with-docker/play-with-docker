@@ -11,6 +11,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/id"
 	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/scheduler"
 	"github.com/play-with-docker/play-with-docker/scheduler/task"
 	"github.com/play-with-docker/play-with-docker/storage"
@@ -40,6 +41,11 @@ func main() {
 	}
 
 	sch.Start()
+
+	playground := types.Playground{Domain: config.PlaygroundDomain, DefaultDinDInstanceImage: config.GetDindImageName(), AllowWindowsInstances: config.NoWindows, DefaultSessionDuration: config.GetDuration("")}
+	if _, err := core.PlaygroundNew(playground); err != nil {
+		log.Fatalf("Cannot create default playground. Got: %v", err)
+	}
 
 	handlers.Bootstrap(core, e)
 	handlers.Register(nil)

@@ -43,7 +43,9 @@ func TestClientNew(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew("", time.Hour, "", "", "")
+	playground := &types.Playground{Id: "foobar"}
+
+	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	client := p.ClientNew("foobar", session)
@@ -81,8 +83,9 @@ func TestClientCount(t *testing.T) {
 
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
+	playground := &types.Playground{Id: "foobar"}
 
-	session, err := p.SessionNew("", time.Hour, "", "", "")
+	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	p.ClientNew("foobar", session)
@@ -122,8 +125,9 @@ func TestClientResizeViewPort(t *testing.T) {
 	_e.M.On("Emit", event.INSTANCE_VIEWPORT_RESIZE, "aaaabbbbcccc", []interface{}{uint(80), uint(24)}).Return()
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
+	playground := &types.Playground{Id: "foobar"}
 
-	session, err := p.SessionNew("", time.Hour, "", "", "")
+	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
 	assert.Nil(t, err)
 	client := p.ClientNew("foobar", session)
 	_s.On("ClientFindBySessionId", "aaaabbbbcccc").Return([]*types.Client{client}, nil)

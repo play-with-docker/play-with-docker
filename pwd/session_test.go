@@ -10,6 +10,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/id"
 	"github.com/play-with-docker/play-with-docker/provisioner"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -45,7 +46,8 @@ func TestSessionNew(t *testing.T) {
 
 	before := time.Now()
 
-	s, e := p.SessionNew("", time.Hour, "", "", "")
+	playground := &types.Playground{Id: "foobar"}
+	s, e := p.SessionNew(playground, "", time.Hour, "", "", "")
 	assert.Nil(t, e)
 	assert.NotNil(t, s)
 
@@ -56,12 +58,13 @@ func TestSessionNew(t *testing.T) {
 	assert.WithinDuration(t, s.ExpiresAt, before.Add(time.Hour), time.Second)
 	assert.True(t, s.Ready)
 
-	s, _ = p.SessionNew("", time.Hour, "stackPath", "stackName", "imageName")
+	s, _ = p.SessionNew(playground, "", time.Hour, "stackPath", "stackName", "imageName")
 
 	assert.Equal(t, "stackPath", s.Stack)
 	assert.Equal(t, "stackName", s.StackName)
 	assert.Equal(t, "imageName", s.ImageName)
 	assert.Equal(t, "localhost", s.Host)
+	assert.Equal(t, playground.Id, s.PlaygroundId)
 	assert.False(t, s.Ready)
 
 	_d.AssertExpectations(t)

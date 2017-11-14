@@ -50,7 +50,14 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 
 	}
 	duration := config.GetDuration(reqDur)
-	s, err := core.SessionNew(userId, duration, stack, stackName, imageName)
+
+	playground := core.PlaygroundFindByDomain(req.Host)
+	if playground == nil {
+		log.Printf("Playground for domain %s was not found!", req.Host)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	s, err := core.SessionNew(playground, userId, duration, stack, stackName, imageName)
 	if err != nil {
 		if provisioner.OutOfCapacity(err) {
 			http.Redirect(rw, req, "/ooc", http.StatusFound)

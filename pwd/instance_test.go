@@ -70,7 +70,8 @@ func TestInstanceNew(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew("", time.Hour, "", "", "")
+	playground := &types.Playground{Id: "foobar"}
+	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{
@@ -138,7 +139,8 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew("", time.Hour, "", "", "")
+	playground := &types.Playground{Id: "foobar"}
+	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
 
 	assert.Nil(t, err)
 
@@ -207,7 +209,8 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
 
-	session, err := p.SessionNew("", time.Hour, "", "", "")
+	playground := &types.Playground{Id: "foobar"}
+	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{

@@ -44,7 +44,7 @@ type SessionSetupInstanceConf struct {
 	Tls            bool       `json:"tls"`
 }
 
-func (p *pwd) SessionNew(userId string, duration time.Duration, stack, stackName, imageName string) (*types.Session, error) {
+func (p *pwd) SessionNew(playground *types.Playground, userId string, duration time.Duration, stack, stackName, imageName string) (*types.Session, error) {
 	defer observeAction("SessionNew", time.Now())
 
 	s := &types.Session{}
@@ -54,6 +54,7 @@ func (p *pwd) SessionNew(userId string, duration time.Duration, stack, stackName
 	s.Ready = true
 	s.Stack = stack
 	s.UserId = userId
+	s.PlaygroundId = playground.Id
 
 	if s.Stack != "" {
 		s.Ready = false

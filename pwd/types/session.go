@@ -15,4 +15,5 @@ type Session struct {
 	ImageName    string    `json:"image_name" bson:"image_name"`
 	Host         string    `json:"host" bson:"host"`
 	UserId       string    `json:"user_id" bson:"user_id"`
+	PlaygroundId string    `json:"playground_id" bson:"playground_id"`
 }

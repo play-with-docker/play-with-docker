@@ -40,6 +40,8 @@ var GithubClientID, GithubClientSecret string
 var FacebookClientID, FacebookClientSecret string
 var DockerClientID, DockerClientSecret string
 
+var PlaygroundDomain string
+
 type stringslice []string
 
 func (i *stringslice) String() string {
@@ -81,6 +83,8 @@ func ParseFlags() {
 
 	flag.StringVar(&DockerClientID, "oauth-docker-client-id", "", "Docker OAuth Client ID")
 	flag.StringVar(&DockerClientSecret, "oauth-docker-client-secret", "", "Docker OAuth Client Secret")
+
+	flag.StringVar(&PlaygroundDomain, "playground-domain", "localhost", "Domain to use for the playground")
 
 	flag.Parse()
 
