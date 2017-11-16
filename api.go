@@ -35,8 +35,8 @@ func main() {
 		task.NewCheckSwarmPorts(e, df),
 		task.NewCheckSwarmStatus(e, df),
 		task.NewCollectStats(e, df, s),
-		//task.NewCheckK8sClusterStatus(e, kf),
-		//task.NewCheckK8sClusterExposedPorts(e, kf),
+		task.NewCheckK8sClusterStatus(e, kf),
+		task.NewCheckK8sClusterExposedPorts(e, kf),
 	}
 	sch, err := scheduler.NewScheduler(tasks, s, e, core)
 	if err != nil {

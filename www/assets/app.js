@@ -330,6 +330,20 @@
             $scope.$apply();
         });
 
+        socket.on('instance k8s status', function(status) {
+            if (!$scope.idx[status.instance]) {
+                return
+            }
+            if (status.is_manager) {
+                $scope.idx[status.instance].isK8sManager = true
+            } else if (status.is_worker) {
+                $scope.idx[status.instance].isK8sManager = false
+            } else {
+                $scope.idx[status.instance].isK8sManager = null
+            }
+            $scope.$apply();
+        });
+
         socket.on('instance docker ports', function(status) {
           if (!$scope.idx[status.instance]) {
               return

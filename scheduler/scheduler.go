@@ -76,40 +76,30 @@ func (s *scheduler) processInstance(ctx context.Context, si *scheduledInstance) 
 	defer s.unscheduleInstance(si.instance)
 	for {
 		select {
-		case <-si.ticker.C:
-			// First check if instance still exists
-			_, err := s.storage.InstanceGet(si.instance.Name)
-			if err != nil {
-				if storage.NotFound(err) {
-					// Instance doesn't exists anymore. Unschedule.
-					log.Printf("Instance %s doesn't exists in storage.\n", si.instance.Name)
-					return
-				}
-				log.Printf("Error retrieving instance %s from storage. Got: %v\n", si.instance.Name, err)
-				continue
-			}
-			failed := false
-			for _, task := range s.tasks {
-				err := task.Run(ctx, si.instance)
-				if err != nil {
-					failed = true
-					log.Printf("Error running task %s on instance %s. Got: %v\n", task.Name(), si.instance.Name, err)
-					// Since one task failed, we just assume something might be wrong with the instance, so we don't try to process the rest of the tasks.
-					si.fails++
-					// As each task runs 1/sec then keep trying up to 5 minutes
-					if si.fails > 300 {
-						log.Printf("Instance %s has failed to execute tasks too many times. Giving up.\n", si.instance.Name)
-						return
-					}
-					break
-				}
-			}
-			if !failed {
-				si.fails = 0
-			}
 		case <-ctx.Done():
 			log.Printf("Processing tasks for instance %s has been canceled.\n", si.instance.Name)
 			return
+		default:
+			select {
+			case <-si.ticker.C:
+				// First check if instance still exists
+				_, err := s.storage.InstanceGet(si.instance.Name)
+				if err != nil {
+					if storage.NotFound(err) {
+						// Instance doesn't exists anymore. Unschedule.
+						log.Printf("Instance %s doesn't exists in storage.\n", si.instance.Name)
+						return
+					}
+					log.Printf("Error retrieving instance %s from storage. Got: %v\n", si.instance.Name, err)
+					continue
+				}
+				for _, task := range s.tasks {
+					err := task.Run(ctx, si.instance)
+					if err != nil {
+						log.Printf("Error running task %s on instance %s. Got: %v\n", task.Name(), si.instance.Name, err)
+					}
+				}
+			}
 		}
 	}
 }

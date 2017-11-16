@@ -14,6 +14,12 @@ type checkK8sClusterStatusTask struct {
 	factory k8s.FactoryApi
 }
 
+var CheckK8sStatusEvent event.EventType
+
+func init() {
+	CheckK8sStatusEvent = event.EventType("instance k8s status")
+}
+
 func NewCheckK8sClusterStatus(e event.EventApi, f k8s.FactoryApi) *checkK8sClusterStatusTask {
 	return &checkK8sClusterStatusTask{event: e, factory: f}
 }
@@ -42,7 +48,7 @@ func (c checkK8sClusterStatusTask) Run(ctx context.Context, i *types.Instance) e
 		status.IsManager = true
 	}
 
-	c.event.Emit(CheckSwarmStatusEvent, i.SessionId, status)
+	c.event.Emit(CheckK8sStatusEvent, i.SessionId, status)
 
 	return nil
 }
