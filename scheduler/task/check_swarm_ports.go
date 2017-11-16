@@ -9,12 +9,6 @@ import (
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
-type DockerSwarmPorts struct {
-	Manager   string   `json:"manager"`
-	Instances []string `json:"instances"`
-	Ports     []int    `json:"ports"`
-}
-
 type checkSwarmPorts struct {
 	event   event.EventApi
 	factory docker.FactoryApi
@@ -57,7 +51,7 @@ func (t *checkSwarmPorts) Run(ctx context.Context, instance *types.Instance) err
 		ports[i] = int(port)
 	}
 
-	t.event.Emit(CheckSwarmPortsEvent, instance.SessionId, DockerSwarmPorts{Manager: instance.Name, Instances: hosts, Ports: ports})
+	t.event.Emit(CheckSwarmPortsEvent, instance.SessionId, ClusterPorts{Manager: instance.Name, Instances: hosts, Ports: ports})
 	return nil
 }
 

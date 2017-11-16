@@ -1,0 +1,30 @@
+
+                          WARNING!!!!
+
+ This is a sandbox environment. Using personal credentials
+ is HIGHLY! discouraged. Any consequences of doing so, are
+ completely the user's responsibilites.
+
+ You can bootstrap a cluster as follows:
+
+ 1. Initializes cluster master node:
+
+ kubeadm init --apiserver-advertise-address $(hostname -i)
+    
+
+ 2. Initialize cluster networking:
+
+ kubectl apply -n kube-system -f \
+    "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+
+ 3. (Optional) Initialize kube-dashboard:
+
+ curl -L -s https://git.io/kube-dashboard  | sed 's/targetPort: 9090/targetPort: 9090\n  type: LoadBalancer/' | \
+    kubectl apply -f -
+
+
+                          The PWK team.
+
+
+

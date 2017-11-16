@@ -1,0 +1,8 @@
+FROM franela/kind_builder
+
+COPY motd /etc/motd
+RUN echo $'cat /etc/motd \n\
+export PS1="[\h \W]$ "' >> /root/.bash_profile
+
+CMD systemctl start docker && systemctl start kubelet \
+    && while true; do bash -l; done
