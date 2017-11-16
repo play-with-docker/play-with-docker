@@ -20,7 +20,7 @@ func NewOverlaySessionProvisioner(df docker.FactoryApi) SessionProvisionerApi {
 	return &overlaySessionProvisioner{dockerFactory: df}
 }
 
-func (p *overlaySessionProvisioner) SessionNew(s *types.Session) error {
+func (p *overlaySessionProvisioner) SessionNew(playground *types.Playground, s *types.Session) error {
 	dockerClient, err := p.dockerFactory.GetForSession(s)
 	if err != nil {
 		// We assume we are out of capacity

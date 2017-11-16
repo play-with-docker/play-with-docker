@@ -27,7 +27,7 @@ type InstanceProvisionerApi interface {
 }
 
 type SessionProvisionerApi interface {
-	SessionNew(session *types.Session) error
+	SessionNew(playground *types.Playground, session *types.Session) error
 	SessionClose(session *types.Session) error
 }
 

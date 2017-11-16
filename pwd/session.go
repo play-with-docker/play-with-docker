@@ -66,7 +66,7 @@ func (p *pwd) SessionNew(playground *types.Playground, userId string, duration t
 	s.ImageName = imageName
 
 	log.Printf("NewSession id=[%s]\n", s.Id)
-	if err := p.sessionProvisioner.SessionNew(s); err != nil {
+	if err := p.sessionProvisioner.SessionNew(playground, s); err != nil {
 		log.Println(err)
 		return nil, err
 	}
