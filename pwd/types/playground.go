@@ -78,6 +78,5 @@ type Playground struct {
 	AvailableDinDInstanceImages []string         `json:"available_dind_instance_images" bson:"available_dind_instance_images"`
 	AllowWindowsInstances       bool             `json:"allow_windows_instances" bson:"allow_windows_instances"`
 	DefaultSessionDuration      time.Duration    `json:"default_session_duration" bson:"default_session_duration"`
-	L2RouterIP                  string           `json:"l2_router_ip" bson:"l2_router_ip"`
 	Extras                      PlaygroundExtras `json:"extras" bson:"extras"`
 }
