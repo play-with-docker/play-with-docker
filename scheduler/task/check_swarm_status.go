@@ -10,12 +10,6 @@ import (
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
-type DockerSwarmStatus struct {
-	IsManager bool   `json:"is_manager"`
-	IsWorker  bool   `json:"is_worker"`
-	Instance  string `json:"instance"`
-}
-
 type checkSwarmStatus struct {
 	event   event.EventApi
 	factory docker.FactoryApi
@@ -53,8 +47,8 @@ func NewCheckSwarmStatus(e event.EventApi, f docker.FactoryApi) *checkSwarmStatu
 	return &checkSwarmStatus{event: e, factory: f}
 }
 
-func getDockerSwarmStatus(ctx context.Context, client docker.DockerApi) (DockerSwarmStatus, error) {
-	status := DockerSwarmStatus{}
+func getDockerSwarmStatus(ctx context.Context, client docker.DockerApi) (ClusterStatus, error) {
+	status := ClusterStatus{}
 	info, err := client.GetDaemonInfo()
 	if err != nil {
 		return status, err

@@ -9,6 +9,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/handlers"
 	"github.com/play-with-docker/play-with-docker/id"
+	"github.com/play-with-docker/play-with-docker/k8s"
 	"github.com/play-with-docker/play-with-docker/provisioner"
 	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/scheduler"
@@ -21,18 +22,21 @@ func main() {
 
 	e := initEvent()
 	s := initStorage()
-	f := initFactory(s)
+	df := initDockerFactory(s)
+	kf := initK8sFactory(s)
 
-	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(f, s), provisioner.NewDinD(id.XIDGenerator{}, f, s))
-	sp := provisioner.NewOverlaySessionProvisioner(f)
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(df, s), provisioner.NewDinD(id.XIDGenerator{}, df, s))
+	sp := provisioner.NewOverlaySessionProvisioner(df)
 
-	core := pwd.NewPWD(f, e, s, sp, ipf)
+	core := pwd.NewPWD(df, e, s, sp, ipf)
 
 	tasks := []scheduler.Task{
-		task.NewCheckPorts(e, f),
-		task.NewCheckSwarmPorts(e, f),
-		task.NewCheckSwarmStatus(e, f),
-		task.NewCollectStats(e, f, s),
+		task.NewCheckPorts(e, df),
+		task.NewCheckSwarmPorts(e, df),
+		task.NewCheckSwarmStatus(e, df),
+		task.NewCollectStats(e, df, s),
+		//task.NewCheckK8sClusterStatus(e, kf),
+		//task.NewCheckK8sClusterExposedPorts(e, kf),
 	}
 	sch, err := scheduler.NewScheduler(tasks, s, e, core)
 	if err != nil {
@@ -57,6 +61,10 @@ func initEvent() event.EventApi {
 	return event.NewLocalBroker()
 }
 
-func initFactory(s storage.StorageApi) docker.FactoryApi {
+func initDockerFactory(s storage.StorageApi) docker.FactoryApi {
 	return docker.NewLocalCachedFactory(s)
+}
+
+func initK8sFactory(s storage.StorageApi) k8s.FactoryApi {
+	return k8s.NewLocalCachedFactory(s)
 }
