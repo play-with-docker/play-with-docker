@@ -41,7 +41,7 @@ func TestCheckSwarmStatus_RunWhenInactive(t *testing.T) {
 
 	f.On("GetForInstance", i).Return(d, nil)
 	d.On("GetDaemonInfo").Return(infoInactive, nil)
-	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{DockerSwarmStatus{IsManager: false, IsWorker: false, Instance: "node1"}}).Return()
+	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{ClusterStatus{IsManager: false, IsWorker: false, Instance: "node1"}}).Return()
 
 	task := NewCheckSwarmStatus(e, f)
 	ctx := context.Background()
@@ -72,7 +72,7 @@ func TestCheckSwarmStatus_RunWhenLocked(t *testing.T) {
 
 	f.On("GetForInstance", i).Return(d, nil)
 	d.On("GetDaemonInfo").Return(infoLocked, nil)
-	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{DockerSwarmStatus{IsManager: false, IsWorker: false, Instance: "node1"}}).Return()
+	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{ClusterStatus{IsManager: false, IsWorker: false, Instance: "node1"}}).Return()
 
 	task := NewCheckSwarmStatus(e, f)
 	ctx := context.Background()
@@ -104,7 +104,7 @@ func TestCheckSwarmStatus_RunWhenManager(t *testing.T) {
 
 	f.On("GetForInstance", i).Return(d, nil)
 	d.On("GetDaemonInfo").Return(infoLocked, nil)
-	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{DockerSwarmStatus{IsManager: true, IsWorker: false, Instance: "node1"}}).Return()
+	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{ClusterStatus{IsManager: true, IsWorker: false, Instance: "node1"}}).Return()
 
 	task := NewCheckSwarmStatus(e, f)
 	ctx := context.Background()
@@ -136,7 +136,7 @@ func TestCheckSwarmStatus_RunWhenWorker(t *testing.T) {
 
 	f.On("GetForInstance", i).Return(d, nil)
 	d.On("GetDaemonInfo").Return(infoLocked, nil)
-	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{DockerSwarmStatus{IsManager: false, IsWorker: true, Instance: "node1"}}).Return()
+	e.M.On("Emit", CheckSwarmStatusEvent, "aaabbbccc", []interface{}{ClusterStatus{IsManager: false, IsWorker: true, Instance: "node1"}}).Return()
 
 	task := NewCheckSwarmStatus(e, f)
 	ctx := context.Background()
