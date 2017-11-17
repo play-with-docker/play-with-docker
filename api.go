@@ -52,7 +52,7 @@ func main() {
 		log.Fatalf("Cannot parse duration %s. Got: %v", config.DefaultSessionDuration, err)
 	}
 
-	playground := types.Playground{Domain: config.PlaygroundDomain, DefaultDinDInstanceImage: config.DefaultDinDImage, AllowWindowsInstances: config.NoWindows, DefaultSessionDuration: d, AvailableDinDInstanceImages: []string{config.DefaultDinDImage}}
+	playground := types.Playground{Domain: config.PlaygroundDomain, DefaultDinDInstanceImage: config.DefaultDinDImage, AllowWindowsInstances: config.NoWindows, DefaultSessionDuration: d, AvailableDinDInstanceImages: []string{config.DefaultDinDImage}, Tasks: []string{".*"}}
 	if _, err := core.PlaygroundNew(playground); err != nil {
 		log.Fatalf("Cannot create default playground. Got: %v", err)
 	}

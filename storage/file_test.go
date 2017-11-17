@@ -707,5 +707,6 @@ func TestPlaygroundGetAll(t *testing.T) {
 
 	found, err := storage.PlaygroundGetAll()
 	assert.Nil(t, err)
-	assert.Equal(t, []*types.Playground{p1, p2}, found)
+	assert.Subset(t, []*types.Playground{p1, p2}, found)
+	assert.Len(t, found, 2)
 }

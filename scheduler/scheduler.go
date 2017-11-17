@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
+	"sync"
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/event"
@@ -28,21 +30,26 @@ type scheduledSession struct {
 }
 
 type scheduledInstance struct {
-	instance *types.Instance
-	ticker   *time.Ticker
-	cancel   context.CancelFunc
-	fails    int
+	instance     *types.Instance
+	playgroundId string
+	ticker       *time.Ticker
+	cancel       context.CancelFunc
+	fails        int
 }
 
 type scheduler struct {
 	scheduledSessions  map[string]*scheduledSession
 	scheduledInstances map[string]*scheduledInstance
 	tasks              map[string]Task
+	playgrounds        map[string]*types.Playground
+	playgroundTasks    map[string][]Task
 	started            bool
+	ticker             *time.Ticker
 
 	storage storage.StorageApi
 	event   event.EventApi
 	pwd     pwd.PWDApi
+	mx      sync.Mutex
 }
 
 func NewScheduler(tasks []Task, s storage.StorageApi, e event.EventApi, p pwd.PWDApi) (*scheduler, error) {
@@ -51,6 +58,8 @@ func NewScheduler(tasks []Task, s storage.StorageApi, e event.EventApi, p pwd.PW
 	sch.tasks = make(map[string]Task)
 	sch.scheduledSessions = make(map[string]*scheduledSession)
 	sch.scheduledInstances = make(map[string]*scheduledInstance)
+	sch.playgrounds = make(map[string]*types.Playground)
+	sch.playgroundTasks = make(map[string][]Task)
 
 	for _, task := range tasks {
 		if err := sch.addTask(task); err != nil {
@@ -59,6 +68,61 @@ func NewScheduler(tasks []Task, s storage.StorageApi, e event.EventApi, p pwd.PW
 	}
 
 	return sch, nil
+}
+
+func (s *scheduler) updatePlaygrounds() {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	log.Printf("Updating playgrounds configuration\n")
+	for playgroundId, _ := range s.playgrounds {
+		playground, err := s.storage.PlaygroundGet(playgroundId)
+		if err != nil {
+			log.Printf("Could not find playground %s\n", playgroundId)
+			continue
+		}
+		s.playgrounds[playgroundId] = playground
+		matchedTasks := s.getMatchedTasks(playground)
+		s.playgroundTasks[playground.Id] = matchedTasks
+	}
+}
+
+func (s *scheduler) schedulePlaygroundsUpdate() {
+	s.updatePlaygrounds()
+	s.ticker = time.NewTicker(time.Minute * 5)
+	go func() {
+		for range s.ticker.C {
+			s.updatePlaygrounds()
+		}
+	}()
+}
+
+func (s *scheduler) getMatchedTasks(playground *types.Playground) []Task {
+	matchedTasks := []Task{}
+	for _, expr := range playground.Tasks {
+		for _, task := range s.tasks {
+			if expr == task.Name() {
+				matchedTasks = append(matchedTasks, task)
+				continue
+			}
+			matched, err := regexp.MatchString(expr, task.Name())
+			if err != nil {
+				continue
+			}
+			if matched {
+				matchedTasks = append(matchedTasks, task)
+				continue
+			}
+		}
+	}
+	return matchedTasks
+}
+
+func (s *scheduler) getTasks(playgroundId string) []Task {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	return s.playgroundTasks[playgroundId]
 }
 
 func (s *scheduler) processSession(ctx context.Context, ss *scheduledSession) {
@@ -93,7 +157,7 @@ func (s *scheduler) processInstance(ctx context.Context, si *scheduledInstance) 
 					log.Printf("Error retrieving instance %s from storage. Got: %v\n", si.instance.Name, err)
 					continue
 				}
-				for _, task := range s.tasks {
+				for _, task := range s.getTasks(si.playgroundId) {
 					err := task.Run(ctx, si.instance)
 					if err != nil {
 						log.Printf("Error running task %s on instance %s. Got: %v\n", task.Name(), si.instance.Name, err)
@@ -145,12 +209,12 @@ func (s *scheduler) unscheduleInstance(instance *types.Instance) {
 	delete(s.scheduledInstances, si.instance.Name)
 	log.Printf("Unscheduled instance %s\n", instance.Name)
 }
-func (s *scheduler) scheduleInstance(instance *types.Instance) {
+func (s *scheduler) scheduleInstance(instance *types.Instance, playgroundId string) {
 	if _, found := s.scheduledInstances[instance.Name]; found {
 		log.Printf("Instance %s is already scheduled. Ignoring.\n", instance.Name)
 		return
 	}
-	si := &scheduledInstance{instance: instance}
+	si := &scheduledInstance{instance: instance, playgroundId: playgroundId}
 	s.scheduledInstances[instance.Name] = si
 	ctx, cancel := context.WithCancel(context.Background())
 	si.cancel = cancel
@@ -160,6 +224,7 @@ func (s *scheduler) scheduleInstance(instance *types.Instance) {
 }
 
 func (s *scheduler) Stop() {
+	s.ticker.Stop()
 	for _, ss := range s.scheduledSessions {
 		s.unscheduleSession(ss.session)
 	}
@@ -176,6 +241,13 @@ func (s *scheduler) Start() error {
 	}
 	for _, session := range sessions {
 		s.scheduleSession(session)
+		if _, found := s.playgrounds[session.PlaygroundId]; !found {
+			playground, err := s.storage.PlaygroundGet(session.PlaygroundId)
+			if err != nil {
+				return err
+			}
+			s.playgrounds[playground.Id] = playground
+		}
 
 		instances, err := s.storage.InstanceFindBySessionId(session.Id)
 		if err != nil {
@@ -183,15 +255,30 @@ func (s *scheduler) Start() error {
 		}
 
 		for _, instance := range instances {
-			s.scheduleInstance(instance)
+			s.scheduleInstance(instance, session.PlaygroundId)
 		}
 	}
+
+	// Refresh playground conf every 5 minutes
+	s.schedulePlaygroundsUpdate()
+
 	s.event.On(event.SESSION_NEW, func(sessionId string, args ...interface{}) {
+		s.mx.Lock()
+		defer s.mx.Unlock()
+
 		log.Printf("EVENT: Session New %s\n", sessionId)
 		session, err := s.storage.SessionGet(sessionId)
 		if err != nil {
 			log.Printf("Session [%s] was not found in storage. Got %s\n", sessionId, err)
 			return
+		}
+		if _, found := s.playgrounds[session.PlaygroundId]; !found {
+			playground, err := s.storage.PlaygroundGet(session.PlaygroundId)
+			if err != nil {
+				log.Printf("Could not find playground %s\n")
+				return
+			}
+			s.playgrounds[playground.Id] = playground
 		}
 		s.scheduleSession(session)
 	})
@@ -208,7 +295,12 @@ func (s *scheduler) Start() error {
 			log.Printf("Instance [%s] was not found in storage. Got %s\n", instanceName, err)
 			return
 		}
-		s.scheduleInstance(instance)
+		session, err := s.storage.SessionGet(instance.SessionId)
+		if err != nil {
+			log.Printf("Session [%s] was not found in storage. Got %s\n", instance.SessionId, err)
+			return
+		}
+		s.scheduleInstance(instance, session.PlaygroundId)
 	})
 	s.event.On(event.INSTANCE_DELETE, func(sessionId string, args ...interface{}) {
 		instanceName := args[0].(string)
