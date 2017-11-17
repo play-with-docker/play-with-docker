@@ -40,6 +40,8 @@ var GithubClientID, GithubClientSecret string
 var FacebookClientID, FacebookClientSecret string
 var DockerClientID, DockerClientSecret string
 
+var SegmentId string
+
 type stringslice []string
 
 func (i *stringslice) String() string {
@@ -81,6 +83,8 @@ func ParseFlags() {
 
 	flag.StringVar(&DockerClientID, "oauth-docker-client-id", "", "Docker OAuth Client ID")
 	flag.StringVar(&DockerClientSecret, "oauth-docker-client-secret", "", "Docker OAuth Client Secret")
+
+	flag.StringVar(&SegmentId, "segment-id", "", "Segment id to post metrics")
 
 	flag.Parse()
 

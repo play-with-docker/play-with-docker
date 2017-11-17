@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"text/template"
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -63,9 +66,22 @@ func Register(extend HandlerExtender) {
 	corsRouter.HandleFunc("/sessions/{sessionId}/ws/", WSH)
 	r.Handle("/metrics", promhttp.Handler())
 
+	var b bytes.Buffer
+	t, err := template.New("landing.html").Delims("[[", "]]").ParseFiles("./www/landing.html")
+	if err != nil {
+		log.Fatalf("Error parsing template %v", err)
+	}
+	if err := t.Execute(&b, struct{ SegmentId string }{config.SegmentId}); err != nil {
+		log.Fatalf("Error executing template %v", err)
+	}
+	landingBytes, err := ioutil.ReadAll(&b)
+	if err != nil {
+		log.Fatalf("Error reading template bytes %v", err)
+	}
+
 	// Generic routes
 	r.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		http.ServeFile(rw, r, "./www/landing.html")
+		rw.Write(landingBytes)
 	}).Methods("GET")
 
 	corsRouter.HandleFunc("/users/me", LoggedInUser).Methods("GET")
