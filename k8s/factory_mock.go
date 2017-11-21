@@ -10,9 +10,9 @@ type FactoryMock struct {
 	mock.Mock
 }
 
-func (m *FactoryMock) GetKubeletForInstance(i *types.Instance) (*kubeletClient, error) {
+func (m *FactoryMock) GetKubeletForInstance(i *types.Instance) (*KubeletClient, error) {
 	args := m.Called(i)
-	return args.Get(0).(*kubeletClient), args.Error(1)
+	return args.Get(0).(*KubeletClient), args.Error(1)
 }
 
 func (m *FactoryMock) GetForInstance(instance *types.Instance) (*kubernetes.Clientset, error) {

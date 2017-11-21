@@ -23,7 +23,7 @@ type localCachedFactory struct {
 type instanceEntry struct {
 	rw            sync.Mutex
 	client        *kubernetes.Clientset
-	kubeletClient *kubeletClient
+	kubeletClient *KubeletClient
 }
 
 func (f *localCachedFactory) GetForInstance(instance *types.Instance) (*kubernetes.Clientset, error) {
@@ -60,7 +60,7 @@ func (f *localCachedFactory) GetForInstance(instance *types.Instance) (*kubernet
 	return c.client, nil
 }
 
-func (f *localCachedFactory) GetKubeletForInstance(instance *types.Instance) (*kubeletClient, error) {
+func (f *localCachedFactory) GetKubeletForInstance(instance *types.Instance) (*KubeletClient, error) {
 	key := instance.Name
 
 	f.irw.Lock()

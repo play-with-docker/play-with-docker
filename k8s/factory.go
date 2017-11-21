@@ -21,7 +21,7 @@ import (
 
 type FactoryApi interface {
 	GetForInstance(instance *types.Instance) (*kubernetes.Clientset, error)
-	GetKubeletForInstance(instance *types.Instance) (*kubeletClient, error)
+	GetKubeletForInstance(instance *types.Instance) (*KubeletClient, error)
 }
 
 func NewClient(instance *types.Instance, proxyHost string) (*kubernetes.Clientset, error) {
@@ -75,7 +75,7 @@ func NewClient(instance *types.Instance, proxyHost string) (*kubernetes.Clientse
 	return kubernetes.New(rc), nil
 }
 
-func NewKubeletClient(instance *types.Instance, proxyHost string) (*kubeletClient, error) {
+func NewKubeletClient(instance *types.Instance, proxyHost string) (*KubeletClient, error) {
 	var durl string
 
 	host := router.EncodeHost(instance.SessionId, instance.RoutableIP, router.HostOpts{EncodedPort: 10255})
@@ -94,16 +94,16 @@ func NewKubeletClient(instance *types.Instance, proxyHost string) (*kubeletClien
 	cli := &http.Client{
 		Transport: transport,
 	}
-	kc := &kubeletClient{client: cli, baseURL: durl}
+	kc := &KubeletClient{client: cli, baseURL: durl}
 	return kc, nil
 }
 
-type kubeletClient struct {
+type KubeletClient struct {
 	client  *http.Client
 	baseURL string
 }
 
-func (c *kubeletClient) Get(path string) (*http.Response, error) {
+func (c *KubeletClient) Get(path string) (*http.Response, error) {
 	return c.client.Get(c.baseURL + path)
 }
 
@@ -119,7 +119,7 @@ type kubeletPodsResponse struct {
 	Items []item
 }
 
-func (c *kubeletClient) IsManager() (bool, error) {
+func (c *KubeletClient) IsManager() (bool, error) {
 	res, err := c.client.Get(c.baseURL + "/pods")
 	if err != nil {
 		return false, err
