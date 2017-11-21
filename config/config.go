@@ -31,6 +31,7 @@ var MaxLoadAvg float64
 var ForceTLS bool
 var Providers map[string]*oauth2.Config
 var SecureCookie *securecookie.SecureCookie
+var AdminToken string
 
 var GithubClientID, GithubClientSecret string
 var FacebookClientID, FacebookClientSecret string
@@ -71,6 +72,7 @@ func ParseFlags() {
 	flag.StringVar(&DockerClientSecret, "oauth-docker-client-secret", "", "Docker OAuth Client Secret")
 
 	flag.StringVar(&PlaygroundDomain, "playground-domain", "localhost", "Domain to use for the playground")
+	flag.StringVar(&AdminToken, "admin-token", "", "Token to validate admin user for admin endpoints")
 
 	flag.Parse()
 
