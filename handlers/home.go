@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 )
@@ -29,9 +30,26 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if playground.IndexFile != "" {
-		http.ServeFile(w, r, fmt.Sprintf("./www/%s", playground.IndexFile))
-	} else {
-		http.ServeFile(w, r, "./www/index.html")
+	index := filepath.Join("./www", playground.AssetsDir, "/index.html")
+	if _, err := os.Stat(index); os.IsNotExist(err) {
+		index = "./www/default/index.html"
 	}
+
+	http.ServeFile(w, r, index)
+}
+
+func Landing(rw http.ResponseWriter, req *http.Request) {
+	playground := core.PlaygroundFindByDomain(req.Host)
+	if playground == nil {
+		log.Printf("Playground for domain %s was not found!", req.Host)
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	index := filepath.Join("./www", playground.AssetsDir, "/landing.html")
+	if _, err := os.Stat(index); os.IsNotExist(err) {
+		index = "./www/default/landing.html"
+	}
+
+	http.ServeFile(rw, req, index)
 }
