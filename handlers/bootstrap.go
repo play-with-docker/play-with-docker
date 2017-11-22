@@ -77,6 +77,7 @@ func Register(extend HandlerExtender) {
 	r.HandleFunc("/oauth/providers/{provider}/callback", LoginCallback).Methods("GET")
 	r.HandleFunc("/playgrounds", NewPlayground).Methods("PUT")
 	r.HandleFunc("/playgrounds", ListPlaygrounds).Methods("GET")
+	r.HandleFunc("/my/playground", GetCurrentPlayground).Methods("GET")
 
 	corsRouter.HandleFunc("/", NewSession).Methods("POST")
 

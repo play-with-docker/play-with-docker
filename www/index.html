@@ -50,7 +50,7 @@
                     <templates-icon></templates-icon>
                     <settings-icon></settings-icon><br/>
                   </div>
-                  <div class="md-toolbar-tools">
+                  <div class="md-toolbar-tools" ng-if="playground.allow_windows_instances">
                       <md-switch ng-model="type.windows">
                           Windows containers {{windows}}
                       </md-switch>
