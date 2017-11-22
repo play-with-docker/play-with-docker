@@ -155,6 +155,15 @@
       }
     }
 
+    $scope.loadPlaygroundConf = function() {
+      $http({
+        method: 'GET',
+        url: '/my/playground',
+      }).then(function(response) {
+        $scope.playground = response.data;
+      });
+
+    }
     $scope.getSession = function(sessionId) {
       $http({
         method: 'GET',
@@ -432,6 +441,7 @@
       });
     }
 
+    $scope.loadPlaygroundConf();
     $scope.getSession($scope.sessionId);
 
     $scope.createBuilderTerminal = function() {

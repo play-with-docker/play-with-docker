@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -28,8 +29,8 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !playground.AllowWindowsInstances {
-		http.ServeFile(w, r, "./www/index-nw.html")
+	if playground.IndexFile != "" {
+		http.ServeFile(w, r, fmt.Sprintf("./www/%s", playground.IndexFile))
 	} else {
 		http.ServeFile(w, r, "./www/index.html")
 	}
