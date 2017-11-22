@@ -79,6 +79,6 @@ type Playground struct {
 	AllowWindowsInstances       bool             `json:"allow_windows_instances" bson:"allow_windows_instances"`
 	DefaultSessionDuration      time.Duration    `json:"default_session_duration" bson:"default_session_duration"`
 	Extras                      PlaygroundExtras `json:"extras" bson:"extras"`
-	IndexFile                   string           `json:"index_file" bson:"index_file"`
+	AssetsDir                   string           `json:"assets_dir" bson:"assets_dir"`
 	Tasks                       []string         `json:"tasks" bson:"tasks"`
 }

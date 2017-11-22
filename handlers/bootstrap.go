@@ -66,9 +66,7 @@ func Register(extend HandlerExtender) {
 	r.Handle("/metrics", promhttp.Handler())
 
 	// Generic routes
-	r.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		http.ServeFile(rw, r, "./www/landing.html")
-	}).Methods("GET")
+	r.HandleFunc("/", Landing).Methods("GET")
 
 	corsRouter.HandleFunc("/users/me", LoggedInUser).Methods("GET")
 	r.HandleFunc("/users/{userId:^(?me)}", GetUser).Methods("GET")
