@@ -52,7 +52,7 @@ func ListPlaygrounds(rw http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(rw).Encode(playgrounds)
 }
 
-type PlaygroundConf struct {
+type PlaygroundConfigurationResponse struct {
 	Id                          string        `json:"id"`
 	Domain                      string        `json:"domain"`
 	DefaultDinDInstanceImage    string        `json:"default_dind_instance_image"`
@@ -68,7 +68,7 @@ func GetCurrentPlayground(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	json.NewEncoder(rw).Encode(PlaygroundConf{
+	json.NewEncoder(rw).Encode(PlaygroundConfigurationResponse{
 		Id:     playground.Id,
 		Domain: playground.Domain,
 		DefaultDinDInstanceImage:    playground.DefaultDinDInstanceImage,
