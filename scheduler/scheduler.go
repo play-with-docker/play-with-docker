@@ -308,6 +308,15 @@ func (s *scheduler) Start() error {
 		instance := &types.Instance{Name: instanceName}
 		s.unscheduleInstance(instance)
 	})
+	s.event.On(event.PLAYGROUND_NEW, func(playgroundId string, args ...interface{}) {
+		s.mx.Lock()
+		defer s.mx.Unlock()
+
+		log.Printf("EVENT: Playground New %s\n", playgroundId)
+
+		// We just update all playgrounds we manage to be safe. This is pretty fast anyway and this event should be fairly rare
+		s.updatePlaygrounds()
+	})
 	s.started = true
 
 	return nil

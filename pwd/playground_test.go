@@ -25,6 +25,8 @@ func TestPlaygroundNew(t *testing.T) {
 	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
+	var nilArgs []interface{}
+	_e.M.On("Emit", event.PLAYGROUND_NEW, uuid.NewV5(uuid.NamespaceOID, "localhost").String(), nilArgs).Return()
 	_s.On("PlaygroundPut", mock.AnythingOfType("*types.Playground")).Return(nil)
 
 	p := NewPWD(_f, _e, _s, sp, ipf)
@@ -52,6 +54,8 @@ func TestPlaygroundGet(t *testing.T) {
 	_g := &id.MockGenerator{}
 	_e := &event.Mock{}
 
+	var nilArgs []interface{}
+	_e.M.On("Emit", event.PLAYGROUND_NEW, uuid.NewV5(uuid.NamespaceOID, "localhost").String(), nilArgs).Return()
 	_s.On("PlaygroundPut", mock.AnythingOfType("*types.Playground")).Return(nil)
 
 	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
@@ -86,6 +90,8 @@ func TestPlaygroundFindByDomain(t *testing.T) {
 	_g := &id.MockGenerator{}
 	_e := &event.Mock{}
 
+	var nilArgs []interface{}
+	_e.M.On("Emit", event.PLAYGROUND_NEW, uuid.NewV5(uuid.NamespaceOID, "localhost").String(), nilArgs).Return()
 	_s.On("PlaygroundPut", mock.AnythingOfType("*types.Playground")).Return(nil)
 
 	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
@@ -120,6 +126,9 @@ func TestPlaygroundList(t *testing.T) {
 	_g := &id.MockGenerator{}
 	_e := &event.Mock{}
 
+	var nilArgs []interface{}
+	_e.M.On("Emit", event.PLAYGROUND_NEW, uuid.NewV5(uuid.NamespaceOID, "localhost1").String(), nilArgs).Return()
+	_e.M.On("Emit", event.PLAYGROUND_NEW, uuid.NewV5(uuid.NamespaceOID, "localhost2").String(), nilArgs).Return()
 	_s.On("PlaygroundPut", mock.AnythingOfType("*types.Playground")).Return(nil)
 
 	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
