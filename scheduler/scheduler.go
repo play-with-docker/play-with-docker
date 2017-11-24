@@ -310,10 +310,11 @@ func (s *scheduler) Start() error {
 	})
 	s.event.On(event.PLAYGROUND_NEW, func(playgroundId string, args ...interface{}) {
 		s.mx.Lock()
-		defer s.mx.Unlock()
 
 		log.Printf("EVENT: Playground New %s\n", playgroundId)
 
+		// Don't defer lock as updatePlaygrounds will lock again
+		s.mx.Unlock()
 		// We just update all playgrounds we manage to be safe. This is pretty fast anyway and this event should be fairly rare
 		s.updatePlaygrounds()
 	})

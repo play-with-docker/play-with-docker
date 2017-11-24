@@ -20,9 +20,7 @@
 
  3. (Optional) Initialize kube-dashboard:
 
- curl -L -s https://git.io/kube-dashboard  | sed 's/targetPort: 9090/targetPort: 9090\n  type: LoadBalancer/' | \
-    kubectl apply -f -
-
+curl -L -s https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml  | sed 's/targetPort: 8443/targetPort: 8443\n  type: LoadBalancer/' |    kubectl apply -f -
 
                           The PWK team.
 
