@@ -4,6 +4,15 @@ import (
 	"time"
 )
 
+type SessionConfig struct {
+	Playground *Playground
+	UserId     string
+	Duration   time.Duration
+	Stack      string
+	StackName  string
+	ImageName  string
+}
+
 type Session struct {
 	Id           string    `json:"id" bson:"id"`
 	CreatedAt    time.Time `json:"created_at" bson:"created_at"`

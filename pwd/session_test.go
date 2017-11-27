@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -47,7 +48,8 @@ func TestSessionNew(t *testing.T) {
 	before := time.Now()
 
 	playground := &types.Playground{Id: "foobar"}
-	s, e := p.SessionNew(playground, "", time.Hour, "", "", "")
+	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	s, e := p.SessionNew(context.Background(), sConfig)
 	assert.Nil(t, e)
 	assert.NotNil(t, s)
 
@@ -58,7 +60,8 @@ func TestSessionNew(t *testing.T) {
 	assert.WithinDuration(t, s.ExpiresAt, before.Add(time.Hour), time.Second)
 	assert.True(t, s.Ready)
 
-	s, _ = p.SessionNew(playground, "", time.Hour, "stackPath", "stackName", "imageName")
+	sConfig = types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "stackPath", StackName: "stackName", ImageName: "imageName"}
+	s, _ = p.SessionNew(context.Background(), sConfig)
 
 	assert.Equal(t, "stackPath", s.Stack)
 	assert.Equal(t, "stackName", s.StackName)
@@ -133,7 +136,8 @@ func TestSessionSetup(t *testing.T) {
 
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
-	s, e := p.SessionNew(time.Hour, "", "", "")
+	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	s, e := p.SessionNew(context.Background(), sConfig)
 	assert.Nil(t, e)
 
 	err := p.SessionSetup(s, SessionSetupConf{

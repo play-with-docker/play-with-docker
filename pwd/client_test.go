@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -45,7 +46,8 @@ func TestClientNew(t *testing.T) {
 
 	playground := &types.Playground{Id: "foobar"}
 
-	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
+	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	session, err := p.SessionNew(context.Background(), sConfig)
 	assert.Nil(t, err)
 
 	client := p.ClientNew("foobar", session)
@@ -85,7 +87,8 @@ func TestClientCount(t *testing.T) {
 	p.generator = _g
 	playground := &types.Playground{Id: "foobar"}
 
-	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
+	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	session, err := p.SessionNew(context.Background(), sConfig)
 	assert.Nil(t, err)
 
 	p.ClientNew("foobar", session)
@@ -127,7 +130,8 @@ func TestClientResizeViewPort(t *testing.T) {
 	p.generator = _g
 	playground := &types.Playground{Id: "foobar"}
 
-	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
+	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	session, err := p.SessionNew(context.Background(), sConfig)
 	assert.Nil(t, err)
 	client := p.ClientNew("foobar", session)
 	_s.On("ClientFindBySessionId", "aaaabbbbcccc").Return([]*types.Client{client}, nil)

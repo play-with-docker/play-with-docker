@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -74,7 +75,8 @@ func TestInstanceNew(t *testing.T) {
 
 	_s.On("PlaygroundGet", "foobar").Return(playground, nil)
 
-	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
+	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	session, err := p.SessionNew(context.Background(), sConfig)
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{
@@ -143,7 +145,8 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	p.generator = _g
 
 	playground := &types.Playground{Id: "foobar"}
-	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
+	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	session, err := p.SessionNew(context.Background(), sConfig)
 
 	assert.Nil(t, err)
 
@@ -213,7 +216,8 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	p.generator = _g
 
 	playground := &types.Playground{Id: "foobar"}
-	session, err := p.SessionNew(playground, "", time.Hour, "", "", "")
+	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	session, err := p.SessionNew(context.Background(), sConfig)
 	assert.Nil(t, err)
 
 	expectedInstance := types.Instance{

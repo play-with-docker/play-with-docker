@@ -1,6 +1,7 @@
 package provisioner
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -27,7 +28,7 @@ type InstanceProvisionerApi interface {
 }
 
 type SessionProvisionerApi interface {
-	SessionNew(playground *types.Playground, session *types.Session) error
+	SessionNew(ctx context.Context, session *types.Session) error
 	SessionClose(session *types.Session) error
 }
 
