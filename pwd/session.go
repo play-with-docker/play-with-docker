@@ -44,29 +44,30 @@ type SessionSetupInstanceConf struct {
 	Tls            bool       `json:"tls"`
 }
 
-func (p *pwd) SessionNew(playground *types.Playground, userId string, duration time.Duration, stack, stackName, imageName string) (*types.Session, error) {
+func (p *pwd) SessionNew(ctx context.Context, config types.SessionConfig) (*types.Session, error) {
 	defer observeAction("SessionNew", time.Now())
 
 	s := &types.Session{}
 	s.Id = p.generator.NewId()
 	s.CreatedAt = time.Now()
-	s.ExpiresAt = s.CreatedAt.Add(duration)
+	s.ExpiresAt = s.CreatedAt.Add(config.Duration)
 	s.Ready = true
-	s.Stack = stack
-	s.UserId = userId
-	s.PlaygroundId = playground.Id
+	s.Stack = config.Stack
+	s.UserId = config.UserId
+	s.PlaygroundId = config.Playground.Id
 
 	if s.Stack != "" {
 		s.Ready = false
 	}
+	stackName := config.StackName
 	if stackName == "" {
 		stackName = "pwd"
 	}
 	s.StackName = stackName
-	s.ImageName = imageName
+	s.ImageName = config.ImageName
 
 	log.Printf("NewSession id=[%s]\n", s.Id)
-	if err := p.sessionProvisioner.SessionNew(playground, s); err != nil {
+	if err := p.sessionProvisioner.SessionNew(ctx, s); err != nil {
 		log.Println(err)
 		return nil, err
 	}

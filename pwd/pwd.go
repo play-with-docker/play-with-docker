@@ -1,6 +1,7 @@
 package pwd
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -72,7 +73,7 @@ func SessionNotEmpty(e error) bool {
 }
 
 type PWDApi interface {
-	SessionNew(playground *types.Playground, userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error)
+	SessionNew(ctx context.Context, config types.SessionConfig) (*types.Session, error)
 	SessionClose(session *types.Session) error
 	SessionGetSmallestViewPort(sessionId string) types.ViewPort
 	SessionDeployStack(session *types.Session) error

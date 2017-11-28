@@ -1,9 +1,9 @@
 package pwd
 
 import (
+	"context"
 	"io"
 	"net"
-	"time"
 
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/stretchr/testify/mock"
@@ -13,8 +13,8 @@ type Mock struct {
 	mock.Mock
 }
 
-func (m *Mock) SessionNew(playground *types.Playground, userId string, duration time.Duration, stack string, stackName, imageName string) (*types.Session, error) {
-	args := m.Called(duration, stack, stackName, imageName)
+func (m *Mock) SessionNew(ctx context.Context, config types.SessionConfig) (*types.Session, error) {
+	args := m.Called(ctx, config)
 	return args.Get(0).(*types.Session), args.Error(1)
 }
 

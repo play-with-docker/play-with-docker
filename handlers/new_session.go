@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/provisioner"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
 type NewSessionResponse struct {
@@ -75,7 +77,8 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 		duration = playground.DefaultSessionDuration
 	}
 
-	s, err := core.SessionNew(playground, userId, duration, stack, stackName, imageName)
+	sConfig := types.SessionConfig{Playground: playground, UserId: userId, Duration: duration, Stack: stack, StackName: stackName, ImageName: imageName}
+	s, err := core.SessionNew(context.Background(), sConfig)
 	if err != nil {
 		if provisioner.OutOfCapacity(err) {
 			http.Redirect(rw, req, "/ooc", http.StatusFound)
