@@ -1,0 +1,252 @@
+<!doctype html>
+<html ng-app="DockerPlay" ng-controller="PlayController">
+    <head>
+        <title>Docker Playground</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic|Material+Icons" />
+        <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+        <link rel="stylesheet" href="/assets/xterm.css" />
+	<link rel="stylesheet" href="/assets/xterm-addons/fullscreen.css" />
+        <link rel="stylesheet" href="/assets/style.css" />
+        <script>
+            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+            })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+            ga('create', 'UA-89019737-1', 'auto');
+            ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+
+        <div layout="column" style="height:100%;" ng-cloak>
+            <section id="sessionEnd" layout="row" flex ng-if="!isAlive">
+              <md-content flex layout-padding ng-if="!instances.length">
+                <div layout="column" layout-align="top center">
+                  <p>
+                    <strong>Your session has expired.</strong>
+                  </p>
+                </div>
+                <div flex></div>
+              </md-content>
+            </section>
+
+            <section ng-if="!connected" class="disconnected" layout="row" layout-align="center center">
+                <h1 class="md-headline">No connection to server. Reconnecting...</h1>
+                <md-progress-circular class="md-hue-2" md-diameter="20px"></md-progress-circular>
+            </section>
+
+            <section id="popupContainer" layout="row" flex ng-if="isAlive">
+              <md-sidenav
+                  class="md-sidenav-left"
+                  md-component-id="left"
+                  md-theme="kube"
+                  md-is-locked-open="$mdMedia('gt-sm')"
+                  md-whiteframe="4" layout="column">
+
+                <md-toolbar class="md-accent md-hue-3">
+                  <span class="clock">{{ttl}}</span>
+                  <md-button class="md-warn md-raised" ng-click="closeSession()">Close session</md-button>
+                  <div class="md-toolbar-tools">
+                    <h1 class="md-toolbar-tools">Instances</h1>
+                    <settings-icon></settings-icon><br/>
+                  </div>
+                  <div class="md-toolbar-tools" ng-if="playground.allow_windows_instances">
+                      <md-switch ng-model="type.windows">
+                          Windows containers {{windows}}
+                      </md-switch>
+                  </div>
+                </md-toolbar>
+                <md-content layout-padding>
+                  <md-button ng-click="newInstance()" ng-disabled="isInstanceBeingCreated" class="md-primary">{{newInstanceBtnText}}</md-button>
+              <md-list class="md-dense" flex>
+                <md-list-item ng-switch on="instance.isManager || instance.isK8sManager" class="md-2-line" ng-repeat="instance in instances | orderBy:'hostname'" ng-click="showInstance(instance)" ng-class="instance.name == selectedInstance.name ? 'selected' : false">
+                    <md-icon ng-switch-when="true" style="color: blue" md-svg-icon="person"></md-icon>
+                    <md-icon ng-switch-when="false" md-svg-icon="person-outline"></md-icon>
+                    <div class="md-list-item-text" layout="column">
+                        <h3>{{instance.ip}}</h3>
+                        <h4>{{instance.hostname}}</h4>
+                    </div>
+                    <md-divider ng-if="!$last"></md-divider>
+                </md-list-item>
+              </md-list>
+                </md-content>
+              </md-sidenav>
+              <md-content flex layout-padding ng-if="!instances.length">
+                <div layout="column" layout-align="top center">
+                  <p>Add instances to your playground.</p>
+                  <p><strong>Sessions and all their instances are deleted after {{ttl}} hours.</strong></p>
+                </div>
+
+                <div flex></div>
+              </md-content>
+              <md-content flex layout="column" ng-repeat="instance in instances" ng-show="instance.name == selectedInstance.name" ngf-drop class="drop-box" ngf-drag-over-class="'dragover'" ngf-max-size="100000000" ngf-change="uploadFiles($files, $invalidFiles)" ngf-multiple="true">
+                  <md-card class="stats" md-theme="default" md-theme-watch>
+                      <md-card-title>
+                          <md-card-title-text>
+                              <span class="md-headline">{{instance.name}}</span>
+                          </md-card-title-text>
+                      </md-card-title>
+                      <md-card-content>
+                          <div layout-gt-sm="row">
+                             <md-input-container class="md-icon-float md-block">
+                               <label>IP</label>
+                               <input ng-model="instance.ip" type="text" readonly="readonly">
+                             </md-input-container>
+                             <md-chips ng-model="instance.ports" name="port" readonly="true" md-removable="false">
+                               <md-chip-template>
+                               <strong><a href="{{getProxyUrl(instance, $chip)}}" title="{{getProxyUrl(instance, $chip)}}" target="_blank">{{$chip}}</a></strong>
+                               </md-chip-template>
+                             </md-chips>
+                             <md-chips ng-model="instance.swarmPorts" name="port" readonly="true" md-removable="false">
+                               <md-chip-template>
+                               <strong><a href="{{getProxyUrl(instance, $chip)}}" title="{{getProxyUrl(instance, $chip)}}" target="_blank">{{$chip}}</a></strong>
+                               </md-chip-template>
+                             </md-chips>
+                          </div>
+                          <div layout-gt-sm="row">
+                             <md-input-container class="md-block" flex-gt-sm>
+                               <label>Memory</label>
+                               <input ng-model="instance.mem" type="text" readonly="readonly">
+                             </md-input-container>
+                             <md-input-container class="md-block" flex-gt-sm>
+                               <label>CPU</label>
+                               <input ng-model="instance.cpu" type="text" readonly="readonly">
+                             </md-input-container>
+                          </div>
+                      </md-card-content>
+                      <md-card-actions>
+                          <md-button class="md-warn md-raised" ng-click="deleteInstance(instance)" ng-disabled="isInstanceBeingDeleted">{{deleteInstanceBtnText}}</md-button>
+                          </md-card-actions>
+                  </md-card>
+                  <md-card flex md-theme="default" md-theme-watch >
+                      <div ng-show="uploadMessage" class="uploadStatus">
+                          <md-progress-linear  md-mode="determinate" value="{{uploadProgress}}"></md-progress-linear>
+                           <div class="bottom-block">
+                               <span>{{uploadMessage}}</span>
+                           </div>
+                      </div>
+                      <div ng-show="instance.status=='reconnect'" class="uploadStatus">Connection has been lost. Sometimes this happens when a windows instance is joining a swarm. Trying to reconnect terminal...</div>
+                      <md-card-content flex id="terminal-{{instance.name}}" class="terminal-container">
+                      </md-card-content>
+                  </md-card>
+              </md-content>
+            </section>
+        </div>
+
+        
+            
+
+        
+        <script type="text/ng-template" id="settings-modal.html">
+            <md-toolbar md-theme="kube">
+                <div class="md-toolbar-tools">
+                    <h2>Settings</h2>
+                    <span flex></span>
+                    <md-button class="md-icon-button" ng-click="$ctrl.close()">
+                        <md-icon class="material-icon" aria-label="Close dialog">close</md-icon>
+                    </md-button>
+                </div>
+                </md-toolbar>
+
+                <md-dialog-content>
+                <div class="md-dialog-content" style="width:600px;">
+                    <div layout="row">
+                        <div flex="50">
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Keyboard Shortcut Preset</label>
+                                <md-select ng-model="$ctrl.currentShortcutConfig" ng-model-options="{getterSetter: true}" placeholder="Keyboard shortcut prefix">
+                                    <md-option ng-repeat="preset in $ctrl.keyboardShortcutPresets" value="{{preset}}">
+                                        {{preset.name}}
+                                    </md-option>
+                                </md-select>
+                            </md-input-container>
+                        </div>
+                        <div flex="10"></div>
+                        <div flex="40">
+                            <div ng-if="$ctrl.selectedShortcutPreset">
+                                Preset details:
+                                <ul>
+                                    <li ng-if="$ctrl.selectedShortcutPreset.presets.length == 0">No presets defined</li>
+                                    <li ng-repeat="preset in $ctrl.selectedShortcutPreset.presets">
+                                        <code>{{preset.command}}</code> - {{preset.description}}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div layout="row">
+                        <div flex="50">
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Instance Image</label>
+                                <md-select ng-model="$ctrl.currentDesiredInstanceImage" ng-model-options="{getterSetter: true}" placeholder="New Instance Image">
+                                    <md-option ng-repeat="image in $ctrl.instanceImages" value="{{image}}">
+                                        {{ image }}
+                                    </md-option>
+                                </md-select>
+                            </md-input-container>
+                        </div>
+                    </div>
+                    <div layout="row">
+                        <div flex="50">
+                            <md-input-container class="md-block" flex-gt-sm>
+                                <label>Terminal Font Size</label>
+                                <md-select ng-model="$ctrl.currentTerminalFontSize" ng-model-options="{getterSetter: true}">
+                                    <md-option ng-repeat="size in $ctrl.terminalFontSizes" value="{{size}}">
+                                        {{ size }}
+                                    </md-option>
+                                </md-select>
+                            </md-input-container>
+                        </div>
+                    </div>
+                </div>
+                </md-dialog-content>
+
+                <md-dialog-actions layout="row">
+                    <span flex></span>
+                    <md-button ng-click="$ctrl.close()">
+                        Close
+                    </md-button>
+                </md-dialog-actions>
+        </script>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/reconnecting-websocket/1.0.0/reconnecting-websocket.min.js" integrity="sha256-A4JwlcDvqO4JXpvEtvWY1RH8JAEMu5W21wP8GUXLUNs=" crossorigin="anonymous"></script>
+	<script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+      crossorigin="anonymous"></script>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/danialfarid-angular-file-upload/12.2.13/ng-file-upload-all.min.js" integrity="sha256-LrZq3efIkFX0BooX7x/rjWyYDvMKfFV2HJpy6HBw7cE=" crossorigin="anonymous"></script>
+
+
+        <script src="/assets/app.js"></script>
+        <script src="/assets/xterm.js"></script>
+        <script src="/assets/xterm-addons/fit.js"></script>
+        <script src="/assets/xterm-addons/fullscreen.js"></script>
+        <script src="/assets/attach.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.16.0/moment.min.js"></script>
+
+
+
+        <script type="text/javascript" charset="utf-8">
+            window.onbeforeunload = function (e) {
+                e = e || window.event;
+
+                // For IE and Firefox prior to version 4
+                if (e) {
+                    e.returnValue = 'Make sure you saved your session URL';
+                }
+
+                // For Safari
+                return 'Make sure you saved your session URL';
+            };
+        </script>
+    </body>
+</html>
+
