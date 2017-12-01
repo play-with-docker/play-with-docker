@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
+	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -22,6 +25,7 @@ import (
 
 var core pwd.PWDApi
 var e event.EventApi
+var landings = map[string][]byte{}
 
 type HandlerExtender func(h *mux.Router)
 
@@ -31,6 +35,8 @@ func Bootstrap(c pwd.PWDApi, ev event.EventApi) {
 }
 
 func Register(extend HandlerExtender) {
+	initLandings()
+
 	r := mux.NewRouter()
 	corsRouter := mux.NewRouter()
 
@@ -141,5 +147,31 @@ func Register(extend HandlerExtender) {
 	} else {
 		log.Println("Listening on port " + config.PortNumber)
 		log.Fatal(httpServer.ListenAndServe())
+	}
+}
+
+func initLandings() {
+	pgs, err := core.PlaygroundList()
+	if err != nil {
+		log.Fatal("Error getting playgrounds to initialize landings")
+	}
+	for _, p := range pgs {
+		if p.AssetsDir == "" {
+			p.AssetsDir = "default"
+		}
+
+		var b bytes.Buffer
+		t, err := template.New("landing.html").Delims("[[", "]]").ParseFiles(fmt.Sprintf("./www/%s/landing.html", p.AssetsDir))
+		if err != nil {
+			log.Fatalf("Error parsing template %v", err)
+		}
+		if err := t.Execute(&b, struct{ SegmentId string }{config.SegmentId}); err != nil {
+			log.Fatalf("Error executing template %v", err)
+		}
+		landingBytes, err := ioutil.ReadAll(&b)
+		if err != nil {
+			log.Fatalf("Error reading template bytes %v", err)
+		}
+		landings[p.Id] = landingBytes
 	}
 }

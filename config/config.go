@@ -39,6 +39,8 @@ var DockerClientID, DockerClientSecret string
 
 var PlaygroundDomain string
 
+var SegmentId string
+
 func ParseFlags() {
 	flag.StringVar(&LetsEncryptCertsDir, "letsencrypt-certs-dir", "/certs", "Path where let's encrypt certs will be stored")
 	flag.BoolVar(&UseLetsEncrypt, "letsencrypt-enable", false, "Enabled let's encrypt tls certificates")
@@ -73,6 +75,8 @@ func ParseFlags() {
 
 	flag.StringVar(&PlaygroundDomain, "playground-domain", "localhost", "Domain to use for the playground")
 	flag.StringVar(&AdminToken, "admin-token", "", "Token to validate admin user for admin endpoints")
+
+	flag.StringVar(&SegmentId, "segment-id", "", "Segment id to post metrics")
 
 	flag.Parse()
 

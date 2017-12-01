@@ -46,10 +46,6 @@ func Landing(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	index := filepath.Join("./www", playground.AssetsDir, "/landing.html")
-	if _, err := os.Stat(index); os.IsNotExist(err) {
-		index = "./www/default/landing.html"
-	}
+	rw.Write(landings[playground.Id])
 
-	http.ServeFile(rw, req, index)
 }
