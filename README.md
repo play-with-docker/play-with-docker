@@ -5,7 +5,7 @@ where you can build and run Docker containers and even create clusters with Dock
 
 Under the hood DIND or Docker-in-Docker is used to give the effect of multiple VMs/PCs.
 
-A live version is available at: https://play-with-docker.com/
+A live version is available at: http://play-with-docker.com/
 
 ## Requirements
 
