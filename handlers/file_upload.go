@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/storage"
 )
 
 func FileUpload(rw http.ResponseWriter, req *http.Request) {
@@ -14,7 +15,14 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 	sessionId := vars["sessionId"]
 	instanceName := vars["instanceName"]
 
-	s := core.SessionGet(sessionId)
+	s, err := core.SessionGet(sessionId)
+	if err == storage.NotFoundError {
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	i := core.InstanceGet(s, instanceName)
 
 	// allow up to 32 MB which is the default

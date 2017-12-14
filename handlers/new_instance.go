@@ -20,7 +20,11 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 
 	json.NewDecoder(req.Body).Decode(&body)
 
-	s := core.SessionGet(sessionId)
+	s, err := core.SessionGet(sessionId)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	playground := core.PlaygroundGet(s.PlaygroundId)
 	if playground == nil {

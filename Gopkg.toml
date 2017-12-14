@@ -84,3 +84,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/satori/go.uuid"
+
+[[constraint]]
+  name = "github.com/zbindenren/negroni-prometheus"
+  version = "0.1.1"

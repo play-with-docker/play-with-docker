@@ -205,17 +205,17 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 	return nil
 }
 
-func (p *pwd) SessionGet(sessionId string) *types.Session {
+func (p *pwd) SessionGet(sessionId string) (*types.Session, error) {
 	defer observeAction("SessionGet", time.Now())
 
 	s, err := p.storage.SessionGet(sessionId)
 
 	if err != nil {
 		log.Println(err)
-		return nil
+		return nil, err
 	}
 
-	return s
+	return s, nil
 }
 
 func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error {

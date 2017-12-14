@@ -28,7 +28,7 @@ func Exec(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	s := core.SessionGet(sessionId)
+	s, _ := core.SessionGet(sessionId)
 	if s == nil {
 		rw.WriteHeader(http.StatusNotFound)
 		return

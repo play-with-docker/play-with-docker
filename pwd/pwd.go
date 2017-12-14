@@ -77,7 +77,7 @@ type PWDApi interface {
 	SessionClose(session *types.Session) error
 	SessionGetSmallestViewPort(sessionId string) types.ViewPort
 	SessionDeployStack(session *types.Session) error
-	SessionGet(id string) *types.Session
+	SessionGet(id string) (*types.Session, error)
 	SessionSetup(session *types.Session, conf SessionSetupConf) error
 
 	InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error)

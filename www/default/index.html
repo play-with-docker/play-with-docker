@@ -116,6 +116,9 @@
                       </md-card-content>
                       <md-card-actions>
                           <md-button class="md-warn md-raised" ng-click="deleteInstance(instance)" ng-disabled="isInstanceBeingDeleted">{{deleteInstanceBtnText}}</md-button>
+                          <md-button class="md-raised" ngclipboard data-clipboard-text="ssh {{instance.proxy_host}}@direct.{{instance.session_host}}">SSH
+                              <md-tooltip md-direction="top">Copied</md-tooltip>
+                          </md-button>
                           </md-card-actions>
                   </md-card>
                   <md-card flex md-theme="default" md-theme-watch >
@@ -291,6 +294,8 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+        <script src="https://cdn.rawgit.com/zenorocha/clipboard.js/master/dist/clipboard.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/ngclipboard/1.1.2/ngclipboard.min.js"></script>
 
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/danialfarid-angular-file-upload/12.2.13/ng-file-upload-all.min.js" integrity="sha256-LrZq3efIkFX0BooX7x/rjWyYDvMKfFV2HJpy6HBw7cE=" crossorigin="anonymous"></script>

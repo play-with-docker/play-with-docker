@@ -1,7 +1,7 @@
 (function() {
   'use strict';
 
-  var app = angular.module('DockerPlay', ['ngMaterial', 'ngFileUpload']);
+  var app = angular.module('DockerPlay', ['ngMaterial', 'ngFileUpload', 'ngclipboard']);
 
   // Automatically redirects user to a new session when bypassing captcha.
   // Controller keeps code/logic separate from the HTML

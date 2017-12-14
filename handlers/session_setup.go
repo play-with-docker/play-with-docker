@@ -17,9 +17,13 @@ func SessionSetup(rw http.ResponseWriter, req *http.Request) {
 
 	json.NewDecoder(req.Body).Decode(&body)
 
-	s := core.SessionGet(sessionId)
+	s, err := core.SessionGet(sessionId)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	err := core.SessionSetup(s, body)
+	err = core.SessionSetup(s, body)
 	if err != nil {
 		if pwd.SessionNotEmpty(err) {
 			log.Println("Cannot setup a session that contains instances")

@@ -354,6 +354,12 @@
   version = "v0.2.0"
 
 [[projects]]
+  name = "github.com/zbindenren/negroni-prometheus"
+  packages = ["."]
+  revision = "b4860d1377680423b4c7f957ef4fce828deacf65"
+  version = "v0.1.1"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["acme","acme/autocert","curve25519","ed25519","ed25519/internal/edwards25519","ssh"]
@@ -434,6 +440,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e9fd1884fe1cc9d2801810e3934b9caa124434efda447ee2f93435737b2e735f"
+  inputs-digest = "2468168ab5c826aef27405ea9a3e72c6a99fbea6639099f2600470330509f8d9"
   solver-name = "gps-cdcl"
   solver-version = 1

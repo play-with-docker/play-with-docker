@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/play-with-docker/play-with-docker/event"
+	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/satori/go.uuid"
 )
 
@@ -144,8 +145,8 @@ func ws(so *socket) {
 
 	sessionId := vars["sessionId"]
 
-	session := core.SessionGet(sessionId)
-	if session == nil {
+	session, err := core.SessionGet(sessionId)
+	if err == storage.NotFoundError {
 		log.Printf("Session with id [%s] does not exist!\n", sessionId)
 		return
 	}

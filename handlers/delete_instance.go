@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/play-with-docker/play-with-docker/storage"
 )
 
 func DeleteInstance(rw http.ResponseWriter, req *http.Request) {
@@ -11,7 +12,7 @@ func DeleteInstance(rw http.ResponseWriter, req *http.Request) {
 	sessionId := vars["sessionId"]
 	instanceName := vars["instanceName"]
 
-	s := core.SessionGet(sessionId)
+	s, err := core.SessionGet(sessionId)
 	if s != nil {
 		i := core.InstanceGet(s, instanceName)
 		err := core.InstanceDelete(s, i)
@@ -19,8 +20,11 @@ func DeleteInstance(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	} else {
-		rw.WriteHeader(http.StatusNotFound)
+	} else if err == storage.NotFoundError {
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	} else if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }

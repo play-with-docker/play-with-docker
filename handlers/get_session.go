@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/play-with-docker/play-with-docker/storage"
 )
 
 type SessionInfo struct {
@@ -18,8 +19,11 @@ func GetSession(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
 
-	session := core.SessionGet(sessionId)
-	if session == nil {
+	session, err := core.SessionGet(sessionId)
+	if err == storage.NotFoundError {
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
 		rw.WriteHeader(http.StatusNotFound)
 		return
 	}
