@@ -18,9 +18,10 @@
     "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
 
 
- 3. (Optional) Initialize kube-dashboard:
+ 3. (Optional) Create an nginx deployment:
 
-curl -L -s https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml  | sed 's/targetPort: 8443/targetPort: 8443\n  type: LoadBalancer/' |    kubectl apply -f -
+ kubectl apply -f https://k8s.io/docs/user-guide//nginx-app.yaml
+
 
                           The PWK team.
 
