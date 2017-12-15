@@ -23,6 +23,7 @@
     $scope.sessionId = SessionService.getCurrentSessionId();
     $scope.instances = [];
     $scope.idx = {};
+    $scope.host = window.location.host;
     $scope.idxByHostname = {};
     $scope.selectedInstance = null;
     $scope.isAlive = true;
@@ -391,7 +392,7 @@
     }
 
     $scope.getProxyUrl = function(instance, port) {
-      var url = 'http://' + instance.proxy_host + '-' + port + '.direct.' + window.location.host;
+      var url = 'http://' + instance.proxy_host + '-' + port + '.direct.' + $scope.host;
 
       return url;
     }
