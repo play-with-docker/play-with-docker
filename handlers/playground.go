@@ -12,7 +12,7 @@ import (
 )
 
 func NewPlayground(rw http.ResponseWriter, req *http.Request) {
-	if !validateToken(req) {
+	if !ValidateToken(req) {
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -37,7 +37,7 @@ func NewPlayground(rw http.ResponseWriter, req *http.Request) {
 }
 
 func ListPlaygrounds(rw http.ResponseWriter, req *http.Request) {
-	if !validateToken(req) {
+	if !ValidateToken(req) {
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -78,7 +78,7 @@ func GetCurrentPlayground(rw http.ResponseWriter, req *http.Request) {
 	})
 }
 
-func validateToken(req *http.Request) bool {
+func ValidateToken(req *http.Request) bool {
 	_, password, ok := req.BasicAuth()
 	if !ok {
 		return false
