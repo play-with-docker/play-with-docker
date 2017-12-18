@@ -21,10 +21,17 @@ type NewSessionResponse struct {
 }
 
 func NewSession(rw http.ResponseWriter, req *http.Request) {
+	playground := core.PlaygroundFindByDomain(req.Host)
+	if playground == nil {
+		log.Printf("Playground for domain %s was not found!", req.Host)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	req.ParseForm()
 
 	userId := ""
-	if len(config.Providers) > 0 {
+	if len(config.Providers[playground.Id]) > 0 {
 		cookie, err := ReadCookie(req)
 		if err != nil {
 			// User it not a human
@@ -51,13 +58,6 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-	}
-
-	playground := core.PlaygroundFindByDomain(req.Host)
-	if playground == nil {
-		log.Printf("Playground for domain %s was not found!", req.Host)
-		rw.WriteHeader(http.StatusBadRequest)
-		return
 	}
 
 	var duration time.Duration
