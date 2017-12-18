@@ -22,7 +22,7 @@ const (
 var NameFilter = regexp.MustCompile(PWDHostPortGroupRegex)
 var AliasFilter = regexp.MustCompile(AliasPortGroupRegex)
 
-var PortNumber, Key, Cert, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, HashKey, SSHKeyPath, L2RouterIP, DindVolumeSize, CookieHashKey, CookieBlockKey, DefaultDinDImage, DefaultSessionDuration string
+var PortNumber, SessionsFile, PWDContainerName, L2ContainerName, L2Subdomain, HashKey, SSHKeyPath, L2RouterIP, DindVolumeSize, CookieHashKey, CookieBlockKey, DefaultDinDImage, DefaultSessionDuration string
 var UseLetsEncrypt, ExternalDindVolume, NoWindows bool
 var LetsEncryptCertsDir string
 var MaxLoadAvg float64
@@ -42,8 +42,6 @@ func ParseFlags() {
 	flag.BoolVar(&UseLetsEncrypt, "letsencrypt-enable", false, "Enabled let's encrypt tls certificates")
 	flag.BoolVar(&ForceTLS, "tls", false, "Use TLS to connect to docker daemons")
 	flag.StringVar(&PortNumber, "port", "3000", "Port number")
-	flag.StringVar(&Key, "tls-server-key", "./pwd/server-key.pem", "Server key for SSL")
-	flag.StringVar(&Cert, "tls-cert", "./pwd/server.pem", "Give a SSL cert")
 	flag.StringVar(&SessionsFile, "save", "./pwd/sessions", "Tell where to store sessions file")
 	flag.StringVar(&PWDContainerName, "name", "pwd", "Container name used to run PWD (used to be able to connect it to the networks it creates)")
 	flag.StringVar(&L2ContainerName, "l2", "l2", "Container name used to run L2 Router")
