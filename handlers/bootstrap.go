@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/oauth2"
 
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -19,9 +20,12 @@ import (
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/pwd"
+	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
+	oauth2FB "golang.org/x/oauth2/facebook"
+	oauth2Github "golang.org/x/oauth2/github"
 )
 
 var core pwd.PWDApi
@@ -47,7 +51,7 @@ func Bootstrap(c pwd.PWDApi, ev event.EventApi) {
 }
 
 func Register(extend HandlerExtender) {
-	initLandings()
+	initPlaygrounds()
 
 	r := mux.NewRouter()
 	corsRouter := mux.NewRouter()
@@ -168,28 +172,73 @@ func Register(extend HandlerExtender) {
 	}
 }
 
-func initLandings() {
+func initPlaygrounds() {
 	pgs, err := core.PlaygroundList()
 	if err != nil {
-		log.Fatal("Error getting playgrounds to initialize landings")
+		log.Fatal("Error getting playgrounds for initialization")
 	}
+
 	for _, p := range pgs {
-		if p.AssetsDir == "" {
-			p.AssetsDir = "default"
+		initAssets(p)
+		initOauthProviders(p)
+	}
+}
+
+func initAssets(p *types.Playground) {
+	if p.AssetsDir == "" {
+		p.AssetsDir = "default"
+	}
+
+	var b bytes.Buffer
+	t, err := template.New("landing.html").Delims("[[", "]]").ParseFiles(fmt.Sprintf("./www/%s/landing.html", p.AssetsDir))
+	if err != nil {
+		log.Fatalf("Error parsing template %v", err)
+	}
+	if err := t.Execute(&b, struct{ SegmentId string }{config.SegmentId}); err != nil {
+		log.Fatalf("Error executing template %v", err)
+	}
+	landingBytes, err := ioutil.ReadAll(&b)
+	if err != nil {
+		log.Fatalf("Error reading template bytes %v", err)
+	}
+	landings[p.Id] = landingBytes
+}
+
+func initOauthProviders(p *types.Playground) {
+	config.Providers[p.Id] = map[string]*oauth2.Config{}
+
+	if p.GithubClientID != "" && p.GithubClientSecret != "" {
+		conf := &oauth2.Config{
+			ClientID:     p.GithubClientID,
+			ClientSecret: p.GithubClientSecret,
+			Scopes:       []string{"user:email"},
+			Endpoint:     oauth2Github.Endpoint,
 		}
 
-		var b bytes.Buffer
-		t, err := template.New("landing.html").Delims("[[", "]]").ParseFiles(fmt.Sprintf("./www/%s/landing.html", p.AssetsDir))
-		if err != nil {
-			log.Fatalf("Error parsing template %v", err)
+		config.Providers[p.Id]["github"] = conf
+	}
+	if p.FacebookClientID != "" && p.FacebookClientSecret != "" {
+		conf := &oauth2.Config{
+			ClientID:     p.FacebookClientID,
+			ClientSecret: p.FacebookClientSecret,
+			Scopes:       []string{"email", "public_profile"},
+			Endpoint:     oauth2FB.Endpoint,
 		}
-		if err := t.Execute(&b, struct{ SegmentId string }{config.SegmentId}); err != nil {
-			log.Fatalf("Error executing template %v", err)
+
+		config.Providers[p.Id]["facebook"] = conf
+	}
+	if p.DockerClientID != "" && p.DockerClientSecret != "" {
+		oauth2.RegisterBrokenAuthHeaderProvider(".id.docker.com")
+		conf := &oauth2.Config{
+			ClientID:     p.DockerClientID,
+			ClientSecret: p.DockerClientSecret,
+			Scopes:       []string{"openid"},
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://id.docker.com/id/oauth/authorize/",
+				TokenURL: "https://id.docker.com/id/oauth/token",
+			},
 		}
-		landingBytes, err := ioutil.ReadAll(&b)
-		if err != nil {
-			log.Fatalf("Error reading template bytes %v", err)
-		}
-		landings[p.Id] = landingBytes
+
+		config.Providers[p.Id]["docker"] = conf
 	}
 }

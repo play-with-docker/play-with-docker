@@ -34,8 +34,15 @@ func LoggedInUser(rw http.ResponseWriter, req *http.Request) {
 }
 
 func ListProviders(rw http.ResponseWriter, req *http.Request) {
+	playground := core.PlaygroundFindByDomain(req.Host)
+	if playground == nil {
+		log.Printf("Playground for domain %s was not found!", req.Host)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	providers := []string{}
-	for name, _ := range config.Providers {
+	for name, _ := range config.Providers[playground.Id] {
 		providers = append(providers, name)
 	}
 	json.NewEncoder(rw).Encode(providers)
@@ -44,8 +51,14 @@ func ListProviders(rw http.ResponseWriter, req *http.Request) {
 func Login(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	providerName := vars["provider"]
+	playground := core.PlaygroundFindByDomain(req.Host)
+	if playground == nil {
+		log.Printf("Playground for domain %s was not found!", req.Host)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	provider, found := config.Providers[providerName]
+	provider, found := config.Providers[playground.Id][providerName]
 	if !found {
 		log.Printf("Could not find provider %s\n", providerName)
 		rw.WriteHeader(http.StatusNotFound)
@@ -76,8 +89,14 @@ func Login(rw http.ResponseWriter, req *http.Request) {
 func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	providerName := vars["provider"]
+	playground := core.PlaygroundFindByDomain(req.Host)
+	if playground == nil {
+		log.Printf("Playground for domain %s was not found!", req.Host)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	provider, found := config.Providers[providerName]
+	provider, found := config.Providers[playground.Id][providerName]
 	if !found {
 		log.Printf("Could not find provider %s\n", providerName)
 		rw.WriteHeader(http.StatusNotFound)

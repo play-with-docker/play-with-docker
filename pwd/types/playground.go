@@ -81,4 +81,10 @@ type Playground struct {
 	Extras                      PlaygroundExtras `json:"extras" bson:"extras"`
 	AssetsDir                   string           `json:"assets_dir" bson:"assets_dir"`
 	Tasks                       []string         `json:"tasks" bson:"tasks"`
+	GithubClientID              string           `json:"github_client_id" bson:"github_client_id"`
+	GithubClientSecret          string           `json:"github_client_secret" bson:"github_client_secret"`
+	FacebookClientID            string           `json:"facebook_client_id" bson:"facebook_client_id"`
+	FacebookClientSecret        string           `json:"facebook_client_secret" bson:"facebook_client_secret"`
+	DockerClientID              string           `json:"docker_client_id" bson:"docker_client_id"`
+	DockerClientSecret          string           `json:"docker_client_secret" bson:"docker_client_secret"`
 }
