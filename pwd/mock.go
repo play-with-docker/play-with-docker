@@ -33,9 +33,9 @@ func (m *Mock) SessionDeployStack(session *types.Session) error {
 	return args.Error(0)
 }
 
-func (m *Mock) SessionGet(id string) *types.Session {
+func (m *Mock) SessionGet(id string) (*types.Session, error) {
 	args := m.Called(id)
-	return args.Get(0).(*types.Session)
+	return args.Get(0).(*types.Session), args.Error(1)
 }
 
 func (m *Mock) SessionSetup(session *types.Session, conf SessionSetupConf) error {
