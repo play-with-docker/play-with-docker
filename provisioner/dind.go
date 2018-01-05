@@ -83,11 +83,11 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	if err != nil {
 		return nil, err
 	}
-	if err := dockerClient.CreateContainer(opts); err != nil {
+	if err := dockerClient.ContainerCreate(opts); err != nil {
 		return nil, err
 	}
 
-	ips, err := dockerClient.GetContainerIPs(containerName)
+	ips, err := dockerClient.ContainerIPs(containerName)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (d *DinD) InstanceDelete(session *types.Session, instance *types.Instance) 
 	if err != nil {
 		return err
 	}
-	err = dockerClient.DeleteContainer(instance.Name)
+	err = dockerClient.ContainerDelete(instance.Name)
 	if err != nil && !strings.Contains(err.Error(), "No such container") {
 		return err
 	}
@@ -148,6 +148,40 @@ func (d *DinD) InstanceExec(instance *types.Instance, cmd []string) (int, error)
 		return -1, err
 	}
 	return dockerClient.Exec(instance.Name, cmd)
+}
+
+func (d *DinD) InstanceFSTree(instance *types.Instance) (io.Reader, error) {
+	session, err := d.getSession(instance.SessionId)
+	if err != nil {
+		return nil, err
+	}
+	dockerClient, err := d.factory.GetForSession(session)
+	if err != nil {
+		return nil, err
+	}
+	b := bytes.NewBuffer([]byte{})
+
+	if c, err := dockerClient.ExecAttach(instance.Name, []string{"bash", "-c", `tree --noreport -J $HOME`}, b); c > 0 {
+		log.Println(b.String())
+		return nil, fmt.Errorf("Error %d trying list directories", c)
+	} else if err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+
+func (d *DinD) InstanceFile(instance *types.Instance, filePath string) (io.Reader, error) {
+	session, err := d.getSession(instance.SessionId)
+	if err != nil {
+		return nil, err
+	}
+	dockerClient, err := d.factory.GetForSession(session)
+	if err != nil {
+		return nil, err
+	}
+
+	return dockerClient.CopyFromContainer(instance.Name, filePath)
 }
 
 func (d *DinD) InstanceResizeTerminal(instance *types.Instance, rows, cols uint) error {

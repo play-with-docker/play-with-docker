@@ -87,6 +87,16 @@ func (m *Mock) InstanceExec(instance *types.Instance, cmd []string) (int, error)
 	return args.Int(0), args.Error(1)
 }
 
+func (m *Mock) InstanceFSTree(instance *types.Instance) (io.Reader, error) {
+	args := m.Called(instance)
+	return args.Get(0).(io.Reader), args.Error(1)
+}
+
+func (m *Mock) InstanceFile(instance *types.Instance, filePath string) (io.Reader, error) {
+	args := m.Called(instance, filePath)
+	return args.Get(0).(io.Reader), args.Error(1)
+}
+
 func (m *Mock) ClientNew(id string, session *types.Session) *types.Client {
 	args := m.Called(id, session)
 	return args.Get(0).(*types.Client)

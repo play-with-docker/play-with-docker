@@ -49,7 +49,7 @@ func NewCheckSwarmStatus(e event.EventApi, f docker.FactoryApi) *checkSwarmStatu
 
 func getDockerSwarmStatus(ctx context.Context, client docker.DockerApi) (ClusterStatus, error) {
 	status := ClusterStatus{}
-	info, err := client.GetDaemonInfo()
+	info, err := client.DaemonInfo()
 	if err != nil {
 		return status, err
 	}

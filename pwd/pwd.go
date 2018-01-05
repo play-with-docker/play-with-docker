@@ -89,6 +89,8 @@ type PWDApi interface {
 	InstanceFindBySession(session *types.Session) ([]*types.Instance, error)
 	InstanceDelete(session *types.Session, instance *types.Instance) error
 	InstanceExec(instance *types.Instance, cmd []string) (int, error)
+	InstanceFSTree(instance *types.Instance) (io.Reader, error)
+	InstanceFile(instance *types.Instance, filePath string) (io.Reader, error)
 
 	ClientNew(id string, session *types.Session) *types.Client
 	ClientResizeViewPort(client *types.Client, cols, rows uint)

@@ -155,6 +155,15 @@ func (d *windows) InstanceExec(instance *types.Instance, cmd []string) (int, err
 	return ex.ExitCode, nil
 }
 
+func (d *windows) InstanceFSTree(instance *types.Instance) (io.Reader, error) {
+	//TODO implement
+	return nil, nil
+}
+func (d *windows) InstanceFile(instance *types.Instance, filePath string) (io.Reader, error) {
+	//TODO implement
+	return nil, nil
+}
+
 func (d *windows) releaseInstance(instanceId string) error {
 	return d.storage.WindowsInstanceDelete(instanceId)
 }

@@ -32,27 +32,34 @@ const (
 
 type DockerApi interface {
 	GetClient() *client.Client
-	CreateNetwork(id string, opts types.NetworkCreate) error
-	ConnectNetwork(container, network, ip string) (string, error)
+
+	NetworkCreate(id string, opts types.NetworkCreate) error
+	NetworkConnect(container, network, ip string) (string, error)
 	NetworkInspect(id string) (types.NetworkResource, error)
-	GetDaemonInfo() (types.Info, error)
-	GetDaemonHost() string
+	NetworkDelete(id string) error
+	NetworkDisconnect(containerId, networkId string) error
+
+	DaemonInfo() (types.Info, error)
+	DaemonHost() string
+
 	GetSwarmPorts() ([]string, []uint16, error)
 	GetPorts() ([]uint16, error)
-	GetContainerStats(name string) (io.ReadCloser, error)
+
+	ContainerStats(name string) (io.ReadCloser, error)
 	ContainerResize(name string, rows, cols uint) error
 	ContainerRename(old, new string) error
+	ContainerDelete(name string) error
+	ContainerCreate(opts CreateContainerOpts) error
+	ContainerIPs(id string) (map[string]string, error)
+	ExecAttach(instanceName string, command []string, out io.Writer) (int, error)
+	Exec(instanceName string, command []string) (int, error)
+
 	CreateAttachConnection(name string) (net.Conn, error)
 	CopyToContainer(containerName, destination, fileName string, content io.Reader) error
-	DeleteContainer(name string) error
-	CreateContainer(opts CreateContainerOpts) error
-	GetContainerIPs(id string) (map[string]string, error)
-	ExecAttach(instanceName string, command []string, out io.Writer) (int, error)
-	DisconnectNetwork(containerId, networkId string) error
-	DeleteNetwork(id string) error
-	Exec(instanceName string, command []string) (int, error)
+	CopyFromContainer(containerName, filePath string) (io.Reader, error)
 	SwarmInit(advertiseAddr string) (*SwarmTokens, error)
 	SwarmJoin(addr, token string) error
+
 	ConfigCreate(name string, labels map[string]string, data []byte) error
 	ConfigDelete(name string) error
 }
@@ -82,7 +89,7 @@ func (d *docker) ConfigDelete(name string) error {
 	return d.c.ConfigRemove(context.Background(), name)
 }
 
-func (d *docker) CreateNetwork(id string, opts types.NetworkCreate) error {
+func (d *docker) NetworkCreate(id string, opts types.NetworkCreate) error {
 	_, err := d.c.NetworkCreate(context.Background(), id, opts)
 
 	if err != nil {
@@ -94,7 +101,7 @@ func (d *docker) CreateNetwork(id string, opts types.NetworkCreate) error {
 	return nil
 }
 
-func (d *docker) ConnectNetwork(containerId, networkId, ip string) (string, error) {
+func (d *docker) NetworkConnect(containerId, networkId, ip string) (string, error) {
 	settings := &network.EndpointSettings{}
 	if ip != "" {
 		settings.IPAddress = ip
@@ -125,11 +132,11 @@ func (d *docker) NetworkInspect(id string) (types.NetworkResource, error) {
 	return d.c.NetworkInspect(context.Background(), id, types.NetworkInspectOptions{})
 }
 
-func (d *docker) GetDaemonInfo() (types.Info, error) {
+func (d *docker) DaemonInfo() (types.Info, error) {
 	return d.c.Info(context.Background())
 }
 
-func (d *docker) GetDaemonHost() string {
+func (d *docker) DaemonHost() string {
 	return d.c.DaemonHost()
 }
 
@@ -180,7 +187,7 @@ func (d *docker) GetPorts() ([]uint16, error) {
 	return openPorts, nil
 }
 
-func (d *docker) GetContainerStats(name string) (io.ReadCloser, error) {
+func (d *docker) ContainerStats(name string) (io.ReadCloser, error) {
 	stats, err := d.c.ContainerStats(context.Background(), name, false)
 
 	return stats.Body, err
@@ -222,7 +229,21 @@ func (d *docker) CopyToContainer(containerName, destination, fileName string, co
 	return d.c.CopyToContainer(context.Background(), containerName, destination, r, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
 }
 
-func (d *docker) DeleteContainer(name string) error {
+func (d *docker) CopyFromContainer(containerName, filePath string) (io.Reader, error) {
+	rc, stat, err := d.c.CopyFromContainer(context.Background(), containerName, filePath)
+	if err != nil {
+		return nil, err
+	}
+	if stat.Mode.IsDir() {
+		return nil, fmt.Errorf("Copying directories is not supported")
+	}
+	tr := tar.NewReader(rc)
+	// advance to the only possible file in the tar archive
+	tr.Next()
+	return tr, nil
+}
+
+func (d *docker) ContainerDelete(name string) error {
 	err := d.c.ContainerRemove(context.Background(), name, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
 	d.c.VolumeRemove(context.Background(), name, true)
 	return err
@@ -242,7 +263,7 @@ type CreateContainerOpts struct {
 	Networks      []string
 }
 
-func (d *docker) CreateContainer(opts CreateContainerOpts) (err error) {
+func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 	// Make sure directories are available for the new instance container
 	containerDir := "/var/run/pwd"
 	containerCertDir := fmt.Sprintf("%s/certs", containerDir)
@@ -382,7 +403,7 @@ func (d *docker) CreateContainer(opts CreateContainerOpts) (err error) {
 	return
 }
 
-func (d *docker) GetContainerIPs(id string) (map[string]string, error) {
+func (d *docker) ContainerIPs(id string) (map[string]string, error) {
 	cinfo, err := d.c.ContainerInspect(context.Background(), id)
 	if err != nil {
 		return nil, err
@@ -468,7 +489,7 @@ func (d *docker) Exec(instanceName string, command []string) (int, error) {
 	return ins.ExitCode, nil
 }
 
-func (d *docker) DisconnectNetwork(containerId, networkId string) error {
+func (d *docker) NetworkDisconnect(containerId, networkId string) error {
 	err := d.c.NetworkDisconnect(context.Background(), networkId, containerId, true)
 
 	if err != nil {
@@ -480,7 +501,7 @@ func (d *docker) DisconnectNetwork(containerId, networkId string) error {
 	return nil
 }
 
-func (d *docker) DeleteNetwork(id string) error {
+func (d *docker) NetworkDelete(id string) error {
 	err := d.c.NetworkRemove(context.Background(), id)
 
 	if err != nil {

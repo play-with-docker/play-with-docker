@@ -42,7 +42,7 @@ func TestCheckSwarmPorts_RunWhenManager(t *testing.T) {
 	}
 
 	f.On("GetForInstance", i).Return(d, nil)
-	d.On("GetDaemonInfo").Return(info, nil)
+	d.On("DaemonInfo").Return(info, nil)
 	d.On("GetSwarmPorts").Return([]string{"aaaabbbb_node1", "aaaabbbb_node2"}, []uint16{8080, 9090}, nil)
 	e.M.On("Emit", CheckSwarmPortsEvent, "aaaabbbbcccc", []interface{}{ClusterPorts{Manager: i.Name, Instances: []string{i.Name, "aaaabbbb_node2"}, Ports: []int{8080, 9090}}}).Return()
 

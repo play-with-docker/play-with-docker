@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
-	"docker.io/go-docker/api/types"
 	client "docker.io/go-docker"
+	"docker.io/go-docker/api/types"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -19,12 +19,12 @@ func (m *Mock) GetClient() *client.Client {
 	return args.Get(0).(*client.Client)
 }
 
-func (m *Mock) CreateNetwork(id string, opts types.NetworkCreate) error {
+func (m *Mock) NetworkCreate(id string, opts types.NetworkCreate) error {
 	args := m.Called(id, opts)
 	return args.Error(0)
 }
 
-func (m *Mock) ConnectNetwork(container, network, ip string) (string, error) {
+func (m *Mock) NetworkConnect(container, network, ip string) (string, error) {
 	args := m.Called(container, network, ip)
 	return args.String(0), args.Error(1)
 }
@@ -34,12 +34,12 @@ func (m *Mock) NetworkInspect(id string) (types.NetworkResource, error) {
 	return args.Get(0).(types.NetworkResource), args.Error(1)
 }
 
-func (m *Mock) GetDaemonInfo() (types.Info, error) {
+func (m *Mock) DaemonInfo() (types.Info, error) {
 	args := m.Called()
 	return args.Get(0).(types.Info), args.Error(1)
 }
 
-func (m *Mock) GetDaemonHost() string {
+func (m *Mock) DaemonHost() string {
 	args := m.Called()
 	return args.String(0)
 }
@@ -53,7 +53,7 @@ func (m *Mock) GetPorts() ([]uint16, error) {
 	args := m.Called()
 	return args.Get(0).([]uint16), args.Error(1)
 }
-func (m *Mock) GetContainerStats(name string) (io.ReadCloser, error) {
+func (m *Mock) ContainerStats(name string) (io.ReadCloser, error) {
 	args := m.Called(name)
 	return args.Get(0).(io.ReadCloser), args.Error(1)
 }
@@ -73,15 +73,20 @@ func (m *Mock) CopyToContainer(containerName, destination, fileName string, cont
 	args := m.Called(containerName, destination, fileName, content)
 	return args.Error(0)
 }
-func (m *Mock) DeleteContainer(id string) error {
+
+func (m *Mock) CopyFromContainer(containerName, filePath string) (io.Reader, error) {
+	args := m.Called(containerName, filePath)
+	return args.Get(0).(io.Reader), args.Error(1)
+}
+func (m *Mock) ContainerDelete(id string) error {
 	args := m.Called(id)
 	return args.Error(0)
 }
-func (m *Mock) CreateContainer(opts CreateContainerOpts) error {
+func (m *Mock) ContainerCreate(opts CreateContainerOpts) error {
 	args := m.Called(opts)
 	return args.Error(0)
 }
-func (m *Mock) GetContainerIPs(id string) (map[string]string, error) {
+func (m *Mock) ContainerIPs(id string) (map[string]string, error) {
 	args := m.Called(id)
 	return args.Get(0).(map[string]string), args.Error(1)
 }
@@ -90,11 +95,11 @@ func (m *Mock) ExecAttach(instanceName string, command []string, out io.Writer) 
 	args := m.Called(instanceName, command, out)
 	return args.Int(0), args.Error(1)
 }
-func (m *Mock) DisconnectNetwork(containerId, networkId string) error {
+func (m *Mock) NetworkDisconnect(containerId, networkId string) error {
 	args := m.Called(containerId, networkId)
 	return args.Error(0)
 }
-func (m *Mock) DeleteNetwork(id string) error {
+func (m *Mock) NetworkDelete(id string) error {
 	args := m.Called(id)
 	return args.Error(0)
 }

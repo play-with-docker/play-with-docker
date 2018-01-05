@@ -27,7 +27,7 @@ func (p *overlaySessionProvisioner) SessionNew(ctx context.Context, s *types.Ses
 		// We assume we are out of capacity
 		return fmt.Errorf("Out of capacity")
 	}
-	u, _ := url.Parse(dockerClient.GetDaemonHost())
+	u, _ := url.Parse(dockerClient.DaemonHost())
 	if u.Host == "" {
 		s.Host = "localhost"
 	} else {
@@ -36,13 +36,13 @@ func (p *overlaySessionProvisioner) SessionNew(ctx context.Context, s *types.Ses
 	}
 
 	opts := dtypes.NetworkCreate{Driver: "overlay", Attachable: true}
-	if err := dockerClient.CreateNetwork(s.Id, opts); err != nil {
+	if err := dockerClient.NetworkCreate(s.Id, opts); err != nil {
 		log.Println("ERROR NETWORKING", err)
 		return err
 	}
 	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
 
-	ip, err := dockerClient.ConnectNetwork(config.L2ContainerName, s.Id, s.PwdIpAddress)
+	ip, err := dockerClient.NetworkConnect(config.L2ContainerName, s.Id, s.PwdIpAddress)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -58,14 +58,14 @@ func (p *overlaySessionProvisioner) SessionClose(s *types.Session) error {
 		log.Println(err)
 		return err
 	}
-	if err := dockerClient.DisconnectNetwork(config.L2ContainerName, s.Id); err != nil {
+	if err := dockerClient.NetworkDisconnect(config.L2ContainerName, s.Id); err != nil {
 		if !strings.Contains(err.Error(), "is not connected to the network") {
 			log.Println("ERROR NETWORKING", err)
 			return err
 		}
 	}
 	log.Printf("Disconnected l2 from network [%s]\n", s.Id)
-	if err := dockerClient.DeleteNetwork(s.Id); err != nil {
+	if err := dockerClient.NetworkDelete(s.Id); err != nil {
 		if !strings.Contains(err.Error(), "not found") {
 			log.Println(err)
 			return err

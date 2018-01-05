@@ -91,7 +91,7 @@ func (t *collectStats) Run(ctx context.Context, instance *types.Instance) error 
 		log.Println(err)
 		return err
 	}
-	reader, err := dockerClient.GetContainerStats(instance.Name)
+	reader, err := dockerClient.ContainerStats(instance.Name)
 	if err != nil {
 		log.Println("Error while trying to collect instance stats", err)
 		return err

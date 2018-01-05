@@ -65,7 +65,7 @@ func TestCollectStats_Run(t *testing.T) {
 
 	s.On("SessionGet", i.SessionId).Return(sess, nil)
 	f.On("GetForSession", sess).Return(d, nil)
-	d.On("GetContainerStats", i.Name).Return(nopCloser{bytes.NewReader(b)}, nil)
+	d.On("ContainerStats", i.Name).Return(nopCloser{bytes.NewReader(b)}, nil)
 	e.M.On("Emit", CollectStatsEvent, "aaaabbbbcccc", []interface{}{InstanceStats{Instance: i.Name, Mem: "0.00% (0B / 0B)", Cpu: "0.00%"}}).Return()
 
 	task := NewCollectStats(e, f, s)

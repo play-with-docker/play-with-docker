@@ -1,0 +1,15 @@
+.alert-top {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width:100px;
+    display:none;
+    text-align: center;
+    padding: 3px;
+    height: 30px;
+    margin-bottom: 0px;
+}
+
+.col-md-3 {
+    overflow-x: auto;
+}

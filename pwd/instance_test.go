@@ -56,9 +56,9 @@ func TestInstanceNew(t *testing.T) {
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", mock.AnythingOfType("*types.Session")).Return(_d, nil)
-	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
-	_d.On("GetDaemonHost").Return("localhost")
-	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
+	_d.On("NetworkCreate", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
+	_d.On("DaemonHost").Return("localhost")
+	_d.On("NetworkConnect", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
 	_s.On("ClientCount").Return(0, nil)
@@ -101,8 +101,8 @@ func TestInstanceNew(t *testing.T) {
 		HostFQDN:      "something.play-with-docker.com",
 		Networks:      []string{session.Id},
 	}
-	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
-	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
+	_d.On("ContainerCreate", expectedContainerOpts).Return(nil)
+	_d.On("ContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
@@ -129,9 +129,9 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", mock.AnythingOfType("*types.Session")).Return(_d, nil)
-	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
-	_d.On("GetDaemonHost").Return("localhost")
-	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
+	_d.On("NetworkCreate", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
+	_d.On("DaemonHost").Return("localhost")
+	_d.On("NetworkConnect", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
 	_s.On("ClientCount").Return(0, nil)
@@ -171,8 +171,8 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		Privileged:    true,
 		Networks:      []string{session.Id},
 	}
-	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
-	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
+	_d.On("ContainerCreate", expectedContainerOpts).Return(nil)
+	_d.On("ContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
@@ -200,9 +200,9 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 
 	_g.On("NewId").Return("aaaabbbbcccc")
 	_f.On("GetForSession", mock.AnythingOfType("*types.Session")).Return(_d, nil)
-	_d.On("CreateNetwork", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
-	_d.On("GetDaemonHost").Return("localhost")
-	_d.On("ConnectNetwork", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
+	_d.On("NetworkCreate", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
+	_d.On("DaemonHost").Return("localhost")
+	_d.On("NetworkConnect", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("SessionCount").Return(1, nil)
 	_s.On("ClientCount").Return(0, nil)
@@ -242,8 +242,8 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		Networks:      []string{session.Id},
 	}
 
-	_d.On("CreateContainer", expectedContainerOpts).Return(nil)
-	_d.On("GetContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
+	_d.On("ContainerCreate", expectedContainerOpts).Return(nil)
+	_d.On("ContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "redis-master", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 

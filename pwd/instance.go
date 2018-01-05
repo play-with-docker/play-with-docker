@@ -149,3 +149,23 @@ func (p *pwd) InstanceExec(instance *types.Instance, cmd []string) (int, error) 
 	}
 	return exitCode, nil
 }
+
+func (p *pwd) InstanceFSTree(instance *types.Instance) (io.Reader, error) {
+	defer observeAction("InstanceFSTree", time.Now())
+
+	prov, err := p.getProvisioner(instance.Type)
+	if err != nil {
+		return nil, err
+	}
+	return prov.InstanceFSTree(instance)
+}
+
+func (p *pwd) InstanceFile(instance *types.Instance, filePath string) (io.Reader, error) {
+	defer observeAction("InstanceFile", time.Now())
+
+	prov, err := p.getProvisioner(instance.Type)
+	if err != nil {
+		return nil, err
+	}
+	return prov.InstanceFile(instance, filePath)
+}
