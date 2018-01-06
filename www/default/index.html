@@ -119,7 +119,10 @@
                           <md-button class="md-raised" ngclipboard data-clipboard-text="ssh {{instance.proxy_host}}@direct.{{host}}">SSH
                               <md-tooltip md-direction="top">Copy!</md-tooltip>
                           </md-button>
-                          </md-card-actions>
+                          <md-button class="md-raised" ng-click="openEditor(instance)">
+                              <md-icon class="material-icons">insert_drive_file</md-icon> Editor
+                          </md-button>
+                      </md-card-actions>
                   </md-card>
                   <md-card flex md-theme="default" md-theme-watch >
                       <div ng-show="uploadMessage" class="uploadStatus">
@@ -180,29 +183,30 @@
                 </md-toolbar>
 
                 <md-dialog-content>
-                <div class="md-dialog-content" style="width:600px;">
-					<div layout="row" layout-sm="column" layout-align="space-around" ng-if="building">
-						<md-progress-circular md-mode="indeterminate"></md-progress-circular>
-					</div>
-					<div layout="row" ng-if="errorMessage">
-						<div flex="100" style="margin-top: 20px; text-align:center; font-weight: bold; color: red;">
-							{{errorMessage}}
-						</div>
-					</div>
-                    <md-list flex ng-if="!building">
-                        <md-list-item class="md-3-line" ng-repeat="template in templates" ng-click="$ctrl.setupSession(template.setup)">
-							<md-card md-theme="default" md-theme-watch>
-								<md-card-title>
-								  <md-card-title-text>
-									<span class="md-headline">{{template.title}}</span>
-								  </md-card-title-text>
-								  <md-card-title-media>
-            						<div class="md-media-sm card-media"><img ng-src="{{template.icon}}" style="height: 75px;" class="md-card-image"></div>
+                    <div class="md-dialog-content" style="width:600px;">
+                        <div layout="row" layout-sm="column" layout-align="space-around" ng-if="building">
+                                <md-progress-circular md-mode="indeterminate"></md-progress-circular>
+                        </div>
+                        <div layout="row" ng-if="errorMessage">
+                                <div flex="100" style="margin-top: 20px; text-align:center; font-weight: bold; color: red;">
+                                        {{errorMessage}}
+                                </div>
+                        </div>
+                        <md-list flex ng-if="!building">
+                            <md-list-item class="md-3-line" ng-repeat="template in templates" ng-click="$ctrl.setupSession(template.setup)">
+                                <md-card md-theme="default" md-theme-watch>
+                                <md-card-title>
+                                  <md-card-title-text>
+                                        <span class="md-headline">{{template.title}}</span>
+                                  </md-card-title-text>
+                                  <md-card-title-media>
+                                    <div class="md-media-sm card-media"><img ng-src="{{template.icon}}" style="height: 75px;" class="md-card-image"></div>
                                   </md-card-title-media>
-								</md-card-title>
-						    </md-card>
-                        </md-list-item>
-                    </md-list>
+                                </md-card-title>
+                                </md-card>
+                            </md-list-item>
+                        </md-list>
+                    </div>
                 </md-dialog-content>
                 <md-dialog-actions layout="row">
                     <span flex></span>

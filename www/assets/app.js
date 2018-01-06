@@ -440,7 +440,15 @@
       }).finally(function() {
         updateDeleteInstanceBtnState(false);
       });
-    }
+    };
+
+    $scope.openEditor = function(instance) {
+      console.log(instance);
+      var w = window.screen.availWidth * 45  / 100;
+      var h = window.screen.availHeight * 45  / 100;
+      $window.open('/sessions/' + instance.session_id + '/instances/'+instance.name+'/editor', 'editor',
+        'width='+w+',height='+h+',resizable,scrollbars=yes,status=1');
+    };
 
     $scope.loadPlaygroundConf();
     $scope.getSession($scope.sessionId);
