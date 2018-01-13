@@ -5,6 +5,6 @@
     "insecure-registries": ["127.0.0.1"],
     "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2376"],
     "tls": true,
-    "tlscert": "/var/run/pwd/certs/cert.pem",
-    "tlskey": "/var/run/pwd/certs/key.pem"
+    "tlscert": "/opt/pwd/certs/cert.pem",
+    "tlskey": "/opt/pwd/certs/key.pem"
 }

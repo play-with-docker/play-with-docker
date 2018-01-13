@@ -265,21 +265,21 @@ type CreateContainerOpts struct {
 
 func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 	// Make sure directories are available for the new instance container
-	containerDir := "/var/run/pwd"
+	containerDir := "/opt/pwd"
 	containerCertDir := fmt.Sprintf("%s/certs", containerDir)
 
 	env := []string{fmt.Sprintf("SESSION_ID=%s", opts.SessionId)}
 
 	// Write certs to container cert dir
 	if len(opts.ServerCert) > 0 {
-		env = append(env, `DOCKER_TLSCERT=\/var\/run\/pwd\/certs\/cert.pem`)
+		env = append(env, `DOCKER_TLSCERT=\/opt\/pwd\/certs\/cert.pem`)
 	}
 	if len(opts.ServerKey) > 0 {
-		env = append(env, `DOCKER_TLSKEY=\/var\/run\/pwd\/certs\/key.pem`)
+		env = append(env, `DOCKER_TLSKEY=\/opt\/pwd\/certs\/key.pem`)
 	}
 	if len(opts.CACert) > 0 {
 		// if ca cert is specified, verify that clients that connects present a certificate signed by the CA
-		env = append(env, `DOCKER_TLSCACERT=\/var\/run\/pwd\/certs\/ca.pem`)
+		env = append(env, `DOCKER_TLSCACERT=\/opt\/pwd\/certs\/ca.pem`)
 	}
 	if len(opts.ServerCert) > 0 || len(opts.ServerKey) > 0 || len(opts.CACert) > 0 {
 		// if any of the certs is specified, enable TLS
