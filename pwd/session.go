@@ -235,7 +235,7 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 		return sessionNotEmpty
 	}
 
-	g, _ := errgroup.WithContext(context.Background())
+	g, ctx := errgroup.WithContext(context.Background())
 
 	for _, conf := range sconf.Instances {
 		conf := conf
@@ -291,12 +291,24 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 			}
 
 			for _, cmd := range conf.Run {
-				exitCode, err := p.InstanceExec(i, cmd)
-				if err != nil {
+				var errch chan error
+				go func() {
+					exitCode, err := p.InstanceExec(i, cmd)
+					if err != nil {
+						errch <- err
+					}
+					if exitCode != 0 {
+						errch <- fmt.Errorf("Command returned %d on instance %s", exitCode, i.IP)
+					}
+					errch <- nil
+				}()
+
+				// ctx.Done() could be called if the errgroup is cancelled due to a previous error. In that case, return immediately
+				select {
+				case err = <-errch:
 					return err
-				}
-				if exitCode != 0 {
-					return fmt.Errorf("Command returned %d on instance %s", exitCode, i.IP)
+				case <-ctx.Done():
+					return ctx.Err()
 				}
 			}
 			return nil
