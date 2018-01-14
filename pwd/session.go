@@ -294,6 +294,8 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 				var errch chan error
 				go func() {
 					exitCode, err := p.InstanceExec(i, cmd)
+					fmt.Printf("Finished execuing command [%s] on instance %s with code [%d] and err [%v]", cmd, i.Name, exitCode, err)
+
 					if err != nil {
 						errch <- err
 					}
