@@ -113,9 +113,7 @@
         $scope.idx[i.name] = i;
         $scope.idxByHostname[i.hostname] = i;
       } else {
-        $scope.idx[i.name].ip = i.ip;
-        $scope.idx[i.name].hostname = i.hostname;
-        $scope.idx[i.name].proxy_host = i.proxy_host;
+        $scope.idx[i.name] = Object.assign($scope.idx[i.name], info);
       }
 
       return $scope.idx[i.name];
