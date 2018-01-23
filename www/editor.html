@@ -16,6 +16,12 @@
             <div class="row" style="height: 100%">
                 <div class="col-md-3">
                     <div>
+                        <div class="alert alert-info alert-newfile" role="alert">
+                            <span><strong>Create or upload</strong> files in the session terminal and then refresh </span>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                              </button>
+                        </div>
                         <button type="button" id='treeReloadBtn' class="btn btn-sm">
                           <span class="oi oi-reload" title="Refresh" aria-hidden="true"></span>
                         </button>
@@ -42,7 +48,7 @@
 
             $(document).ready(function() {
                 var alertShow = function(msg) {
-                    $div = $('.alert-info');
+                    $div = $('#alert-info');
                      $div.find('.alert-msg').text(msg);
                      if ($div.css('display') === 'none') {
                               // fadein, fadeout.
