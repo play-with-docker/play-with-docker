@@ -56,7 +56,7 @@ func Register(extend HandlerExtender) {
 	r := mux.NewRouter()
 	corsRouter := mux.NewRouter()
 
-	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedMethods([]string{"GET", "POST", "HEAD", "DELETE"}), gh.AllowedOrigins([]string{"http://training.play-with-docker.com", "http://play-with-moby.com", "http://ee-labs.play-with-docker.com", "*"}))
+	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedMethods([]string{"GET", "POST", "HEAD", "DELETE"}), gh.AllowedOrigins([]string{"http://training.play-with-docker.com", "http://play-with-moby.com", "http://ee-labs.play-with-docker.com", "http://ee-beta-labs.play-with-docker.com"}))
 
 	// Specific routes
 	r.HandleFunc("/ping", Ping).Methods("GET")
