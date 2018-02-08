@@ -1,7 +1,7 @@
 ARG VERSION=docker:stable-dind
 FROM ${VERSION}
 
-RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh tree
+RUN apk add --no-cache git tmux py2-pip apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh openssl tree
 
 ENV GOPATH /root/go
 ENV PATH $PATH:$GOPATH
