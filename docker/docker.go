@@ -221,7 +221,7 @@ func (d *docker) CopyToContainer(containerName, destination, fileName string, co
 	}
 	t := tar.NewWriter(w)
 	go func() {
-		t.WriteHeader(&tar.Header{Name: fileName, Mode: 0600, Size: int64(len(b))})
+		t.WriteHeader(&tar.Header{Name: fileName, Mode: 0600, Size: int64(len(b)), ModTime: time.Now()})
 		t.Write(b)
 		t.Close()
 		w.Close()
