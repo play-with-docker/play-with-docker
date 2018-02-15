@@ -90,11 +90,7 @@
                         url: '/users/me'
                     }).then(function(response) {
                         [[ if .SegmentId ]]
-                            if (response.data.provider == "github") {
-                                analytics.identify({email: response.data.email, name: response.data.name});
-                            } else if (response.data.provider == "docker") {
-                                analytics.identify(response.data.provider_user_id);
-                            }
+                            analytics.identify(response.data.provider_user_id, {"email": response.data.email});
                         [[ end ]]
                         $scope.user = response.data;
                         $scope.loggedIn = true;

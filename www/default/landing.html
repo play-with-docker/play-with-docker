@@ -90,7 +90,7 @@
                         url: '/users/me'
                     }).then(function(response) {
                         [[ if .SegmentId ]]
-                            analytics.identify(response.data.provider_user_id);
+                            analytics.identify(response.data.provider_user_id, {"email": response.data.email});
                         [[ end ]]
                         $scope.user = response.data;
                         $scope.loggedIn = true;
