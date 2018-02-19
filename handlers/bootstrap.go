@@ -58,7 +58,7 @@ func Register(extend HandlerExtender) {
 	corsRouter := mux.NewRouter()
 
 	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedMethods([]string{"GET", "POST", "HEAD", "DELETE"}), gh.AllowedOriginValidator(func(origin string) bool {
-		if strings.HasSuffix(origin, "play-with-docker.com") || strings.HasSuffix("play-with-moby.com") {
+		if strings.HasSuffix(origin, "play-with-docker.com") || strings.HasSuffix(origin, "play-with-moby.com") {
 			return true
 		}
 		return false
