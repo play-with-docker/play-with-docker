@@ -62,7 +62,7 @@ func Register(extend HandlerExtender) {
 			return true
 		}
 		return false
-	}))
+	}), gh.AllowedHeaders([]string{}))
 
 	// Specific routes
 	r.HandleFunc("/ping", Ping).Methods("GET")
