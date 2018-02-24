@@ -87,4 +87,5 @@ type Playground struct {
 	FacebookClientSecret        string           `json:"facebook_client_secret" bson:"facebook_client_secret"`
 	DockerClientID              string           `json:"docker_client_id" bson:"docker_client_id"`
 	DockerClientSecret          string           `json:"docker_client_secret" bson:"docker_client_secret"`
+	MaxInstances                int              `json:"max_instances" bson:"max_instances"`
 }

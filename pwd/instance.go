@@ -98,16 +98,6 @@ func (p *pwd) InstanceDelete(session *types.Session, instance *types.Instance) e
 func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error) {
 	defer observeAction("InstanceNew", time.Now())
 
-	instances, err := p.storage.InstanceFindBySessionId(session.Id)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	if len(instances) >= 5 {
-		return nil, sessionComplete
-	}
-
 	prov, err := p.getProvisioner(conf.Type)
 	if err != nil {
 		return nil, err
