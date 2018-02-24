@@ -46,7 +46,7 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if playground.InstancesMax > 0 && len(instances) > playground.MaxInstances {
+	if playground.MaxInstances > 0 && len(instances) > playground.MaxInstances {
 		log.Println(err)
 		rw.WriteHeader(http.StatusConflict)
 		return
