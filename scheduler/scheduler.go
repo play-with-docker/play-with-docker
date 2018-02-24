@@ -275,7 +275,7 @@ func (s *scheduler) Start() error {
 		if _, found := s.playgrounds[session.PlaygroundId]; !found {
 			playground, err := s.storage.PlaygroundGet(session.PlaygroundId)
 			if err != nil {
-				log.Printf("Could not find playground %s\n")
+				log.Printf("Could not find playground %s\n", session.PlaygroundId)
 				return
 			}
 			s.playgrounds[playground.Id] = playground

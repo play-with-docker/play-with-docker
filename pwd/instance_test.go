@@ -207,7 +207,6 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 	_s.On("SessionCount").Return(1, nil)
 	_s.On("ClientCount").Return(0, nil)
 	_s.On("InstanceCount").Return(0, nil)
-	_s.On("InstanceFindBySessionId", "aaaabbbbcccc").Return([]*types.Instance{}, nil)
 
 	var nilArgs []interface{}
 	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()

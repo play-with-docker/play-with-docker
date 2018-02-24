@@ -63,7 +63,7 @@ func NewClient(instance *types.Instance, proxyHost string) (*client.Client, erro
 
 	dc, err := client.NewClient(durl, api.DefaultVersion, cli, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Could not connect to DinD docker daemon", err)
+		return nil, fmt.Errorf("Could not connect to DinD docker daemon: %v", err)
 	}
 
 	return dc, nil
