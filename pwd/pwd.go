@@ -60,12 +60,6 @@ type pwd struct {
 	dindProvisioner            provisioner.InstanceProvisionerApi
 }
 
-var sessionComplete = errors.New("Session is complete")
-
-func SessionComplete(e error) bool {
-	return e == sessionComplete
-}
-
 var sessionNotEmpty = errors.New("Session is not empty")
 
 func SessionNotEmpty(e error) bool {

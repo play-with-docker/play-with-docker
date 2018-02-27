@@ -8,7 +8,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/provisioner"
-	"github.com/play-with-docker/play-with-docker/pwd"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 )
 
@@ -54,10 +53,7 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 
 	i, err := core.InstanceNew(s, body)
 	if err != nil {
-		if pwd.SessionComplete(err) {
-			rw.WriteHeader(http.StatusConflict)
-			return
-		} else if provisioner.OutOfCapacity(err) {
+		if provisioner.OutOfCapacity(err) {
 			rw.WriteHeader(http.StatusServiceUnavailable)
 			fmt.Fprintln(rw, `{"error": "out_of_capacity"}`)
 			return
