@@ -165,7 +165,7 @@ func Register(extend HandlerExtender) {
 			log.Println("Starting redirect server")
 			redirectServer := http.Server{
 				Addr:              "0.0.0.0:3001",
-				Handler:           nr,
+				Handler:           certManager.HTTPHandler(nr),
 				IdleTimeout:       30 * time.Second,
 				ReadHeaderTimeout: 5 * time.Second,
 			}
