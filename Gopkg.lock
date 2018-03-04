@@ -462,9 +462,11 @@
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "internal/chacha20",
+    "poly1305",
     "ssh"
   ]
-  revision = "541b9d50ad47e36efd8fb423e938e59ff1691f68"
+  revision = "91a49db82a88618983a78a06c1cbd4e00ab749ab"
 
 [[projects]]
   branch = "master"
