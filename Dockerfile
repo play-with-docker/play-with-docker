@@ -1,19 +1,32 @@
-FROM golang:1.7
+FROM golang:1.9
 
-# Copy the runtime dockerfile into the context as Dockerfile
-COPY Dockerfile.run /go/bin/Dockerfile
-COPY ./www /go/bin/www
+COPY . /go/src/github.com/play-with-docker/play-with-docker
 
+<<<<<<< HEAD
 COPY . /go/src/github.com/play-with-docker/play-with-docker
 
 WORKDIR /go/src/github.com/play-with-docker/play-with-docker
 
 RUN go get -v -d ./...
+=======
+WORKDIR /go/src/github.com/play-with-docker/play-with-docker
+
+RUN ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null
+>>>>>>> upstream/master
 
 RUN CGO_ENABLED=0 go build -a -installsuffix nocgo -o /go/bin/play-with-docker .
 
-# Set the workdir to be /go/bin which is where the binaries are built
-WORKDIR /go/bin
 
-# Export the WORKDIR as a tar stream
-CMD tar -cf - .
+FROM alpine
+
+RUN apk --update add ca-certificates
+RUN mkdir -p /app/pwd
+
+COPY --from=0 /go/bin/play-with-docker /app/play-with-docker
+COPY --from=0 /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_rsa_key
+COPY ./www /app/www
+
+WORKDIR /app
+CMD ["./play-with-docker"]
+
+EXPOSE 3000

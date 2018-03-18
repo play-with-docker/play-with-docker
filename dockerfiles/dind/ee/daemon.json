@@ -1,0 +1,10 @@
+{
+    "experimental": true,
+    "debug": true,
+    "log-level": "info",
+    "insecure-registries": ["127.0.0.1"],
+    "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2376"],
+    "tls": true,
+    "tlscert": "/opt/pwd/certs/cert.pem",
+    "tlskey": "/opt/pwd/certs/key.pem"
+}

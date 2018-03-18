@@ -1,0 +1,90 @@
+
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#  name = "github.com/x/y"
+#  version = "2.4.0"
+
+
+[[constraint]]
+  name = "github.com/docker/distribution"
+  version = "2.6.2"
+
+[[constraint]]
+  name = "github.com/docker/go-connections"
+  version = "0.3.0"
+
+[[constraint]]
+  name = "github.com/docker/go-units"
+  version = "0.3.2"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/googollee/go-socket.io"
+
+[[constraint]]
+  name = "github.com/gorilla/handlers"
+  version = "1.3.0"
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+  version = "1.5.0"
+
+[[constraint]]
+  name = "github.com/gorilla/securecookie"
+  version = "1.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/inconshreveable/go-vhost"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/miekg/dns"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "0.8.0"
+
+[[constraint]]
+  name = "github.com/shirou/gopsutil"
+  version = "2.17.9"
+
+[[constraint]]
+  name = "github.com/urfave/negroni"
+  version = "0.2.0"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/text"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/stretchr/testify"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/satori/go.uuid"
+
+[[constraint]]
+  name = "github.com/zbindenren/negroni-prometheus"
+  version = "0.1.1"

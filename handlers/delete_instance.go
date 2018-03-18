@@ -4,7 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+<<<<<<< HEAD
 	"github.com/play-with-docker/play-with-docker/services"
+=======
+	"github.com/play-with-docker/play-with-docker/storage"
+>>>>>>> upstream/master
 )
 
 func DeleteInstance(rw http.ResponseWriter, req *http.Request) {
@@ -12,12 +16,18 @@ func DeleteInstance(rw http.ResponseWriter, req *http.Request) {
 	sessionId := vars["sessionId"]
 	instanceName := vars["instanceName"]
 
-	s := services.GetSession(sessionId)
-	s.Lock()
-	defer s.Unlock()
-	i := services.GetInstance(s, instanceName)
-	err := services.DeleteInstance(s, i)
-	if err != nil {
+	s, err := core.SessionGet(sessionId)
+	if s != nil {
+		i := core.InstanceGet(s, instanceName)
+		err := core.InstanceDelete(s, i)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	} else if err == storage.NotFoundError {
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	} else if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}

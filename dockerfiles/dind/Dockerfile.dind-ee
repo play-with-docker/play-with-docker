@@ -1,0 +1,42 @@
+ARG VERSION=franela/docker:18.01-dind-ubuntu
+FROM ${VERSION}
+
+RUN apt-get update \ 
+    && apt-get install -y git tmux apache2-utils vim curl jq bash-completion tree zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add kubectl client
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.8.6/bin/linux/amd64/kubectl \
+    && chmod +x ./kubectl \
+    && mv ./kubectl /usr/local/bin/kubectl 
+ 
+
+# Install a nice vimrc file and prompt (by soulshake)
+COPY ["docker-prompt", "sudo", "ucp-beta.sh", "/usr/local/bin/"]
+COPY [".vimrc",".profile", ".inputrc", ".gitconfig", "workshop_beta.lic", "./root/"]
+COPY ["motd", "/etc/motd"]
+COPY ["ee/daemon.json", "/etc/docker/"]
+COPY ["ee/cert.pem", "/opt/pwd/certs/"]
+COPY ["ee/key.pem", "/opt/pwd/certs/"]
+COPY ["ee/config.json", "/root/.docker/"]
+
+# Move to our home
+WORKDIR /root
+
+# Setup certs and uploads folders
+RUN mkdir -p /opt/pwd/certs /opt/pwd/uploads /var/lib/kubelet
+
+# Remove IPv6 alias for localhost and start docker in the background ...
+CMD cat /etc/hosts >/etc/hosts.bak && \
+    sed 's/^::1.*//' /etc/hosts.bak > /etc/hosts && \
+    sed -i "s/\PWD_IP_ADDRESS/$PWD_IP_ADDRESS/" /etc/docker/daemon.json && \
+    sed -i "s/\DOCKER_TLSENABLE/$DOCKER_TLSENABLE/" /etc/docker/daemon.json && \
+    sed -i "s/\DOCKER_TLSCACERT/$DOCKER_TLSCACERT/" /etc/docker/daemon.json && \
+    sed -i "s/\DOCKER_TLSCERT/$DOCKER_TLSCERT/" /etc/docker/daemon.json && \
+    sed -i "s/\DOCKER_TLSKEY/$DOCKER_TLSKEY/" /etc/docker/daemon.json && \
+    mount -t securityfs none /sys/kernel/security && \
+    mount  --make-shared -t tmpfs tmpfs /run && \
+    mount --make-shared -t tmpfs tmpfs /var/lib/kubelet && \
+    dockerd > /docker.log 2>&1 & \
+    while true ; do script -q -c "/bin/bash -l" /dev/null ; done
+# ... and then put a shell in the foreground, restarting it if it exits

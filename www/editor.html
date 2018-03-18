@@ -1,0 +1,177 @@
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <title>Editor</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/zTree.v3/3.5.29/css/metroStyle/metroStyle.min.css" type="text/css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css">
+        <link rel="stylesheet" href="/assets/editor.css">
+    </head>
+
+    <body>
+        <div class="container-fluid ">
+            <div id="alert-info" class="alert alert-info alert-top" role="alert">
+                <span class="alert-msg"></span>
+            </div>
+            <div class="row" style="height: 100%">
+                <div class="col-md-3">
+                    <div>
+                        <div class="alert alert-info alert-newfile" role="alert">
+                            <span><strong>Create or upload</strong> files in the session terminal and then refresh </span>
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                              </button>
+                        </div>
+                        <button type="button" id='treeReloadBtn' class="btn btn-sm">
+                          <span class="oi oi-reload" title="Refresh" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                    <div id="fileTree" class="ztree"></div>
+                </div>
+                <div class="col-md-8">
+                    <!-- Nav tabs -->
+                    <ul class="nav nav-tabs" id="tabs" role="tablist">
+                    </ul>
+                    <!-- Tab panes -->
+                    <div class="tab-content">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script type="text/javascript" src="https://cdn.rawgit.com/zTree/zTree_v3/4f2717d4/js/jquery.ztree.core.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.9/ace.js"></script>
+        <script src="https://cdn.rawgit.com/beatgammit/base64-js/be644dec/base64js.min.js"></script>
+        <script type="text/javascript">
+
+            $(document).ready(function() {
+                var alertShow = function(msg) {
+                    $div = $('#alert-info');
+                     $div.find('.alert-msg').text(msg);
+                     if ($div.css('display') === 'none') {
+                              // fadein, fadeout.
+                         $div.fadeIn(1000).delay(1000).fadeOut(1000);
+                     }
+                };
+                //regiters events for newly created tab elements
+                var registerEvents = function(tabId) {
+                    //this method will register event on close icon on the tab..
+                    $(".closeTab").click(function () {
+                        //there are multiple elements which has .closeTab icon so close the tab whose close icon is clicked
+                        var tabContentId = $(this).parent().attr("href");
+                        $(this).parent().parent().remove(); //remove li of tab
+                        $('#tabs a:last').tab('show'); // Select first tab
+                        $(tabContentId).remove(); //remove respective tab content
+                    });
+
+                    $('#fileReload_'+tabId+'Btn').click(function() {
+                        var path = $(this).attr('data-file-path');
+                        loadFile(path, tabId);
+                    });
+
+                    $('#fileSave_'+tabId+'Btn').click(function() {
+                        var path = $(this).attr('data-file-path');
+                        saveFile(path, tabId);
+                    });
+                };
+
+                var getFilePath = function(treeNode) {
+                    var parent = treeNode.getParentNode();
+                    var path = '';
+                    if (parent) {
+                        return getFilePath(parent) + '/' + treeNode.name;
+                    }  else {
+                        return treeNode.name;
+                    }
+                };
+
+
+                var treeClick = function(event, treeId, treeNode, clickFlag) {
+                    if (!treeNode.isParent) {
+                        var tabId = treeNode.tId;
+                        if ($('#tab_' + tabId + '').length == 0) {
+                            var filePath = getFilePath(treeNode);
+                            $('.nav-tabs').append('<li class="nav-item"><a class="nav-link" data-toggle="tab" role="tab" href="#tab_' + tabId + '"><button class="close closeTab" type="button" >×</button>'+treeNode.name+'</a></li>');
+                            $('.tab-content').append(' \
+                                    <div class="tab-pane" id="tab_' + tabId + '"> \
+                                        <div style="height: 40px; width: 100%; padding-top: 5px; background-color: #F0F0F0">  \
+                                            <button type="button" id="fileSave_'+tabId+'Btn" data-file-path="'+filePath+'" class="btn btn-info btn-sm"> \
+                                              <span class="oi oi-data-transfer-upload" title="Save" aria-hidden="true"></span> Save \
+                                              </button> \
+                                            <button type="button" id="fileReload_'+tabId+'Btn" data-file-path="'+filePath+'" class="btn btn-info btn-sm"> \
+                                              <span class="oi oi-reload" title="Save" aria-hidden="true"></span> Reload \
+                                            </button> \
+                                        </div> \
+                                        <div id="editor_'+ tabId +'" style="height: calc(100vh - 82px); width: 100%;"></div> \
+                                    </div> \
+                                        ');
+                            loadFile(filePath, tabId);
+                            registerEvents(tabId);
+                        }
+                        $('#tabs a[href="#tab_'+ tabId +'"]').tab('show');
+                    }
+                };
+    
+
+                var loadFile = function(filePath, tabId) {
+                    var editor = ace.edit('editor_'+tabId);
+                    $.get('./file?path='+filePath)
+                        .done(function( fileBase64 ) {
+                            var bytes = base64js.toByteArray(fileBase64);
+                            editor.setValue((new TextDecoder("utf-8")).decode(bytes), -1);
+                            editor.focus();
+                            alertShow('file loaded')
+                        });
+                }
+
+                var saveFile = function(filePath, tabId) {
+                    var editor = ace.edit('editor_'+tabId);
+                    var  fileData = new Blob([editor.getValue()], { type: 'text/plain' });
+                    var data = new FormData();
+                    var fileName = filePath.substr(filePath.lastIndexOf('/'))
+                    data.append(fileName,fileData, fileName);
+                    $.ajax({
+                        url: 'uploads?path='+filePath.substr(0, filePath.lastIndexOf('/')),
+                        data: data,
+                        cache: false,
+                        contentType: false,
+                        processData: false,
+                        method: 'POST',
+                        type: 'POST', // For jQuery < 1.9
+                        success: function(data) {
+                            alertShow('file saved')
+                        }
+                    });
+                };
+
+                var setting = {	
+                    data: {
+                        key: {
+                            children: "contents"
+                        }
+                    },
+                    callback: {
+                        onClick: treeClick
+                    }
+                };
+
+                var populateTree = function() {
+                    $.getJSON('./fstree')
+                        .done(function( treeData ) {
+                            treeData[0].open = true;
+                            $.fn.zTree.init($("#fileTree"), setting, treeData);
+                        });
+                }
+
+                // Attach handlers to tree reload btn
+                $('#treeReloadBtn').click(populateTree);
+
+                // populate tree whenever the page starts
+                populateTree();
+
+            });
+        </script>
+    </body>
+</html>

@@ -24,7 +24,7 @@ Start the Docker daemon on your machine and run `docker pull franela/dind`.
 
 1) Install go 1.7.1+ with `brew` on Mac or through a package manager.
 
-2) `go get -v -d -t ./...`
+2) Install [dep](https://github.com/golang/dep) and run `dep ensure` to pull dependencies
 
 3) Start PWD as a container with docker-compose up.
 
@@ -57,7 +57,7 @@ If you want to make changes to the `dind` image being used, make your changes to
 ### How can I connect to a published port from the outside world?
 
 
-If you need to access your services from outside, use the following URL pattern `http://pwd<underscore_ip>-<port>.<host#>.labs.play-with-docker.com` (i.e: http://pwd10_2_135_3-80.host3.labs.play-with-docker.com/).
+If you need to access your services from outside, use the following URL pattern `http://ip<hyphen-ip>-<session_jd>-<port>.direct.labs.play-with-docker.com` (i.e: http://ip-2-135-3-b8ir6vbg5vr00095iil0-8080.direct.labs.play-with-docker.com).
 
 ### Why is PWD running in ports 80 and 443?, Can I change that?.
 
