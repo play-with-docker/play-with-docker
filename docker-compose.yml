@@ -14,11 +14,7 @@ services:
         # use the latest golang image
         image: golang
         # go to the right place and starts the app
-<<<<<<< HEAD
-        command: /bin/sh -c 'cd /go/src/github.com/play-with-docker/play-with-docker; go run api.go -save ./pwd/sessions1 -name pwd1 -cname host1'
-=======
         command: /bin/sh -c 'ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null; cd /go/src/github.com/play-with-docker/play-with-docker; go run api.go -save /pwd/sessions -name l2'
->>>>>>> upstream/master
         volumes:
             # since this app creates networks and launches containers, we need to talk to docker daemon
             - /var/run/docker.sock:/var/run/docker.sock
@@ -30,11 +26,7 @@ services:
         # use the latest golang image
         image: golang
         # go to the right place and starts the app
-<<<<<<< HEAD
-        command: /bin/sh -c 'cd /go/src/github.com/play-with-docker/play-with-docker; go run api.go -save ./pwd/sessions2 -name pwd2 -cname host2'
-=======
         command: /bin/sh -c 'ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null; cd /go/src/github.com/play-with-docker/play-with-docker/router/l2; go run l2.go -ssh_key_path /etc/ssh/ssh_host_rsa_key -name l2 -save /pwd/networks'
->>>>>>> upstream/master
         volumes:
             - $GOPATH/src:/go/src
             - /var/run/docker.sock:/var/run/docker.sock
