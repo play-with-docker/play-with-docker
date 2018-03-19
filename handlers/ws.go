@@ -7,17 +7,11 @@ import (
 	"net/http"
 	"sync"
 
-<<<<<<< HEAD
-	"github.com/googollee/go-socket.io"
-	"github.com/gorilla/mux"
-	"github.com/play-with-docker/play-with-docker/services"
-=======
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/play-with-docker/play-with-docker/event"
 	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/satori/go.uuid"
->>>>>>> upstream/master
 )
 
 var upgrader = websocket.Upgrader{
@@ -43,7 +37,7 @@ func newSocket(r *http.Request, c *websocket.Conn) *socket {
 		c:         c,
 		listeners: map[string][]func(args ...interface{}){},
 		r:         r,
-		id:        uuid.NewV4().String(),
+		id:        uuid.Must(uuid.NewV4()).String(),
 	}
 }
 

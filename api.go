@@ -3,20 +3,6 @@ package main
 import (
 	"log"
 	"os"
-<<<<<<< HEAD
-	"regexp"
-	"strings"
-
-	gh "github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/miekg/dns"
-	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/play-with-docker/play-with-docker/handlers"
-	"github.com/play-with-docker/play-with-docker/services"
-	"github.com/play-with-docker/play-with-docker/templates"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/urfave/negroni"
-=======
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/config"
@@ -31,7 +17,6 @@ import (
 	"github.com/play-with-docker/play-with-docker/scheduler"
 	"github.com/play-with-docker/play-with-docker/scheduler/task"
 	"github.com/play-with-docker/play-with-docker/storage"
->>>>>>> upstream/master
 )
 
 func main() {
@@ -87,8 +72,6 @@ func initStorage() storage.StorageApi {
 func initEvent() event.EventApi {
 	return event.NewLocalBroker()
 }
-<<<<<<< HEAD
-=======
 
 func initDockerFactory(s storage.StorageApi) docker.FactoryApi {
 	return docker.NewLocalCachedFactory(s)
@@ -97,4 +80,3 @@ func initDockerFactory(s storage.StorageApi) docker.FactoryApi {
 func initK8sFactory(s storage.StorageApi) k8s.FactoryApi {
 	return k8s.NewLocalCachedFactory(s)
 }
->>>>>>> upstream/master

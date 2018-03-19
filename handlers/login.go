@@ -81,7 +81,7 @@ func Login(rw http.ResponseWriter, req *http.Request) {
 		host = req.Host
 	}
 	provider.RedirectURL = fmt.Sprintf("%s://%s/oauth/providers/%s/callback", scheme, host, providerName)
-	url := provider.AuthCodeURL(loginRequest.Id, oauth2.SetAuthURLParam("nonce", uuid.NewV4().String()))
+	url := provider.AuthCodeURL(loginRequest.Id, oauth2.SetAuthURLParam("nonce", uuid.Must(uuid.NewV4()).String()))
 
 	http.Redirect(rw, req, url, http.StatusFound)
 }
@@ -136,7 +136,7 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		user.ProviderUserId = strconv.Itoa(u.GetID())
+		user.ProviderUserId = strconv.Itoa(int(u.GetID()))
 		user.Name = u.GetName()
 		user.Avatar = u.GetAvatarURL()
 		user.Email = u.GetEmail()
