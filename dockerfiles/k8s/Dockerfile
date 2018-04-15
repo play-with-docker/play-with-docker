@@ -5,7 +5,7 @@ COPY ./kubernetes.repo /etc/yum.repos.d/
 
 
 
-RUN yum install -y kubelet kubeadm \
+RUN yum install -y kubectl-1.8.11-0 kubeadm-1.8.11-0 \
     && mv -f /etc/systemd/system/kubelet.service.d/10-kubeadm.conf /etc/systemd/system/kubelet.service \
     && yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
     && yum install -y docker-ce \
