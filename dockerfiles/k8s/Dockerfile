@@ -8,12 +8,14 @@ COPY ./kubernetes.repo /etc/yum.repos.d/
 RUN yum install -y kubectl-1.8.11-0 kubeadm-1.8.11-0 \
     && mv -f /etc/systemd/system/kubelet.service.d/10-kubeadm.conf /etc/systemd/system/kubelet.service \
     && yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
-    && yum install -y docker-ce \
+    && yum install -y docker-ce git \
     && sed -i -e '4d;5d;8d' /lib/systemd/system/docker.service \
     && yum clean all
 
-RUN curl -Lf -o jq https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 \
-    && chmod +x ./jq && mv jq /usr/bin
+RUN curl -Lf -o /usr/bin/jq https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 \
+    && curl -Lf -o /usr/bin/docker-compose https://github.com/docker/compose/releases/download/1.21.0/docker-compose-$(uname -s)-$(uname -m) \
+    && chmod +x /usr/bin/jq /usr/bin/docker-compose 
+
 
 COPY ./kube* /etc/systemd/system/
 COPY ./wrapkubeadm.sh /usr/local/bin/kubeadm
