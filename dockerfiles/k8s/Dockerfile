@@ -32,5 +32,5 @@ RUN mkdir -p /root/.kube && ln -s /etc/kubernetes/admin.conf /root/.kube/config 
 
 WORKDIR /root
 
-CMD systemctl start docker && systemctl start kubelet \
+CMD mount --make-shared / && systemctl start docker && systemctl start kubelet \
     && while true; do bash -l; done
