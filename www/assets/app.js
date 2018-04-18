@@ -406,6 +406,7 @@
               $timeout(function() {
               }, 0, false);
           }, 0, false);
+          return
       }
       instance.term.focus();
     }
