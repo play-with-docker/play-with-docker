@@ -60,6 +60,7 @@ func Register(extend HandlerExtender) {
 	corsHandler := gh.CORS(gh.AllowCredentials(), gh.AllowedHeaders([]string{"x-requested-with", "content-type"}), gh.AllowedMethods([]string{"GET", "POST", "HEAD", "DELETE"}), gh.AllowedOriginValidator(func(origin string) bool {
 		if strings.Contains(origin, "localhost") ||
 			strings.HasSuffix(origin, "play-with-docker.com") ||
+			strings.HasSuffix(origin, "play-with-kuberentes.com") ||
 			strings.HasSuffix(origin, "play-with-moby.com") {
 			return true
 		}
