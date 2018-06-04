@@ -34,7 +34,7 @@ type DockerApi interface {
 	GetClient() *client.Client
 
 	NetworkCreate(id string, opts types.NetworkCreate) error
-	NetworkConnect(container, network, ip string) (string, error)
+	NetworkConnect(container, network, ip string, aliases []string) (string, error)
 	NetworkInspect(id string) (types.NetworkResource, error)
 	NetworkDelete(id string) error
 	NetworkDisconnect(containerId, networkId string) error
@@ -101,8 +101,10 @@ func (d *docker) NetworkCreate(id string, opts types.NetworkCreate) error {
 	return nil
 }
 
-func (d *docker) NetworkConnect(containerId, networkId, ip string) (string, error) {
-	settings := &network.EndpointSettings{}
+func (d *docker) NetworkConnect(containerId, networkId, ip string, aliases []string) (string, error) {
+	settings := &network.EndpointSettings{
+		Aliases: aliases,
+	}
 	if ip != "" {
 		settings.IPAddress = ip
 	}
@@ -261,6 +263,7 @@ type CreateContainerOpts struct {
 	HostFQDN      string
 	Labels        map[string]string
 	Networks      []string
+	NetAlias      []string
 }
 
 func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
@@ -335,7 +338,9 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 	}
 
 	networkConf := &network.NetworkingConfig{
-		EndpointsConfig: map[string]*network.EndpointSettings{opts.Networks[0]: &network.EndpointSettings{}},
+		EndpointsConfig: map[string]*network.EndpointSettings{opts.Networks[0]: &network.EndpointSettings{
+			Aliases: opts.NetAlias,
+		}},
 	}
 
 	if config.ExternalDindVolume {
