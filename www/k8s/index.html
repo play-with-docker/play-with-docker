@@ -113,6 +113,13 @@
                                <input ng-model="instance.cpu" type="text" readonly="readonly">
                              </md-input-container>
                           </div>
+                          <div layout-gt-sm="row">
+                            <md-input-container>
+                              <label>URL</label>
+                              <input value="{{instance.proxy_host}}.direct.{{host}}" type="text" readonly="readonly" size="50">
+                            </md-input-container>
+                            <div class="md-block" glex-gt-sm></div>
+                          </div>
                       </md-card-content>
                       <md-card-actions>
                           <md-button class="md-warn md-raised" ng-click="deleteInstance(instance)" ng-disabled="isInstanceBeingDeleted">{{deleteInstanceBtnText}}</md-button>
