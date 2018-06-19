@@ -395,7 +395,7 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 			return err
 		}
 
-		h.Binds = append(h.Binds, "/sys/fs/cgroup:/sys/fs/cgroup")
+		h.Binds = append(h.Binds, "/sys/fs/cgroup:/sys/fs/cgroup:ro")
 		defer func() {
 			if err != nil {
 				d.c.VolumeRemove(context.Background(), opts.SessionId, true)
