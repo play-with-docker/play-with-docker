@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/play-with-docker/play-with-docker/config"
@@ -105,6 +106,10 @@ func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*t
 
 	if config.ForceTLS {
 		conf.Tls = true
+	}
+
+	if config.ExecAttachCmd != "" {
+		conf.ExecAttachCmd = strings.Split(config.ExecAttachCmd, " ")
 	}
 
 	instance, err := prov.InstanceNew(session, conf)

@@ -42,6 +42,7 @@ type SessionSetupInstanceConf struct {
 	Type           string     `json:"type"`
 	Run            [][]string `json:"run"`
 	Tls            bool       `json:"tls"`
+	ExecAttachCmd  []string   `json:"exec_attach_cmd"`
 }
 
 func (p *pwd) SessionNew(ctx context.Context, config types.SessionConfig) (*types.Session, error) {
@@ -246,6 +247,7 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 				PlaygroundFQDN: sconf.PlaygroundFQDN,
 				Type:           conf.Type,
 				Tls:            conf.Tls,
+				ExecAttachCmd:  conf.ExecAttachCmd,
 			}
 			i, err := p.InstanceNew(session, instanceConf)
 			if err != nil {

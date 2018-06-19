@@ -29,6 +29,7 @@ var MaxLoadAvg float64
 var ForceTLS bool
 var SecureCookie *securecookie.SecureCookie
 var AdminToken string
+var ExecAttachCmd string
 
 var PlaygroundDomain string
 
@@ -62,7 +63,7 @@ func ParseFlags() {
 	flag.StringVar(&AdminToken, "admin-token", "", "Token to validate admin user for admin endpoints")
 
 	flag.StringVar(&SegmentId, "segment-id", "", "Segment id to post metrics")
-
+	flag.StringVar(&ExecAttachCmd, "exec-attach-cmd", "", "Exec that should be executed on attaching terminal")
 	flag.Parse()
 
 	SecureCookie = securecookie.New([]byte(CookieHashKey), []byte(CookieBlockKey))

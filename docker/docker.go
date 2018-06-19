@@ -47,6 +47,7 @@ type DockerApi interface {
 
 	ContainerStats(name string) (io.ReadCloser, error)
 	ContainerResize(name string, rows, cols uint) error
+	ContainerExecResize(name string, rows, cols uint, execID string) error
 	ContainerRename(old, new string) error
 	ContainerDelete(name string) error
 	ContainerCreate(opts CreateContainerOpts) error
@@ -55,6 +56,8 @@ type DockerApi interface {
 	Exec(instanceName string, command []string) (int, error)
 
 	CreateAttachConnection(name string) (net.Conn, error)
+	CreateExecID(name string, command []string) (types.ExecConfig, string, error)
+	CreateExecAttachConnection(execID string, conf types.ExecConfig) (net.Conn, error)
 	CopyToContainer(containerName, destination, fileName string, content io.Reader) error
 	CopyFromContainer(containerName, filePath string) (io.Reader, error)
 	SwarmInit(advertiseAddr string) (*SwarmTokens, error)
@@ -197,6 +200,10 @@ func (d *docker) ContainerResize(name string, rows, cols uint) error {
 	return d.c.ContainerResize(context.Background(), name, types.ResizeOptions{Height: rows, Width: cols})
 }
 
+func (d *docker) ContainerExecResize(name string, rows, cols uint, execID string) error {
+	return d.c.ContainerExecResize(context.Background(), execID, types.ResizeOptions{Height: rows, Width: cols})
+}
+
 func (d *docker) ContainerRename(old, new string) error {
 	return d.c.ContainerRename(context.Background(), old, new)
 }
@@ -206,6 +213,28 @@ func (d *docker) CreateAttachConnection(name string) (net.Conn, error) {
 
 	conf := types.ContainerAttachOptions{true, true, true, true, "ctrl-^,ctrl-^", true}
 	conn, err := d.c.ContainerAttach(ctx, name, conf)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn.Conn, nil
+}
+
+func (d *docker) CreateExecID(name string, command []string) (types.ExecConfig, string, error) {
+	ctx := context.Background()
+
+	conf := types.ExecConfig{Cmd: command, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, Detach: false}
+	response, err := d.c.ContainerExecCreate(ctx, name, conf)
+	if err != nil {
+		return types.ExecConfig{}, "", err
+	}
+	return conf, response.ID, nil
+}
+
+func (d *docker) CreateExecAttachConnection(execID string, conf types.ExecConfig) (net.Conn, error) {
+	ctx := context.Background()
+
+	conn, err := d.c.ContainerExecAttach(ctx, execID, conf)
 	if err != nil {
 		return nil, err
 	}

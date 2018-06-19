@@ -107,6 +107,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	instance.Tls = conf.Tls
 	instance.ProxyHost = router.EncodeHost(session.Id, instance.RoutableIP, router.HostOpts{})
 	instance.SessionHost = session.Host
+	instance.ExecAttachCmd = conf.ExecAttachCmd
 
 	return instance, nil
 }
@@ -193,6 +194,9 @@ func (d *DinD) InstanceResizeTerminal(instance *types.Instance, rows, cols uint)
 	if err != nil {
 		return err
 	}
+	if instance.ExecID != "" {
+		dockerClient.ContainerExecResize(instance.Name, rows, cols, instance.ExecID)
+	}
 	return dockerClient.ContainerResize(instance.Name, rows, cols)
 }
 
@@ -204,6 +208,15 @@ func (d *DinD) InstanceGetTerminal(instance *types.Instance) (net.Conn, error) {
 	dockerClient, err := d.factory.GetForSession(session)
 	if err != nil {
 		return nil, err
+	}
+	if instance.ExecAttachCmd != nil {
+		conf, execID, err := dockerClient.CreateExecID(instance.Name, instance.ExecAttachCmd)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create exec on instance [%s]. Error: %s\n", instance.Name, err)
+		}
+		instance.ExecID = execID
+
+		return dockerClient.CreateExecAttachConnection(instance.ExecID, conf)
 	}
 	return dockerClient.CreateAttachConnection(instance.Name)
 }
