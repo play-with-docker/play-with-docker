@@ -30,6 +30,7 @@ var ForceTLS bool
 var SecureCookie *securecookie.SecureCookie
 var AdminToken string
 var ExecAttachCmd string
+var UseHostCgroup bool
 
 var PlaygroundDomain string
 
@@ -64,6 +65,7 @@ func ParseFlags() {
 
 	flag.StringVar(&SegmentId, "segment-id", "", "Segment id to post metrics")
 	flag.StringVar(&ExecAttachCmd, "exec-attach-cmd", "", "Exec that should be executed on attaching terminal")
+	flag.BoolVar(&UseHostCgroup, "use-host-cgroup", false, "Mount /sys/fs/cgroup in container, required for systemd")
 	flag.Parse()
 
 	SecureCookie = securecookie.New([]byte(CookieHashKey), []byte(CookieBlockKey))

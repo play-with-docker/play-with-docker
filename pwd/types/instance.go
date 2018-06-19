@@ -22,6 +22,7 @@ type Instance struct {
 	ctx           context.Context `json:"-" bson:"-"`
 	ExecAttachCmd []string        `json:"exec_attach_cmd" bson:"exec_attach_cmd"`
 	ExecID        string          `json:"-" bson:"-"`
+	UseHostCgroup bool            `json:"use_host_cgroup" bson:"use_host_cgroup"`
 }
 
 type WindowsInstance struct {
@@ -41,4 +42,5 @@ type InstanceConfig struct {
 	PlaygroundFQDN string
 	Type           string
 	ExecAttachCmd  []string
+	UseHostCgroup  bool
 }

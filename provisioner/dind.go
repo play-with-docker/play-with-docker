@@ -75,6 +75,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		ServerKey:     conf.ServerKey,
 		CACert:        conf.CACert,
 		HostFQDN:      conf.PlaygroundFQDN,
+		UseHostCgroup: conf.UseHostCgroup,
 		Privileged:    true,
 		Networks:      []string{session.Id},
 	}
@@ -108,6 +109,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	instance.ProxyHost = router.EncodeHost(session.Id, instance.RoutableIP, router.HostOpts{})
 	instance.SessionHost = session.Host
 	instance.ExecAttachCmd = conf.ExecAttachCmd
+	instance.UseHostCgroup = conf.UseHostCgroup
 
 	return instance, nil
 }

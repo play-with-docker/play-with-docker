@@ -112,6 +112,8 @@ func (p *pwd) InstanceNew(session *types.Session, conf types.InstanceConfig) (*t
 		conf.ExecAttachCmd = strings.Split(config.ExecAttachCmd, " ")
 	}
 
+	conf.UseHostCgroup = config.UseHostCgroup
+
 	instance, err := prov.InstanceNew(session, conf)
 	if err != nil {
 		log.Println(err)

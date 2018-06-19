@@ -290,6 +290,7 @@ type CreateContainerOpts struct {
 	HostFQDN      string
 	Labels        map[string]string
 	Networks      []string
+	UseHostCgroup bool
 }
 
 func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
@@ -380,6 +381,21 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 		}
 		h.Binds = []string{fmt.Sprintf("%s:/var/lib/docker", opts.ContainerName)}
 
+		defer func() {
+			if err != nil {
+				d.c.VolumeRemove(context.Background(), opts.SessionId, true)
+			}
+		}()
+	}
+	if opts.UseHostCgroup {
+		_, err = d.c.VolumeCreate(context.Background(), volume.VolumesCreateBody{
+			Driver: "local",
+		})
+		if err != nil {
+			return err
+		}
+
+		h.Binds = append(h.Binds, "/sys/fs/cgroup:/sys/fs/cgroup")
 		defer func() {
 			if err != nil {
 				d.c.VolumeRemove(context.Background(), opts.SessionId, true)
