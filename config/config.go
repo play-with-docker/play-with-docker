@@ -34,6 +34,8 @@ var PlaygroundDomain string
 
 var SegmentId string
 
+var NonPrivileged bool
+
 // TODO move this to a sync map so it can be updated on demand when the configuration for a playground changes
 var Providers = map[string]map[string]*oauth2.Config{}
 
@@ -60,6 +62,7 @@ func ParseFlags() {
 
 	flag.StringVar(&PlaygroundDomain, "playground-domain", "localhost", "Domain to use for the playground")
 	flag.StringVar(&AdminToken, "admin-token", "", "Token to validate admin user for admin endpoints")
+	flag.BoolVar(&NonPrivileged, "non-privileged", false, "Run containers in privileged mode")
 
 	flag.StringVar(&SegmentId, "segment-id", "", "Segment id to post metrics")
 

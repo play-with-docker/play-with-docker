@@ -42,8 +42,8 @@ func checkHostnameExists(sessionId, hostname string, instances []*types.Instance
 }
 
 func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*types.Instance, error) {
+	playground, err := d.storage.PlaygroundGet(session.PlaygroundId)
 	if conf.ImageName == "" {
-		playground, err := d.storage.PlaygroundGet(session.PlaygroundId)
 		if err != nil {
 			return nil, err
 		}
@@ -77,6 +77,10 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		HostFQDN:      conf.PlaygroundFQDN,
 		Privileged:    true,
 		Networks:      []string{session.Id},
+	}
+
+	if playground.NonPrivileged {
+		opts.Privileged = false
 	}
 
 	dockerClient, err := d.factory.GetForSession(session)
