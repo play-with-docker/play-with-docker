@@ -288,7 +288,7 @@
         });
 
         socket.on('instance new', function(name, ip, hostname, proxyHost) {
-          var instance = $scope.upsertInstance({ name: name, ip: ip, hostname: hostname, proxy_host: proxyHost});
+          var instance = $scope.upsertInstance({ name: name, ip: ip, hostname: hostname, proxy_host: proxyHost, session_id: $scope.sessionId});
           $scope.$apply(function() {
             $scope.showInstance(instance);
           });
