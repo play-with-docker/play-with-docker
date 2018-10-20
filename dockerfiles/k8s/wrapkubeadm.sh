@@ -34,6 +34,12 @@ function dind::proxy-cidr-and-no-conntrack {
 }
 
 
+# Adds route to defualt eth0 interface so 10.96.x.x can go through
+function dind::add-route {
+   route add 10.96.0.0/16 dev eth0
+}
+
+
 
 function dind::join-filters {
   local IFS="|"
@@ -118,6 +124,7 @@ function dind::frob-cluster {
   dind::frob-apiserver
   dind::wait-for-apiserver
   dind::frob-proxy
+  dind::add-route
 }
 
 # Weave depends on /etc/machine-id being unique
@@ -128,7 +135,7 @@ fi
 
 if [[ "$@" == "init"* || "$@" == "join"* ]]; then
 # Call kubeadm with params and skip flag
-	/usr/bin/kubeadm "$@" --skip-preflight-checks
+	/usr/bin/kubeadm "$@" --ignore-preflight-errors all
 else
 # Call kubeadm with params
 	/usr/bin/kubeadm "$@" 

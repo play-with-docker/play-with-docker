@@ -5,7 +5,7 @@ COPY ./kubernetes.repo /etc/yum.repos.d/
 
 
 
-RUN yum install -y kubectl-1.8.11-0 kubeadm-1.8.11-0 \
+RUN yum install -y kubectl-1.12.1-0 kubeadm-1.12.1-0 \
     && mv -f /etc/systemd/system/kubelet.service.d/10-kubeadm.conf /etc/systemd/system/kubelet.service \
     && yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
     && yum install -y docker-ce git \
@@ -21,6 +21,7 @@ COPY ./kube* /etc/systemd/system/
 COPY ./wrapkubeadm.sh /usr/local/bin/kubeadm
 COPY ./tokens.csv /etc/pki/tokens.csv
 COPY ./daemon.json /etc/docker/
+COPY ./resolv.conf.override /etc/
 
 COPY motd /etc/motd
 
