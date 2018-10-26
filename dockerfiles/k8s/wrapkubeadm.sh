@@ -36,7 +36,8 @@ function dind::proxy-cidr-and-no-conntrack {
 
 # Adds route to defualt eth0 interface so 10.96.x.x can go through
 function dind::add-route {
-   route add 10.96.0.0/16 dev eth0
+ #fix ip missing
+ ip route add 10.96.0.0/16 dev eth0
 }
 
 
