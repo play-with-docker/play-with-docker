@@ -147,8 +147,8 @@ function action_restart(){
     local UNIT_FILE=$1
     local UNIT_INSTANCE=$2
 
-    action_start $UNIT_FILE $UNIT_INSTANCE
     action_stop $UNIT_FILE $UNIT_INSTANCE
+    action_start $UNIT_FILE $UNIT_INSTANCE
 }
 
 

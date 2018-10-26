@@ -10,13 +10,13 @@ ENV PATH $PATH:$GOPATH
 # Compile and install httping
 # (used in orchestration workshop, and very useful anyway)
 RUN mkdir -p /opt && cd /opt && \
-    curl https://www.vanheusden.com/httping/httping-2.5.tgz | \
+    curl https://vanheusden.com/httping/httping-2.5.tgz | \
     tar -zxf- && cd httping-2.5 && \
     ./configure && make install LDFLAGS=-lintl && \
     rm -rf httping-2.5
 
-ENV COMPOSE_VERSION=1.18.0
-ENV MACHINE_VERSION=v0.13.0
+ENV COMPOSE_VERSION=1.22.0
+ENV MACHINE_VERSION=v0.15.0
 # Install Compose and Machine
 RUN pip install docker-compose==${COMPOSE_VERSION}
 RUN curl -L https://github.com/docker/machine/releases/download/${MACHINE_VERSION}/docker-machine-Linux-x86_64 \
