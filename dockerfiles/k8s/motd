@@ -20,7 +20,7 @@
 
  3. (Optional) Create an nginx deployment:
 
- kubectl apply -f https://raw.githubusercontent.com/kubernetes/website/master/content/cn/docs/user-guide/nginx-app.yaml
+ kubectl apply -f https://raw.githubusercontent.com/kubernetes/website/master/content/en/examples/application/nginx-app.yaml
 
 
                           The PWK team.

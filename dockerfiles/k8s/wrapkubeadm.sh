@@ -22,6 +22,10 @@ apiserver_static_pod="/etc/kubernetes/manifests/kube-apiserver"
 
 # TODO: think about more secure possibilities
 apiserver_anonymous_auth='.spec.containers[0].command|=map(select(startswith("--token-auth-file")|not))+["--token-auth-file=/etc/pki/tokens.csv"]'
+
+# Sets etcd2 as backend
+apiserver_etcd2_backend='.spec.containers[0].command|=map(select(startswith("--storage-backend")|not))+["--storage-backend=etcd2"]'
+
 # Make apiserver accept insecure connections on port 8080
 # TODO: don't use insecure port
 #apiserver_insecure_bind_port='.spec.containers[0].command|=map(select(startswith("--insecure-port=")|not))+["--insecure-port=2375"]'
@@ -36,7 +40,7 @@ function dind::proxy-cidr-and-no-conntrack {
 
 # Adds route to defualt eth0 interface so 10.96.x.x can go through
 function dind::add-route {
-   route add 10.96.0.0/16 dev eth0
+   ip route add 10.96.0.0/16 dev eth0
 }
 
 
@@ -124,7 +128,6 @@ function dind::frob-cluster {
   dind::frob-apiserver
   dind::wait-for-apiserver
   dind::frob-proxy
-  dind::add-route
 }
 
 # Weave depends on /etc/machine-id being unique
@@ -144,5 +147,7 @@ fi
 # Frob cluster
 if [[ "$@" == "init"* && $? -eq 0 && ! "$@" == *"--help"* ]]; then
    dind::frob-cluster
+else
+   dind::add-route
 fi
 
