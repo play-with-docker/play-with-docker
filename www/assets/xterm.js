@@ -4275,6 +4275,9 @@ Terminal.prototype.evaluateKeyEscapeSequence = function (ev) {
             if (ev.shiftKey) {
                 result.key = EscapeSequences_1.C0.BS;
                 break;
+            } else if (ev.altKey) {
+                result.key = EscapeSequences_1.C0.ESC + EscapeSequences_1.C0.DEL;
+                break;
             }
             result.key = EscapeSequences_1.C0.DEL;
             break;
