@@ -11,14 +11,17 @@ function wait_for_url {
 
 function deploy_ucp {
     wait_for_url "https://localhost:2376"
-    docker run --rm  --name ucp \
+    docker run --rm -i  --name ucp \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        docker/ucp:2.2.3 install --force-insecure-tcp \
+        docker/ucp:3.0.5 install --debug --force-insecure-tcp \
         --san *.direct.${PWD_HOST_FQDN} \
         --license $(cat $HOME/workshop.lic) \
         --swarm-port 2375 \
         --admin-username admin \
         --admin-password admin1234
+
+    rm $HOME/workshop.lic
+    echo "Finished deploying UCP"
 }
 
 function get_instance_ip {
@@ -48,7 +51,7 @@ function deploy_dtr {
     local dtr_url=$(get_direct_url_from_ip $dtr_ip)
     local ucp_url=$(get_direct_url_from_ip $ucp_ip)
 
-    docker run --rm docker/dtr install \
+    docker run -i --rm docker/dtr:2.5.5 install \
       --dtr-external-url $dtr_url \
       --ucp-node $1 \
       --ucp-username admin \

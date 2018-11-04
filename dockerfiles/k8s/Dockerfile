@@ -17,6 +17,8 @@ RUN curl -Lf -o /usr/bin/jq https://github.com/stedolan/jq/releases/download/jq-
     && chmod +x /usr/bin/jq /usr/bin/docker-compose 
 
 
+VOLUME ["/var/lib/kubelet"]
+
 COPY ./kube* /etc/systemd/system/
 COPY ./wrapkubeadm.sh /usr/local/bin/kubeadm
 COPY ./tokens.csv /etc/pki/tokens.csv
