@@ -1,94 +1,51 @@
-/**
- * Fit terminal columns and rows to the dimensions of its DOM element.
- *
- * ## Approach
- * - Rows: Truncate the division of the terminal parent element height by the terminal row height.
- *
- * - Columns: Truncate the division of the terminal parent element width by the terminal character
- * width (apply display: inline at the terminal row and truncate its width with the current
- * number of columns).
- * @module xterm/addons/fit/fit
- * @license MIT
- */
-
-(function (fit) {
-  if (typeof exports === 'object' && typeof module === 'object') {
-    /*
-     * CommonJS environment
-     */
-    module.exports = fit(require('../../xterm'));
-  } else if (typeof define == 'function') {
-    /*
-     * Require.js is available
-     */
-    define(['../../xterm'], fit);
-  } else {
-    /*
-     * Plain browser environment
-     */
-    fit(window.Terminal);
-  }
-})(function (Xterm) {
-  var exports = {};
-
-  exports.proposeGeometry = function (term) {
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.fit = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function proposeGeometry(term) {
     if (!term.element.parentElement) {
-      return null;
+        return null;
     }
-    var parentElementStyle = window.getComputedStyle(term.element.parentElement),
-        parentElementHeight = parseInt(parentElementStyle.getPropertyValue('height')),
-        parentElementWidth = Math.max(0, parseInt(parentElementStyle.getPropertyValue('width')) - 17),
-        elementStyle = window.getComputedStyle(term.element),
-        elementPaddingVer = parseInt(elementStyle.getPropertyValue('padding-top')) + parseInt(elementStyle.getPropertyValue('padding-bottom')),
-        elementPaddingHor = parseInt(elementStyle.getPropertyValue('padding-right')) + parseInt(elementStyle.getPropertyValue('padding-left')),
-        availableHeight = parentElementHeight - elementPaddingVer,
-        availableWidth = parentElementWidth - elementPaddingHor,
-        container = term.rowContainer,
-        subjectRow = term.rowContainer.firstElementChild,
-        contentBuffer = subjectRow.innerHTML,
-        characterHeight,
-        rows,
-        characterWidth,
-        cols,
-        geometry;
-
-    if (term.element.classList.contains('fullscreen')) {
-	// we are in fullscreen mode and need to use element height and width directly;
-
-	availableHeight = parseInt(elementStyle.getPropertyValue('height'));
-	availableWidth = Math.max(0, parseInt(elementStyle.getPropertyValue('width')) - 17);
-    }
-
-    subjectRow.style.display = 'inline';
-    subjectRow.innerHTML = 'W'; // Common character for measuring width, although on monospace
-    characterWidth = subjectRow.getBoundingClientRect().width;
-    subjectRow.style.display = ''; // Revert style before calculating height, since they differ.
-    //characterHeight = subjectRow.getBoundingClientRect().height;
-    characterHeight = parseInt(window.getComputedStyle(subjectRow).fontSize, 10)+2;
-    subjectRow.innerHTML = contentBuffer;
-
-    rows = parseInt(availableHeight / characterHeight);
-    cols = parseInt(availableWidth / characterWidth);
-
-    geometry = {cols: cols, rows: rows};
+    var parentElementStyle = window.getComputedStyle(term.element.parentElement);
+    var parentElementHeight = parseInt(parentElementStyle.getPropertyValue('height'));
+    var parentElementWidth = Math.max(0, parseInt(parentElementStyle.getPropertyValue('width')));
+    var elementStyle = window.getComputedStyle(term.element);
+    var elementPadding = {
+        top: parseInt(elementStyle.getPropertyValue('padding-top')),
+        bottom: parseInt(elementStyle.getPropertyValue('padding-bottom')),
+        right: parseInt(elementStyle.getPropertyValue('padding-right')),
+        left: parseInt(elementStyle.getPropertyValue('padding-left'))
+    };
+    var elementPaddingVer = elementPadding.top + elementPadding.bottom;
+    var elementPaddingHor = elementPadding.right + elementPadding.left;
+    var availableHeight = parentElementHeight - elementPaddingVer;
+    var availableWidth = parentElementWidth - elementPaddingHor - term._core.viewport.scrollBarWidth;
+    var geometry = {
+        cols: Math.floor(availableWidth / term._core.renderer.dimensions.actualCellWidth),
+        rows: Math.floor(availableHeight / term._core.renderer.dimensions.actualCellHeight)
+    };
     return geometry;
-  };
-
-  exports.fit = function (term) {
-    var geometry = exports.proposeGeometry(term);
-
+}
+exports.proposeGeometry = proposeGeometry;
+function fit(term) {
+    var geometry = proposeGeometry(term);
     if (geometry) {
-      term.resize(geometry.cols, geometry.rows);
+        if (term.rows !== geometry.rows || term.cols !== geometry.cols) {
+            term._core.renderer.clear();
+            term.resize(geometry.cols, geometry.rows);
+        }
     }
-  };
+}
+exports.fit = fit;
+function apply(terminalConstructor) {
+    terminalConstructor.prototype.proposeGeometry = function () {
+        return proposeGeometry(this);
+    };
+    terminalConstructor.prototype.fit = function () {
+        fit(this);
+    };
+}
+exports.apply = apply;
 
-  Xterm.prototype.proposeGeometry = function () {
-    return exports.proposeGeometry(this);
-  };
-
-  Xterm.prototype.fit = function () {
-    return exports.fit(this);
-  };
-
-  return exports;
+},{}]},{},[1])(1)
 });
+//# sourceMappingURL=fit.js.map

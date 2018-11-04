@@ -471,7 +471,7 @@
         cursorBlink: false
       });
 
-      term.attachCustomKeydownHandler(function(e) {
+      term.attachCustomKeyEventHandler(function(e) {
         // Ctrl + Alt + C
         if (e.ctrlKey && e.altKey && (e.keyCode == 67)) {
           document.execCommand('copy');
@@ -479,7 +479,7 @@
         }
       });
 
-      term.attachCustomKeydownHandler(function(e) {
+      term.attachCustomKeyEventHandler(function(e) {
         if (selectedKeyboardShortcuts == null)
           return;
         var presets = selectedKeyboardShortcuts.presets
