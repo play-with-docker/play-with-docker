@@ -853,12 +853,12 @@
     }
     function toggleFullscreen(terminal, resize) {
       if(fullscreen) {
-        terminal.toggleFullscreen();
+        terminal.toggleFullScreen();
         resize(fullscreen);
         fullscreen = null;
       } else {
         fullscreen = terminal.proposeGeometry();
-        terminal.toggleFullscreen();
+        terminal.toggleFullScreen();
         angular.element($window).trigger('resize');
       }
     }
