@@ -36,6 +36,9 @@
     $scope.isInstanceBeingDeleted = false;
     $scope.uploadProgress = 0;
 
+    Terminal.applyAddon(fullscreen);
+    Terminal.applyAddon(fit);
+
     $scope.uploadFiles = function (files, invalidFiles) {
         let total = files.length;
         let uploadFile = function() {
