@@ -7,6 +7,7 @@ type User struct {
 	Avatar         string `json:"avatar" bson:"avatar"`
 	Provider       string `json:"provider" bson:"provider"`
 	Email          string `json:"email" bson:"email"`
+	IsBanned       bool   `json:"banned" bson:"banned"`
 }
 
 type LoginRequest struct {

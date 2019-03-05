@@ -84,7 +84,7 @@ func NewSession(rw http.ResponseWriter, req *http.Request) {
 			http.Redirect(rw, req, "/ooc", http.StatusFound)
 			return
 		}
-		log.Println(err)
+		log.Printf("%#v \n", err)
 		http.Redirect(rw, req, "/500", http.StatusInternalServerError)
 		return
 		//TODO: Return some error code

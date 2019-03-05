@@ -47,6 +47,10 @@ type SessionSetupInstanceConf struct {
 func (p *pwd) SessionNew(ctx context.Context, config types.SessionConfig) (*types.Session, error) {
 	defer observeAction("SessionNew", time.Now())
 
+	if u, _ := p.storage.UserGet(config.UserId); u.IsBanned {
+		return nil, fmt.Errorf("User %s is banned\n", config.UserId)
+	}
+
 	s := &types.Session{}
 	s.Id = p.generator.NewId()
 	s.CreatedAt = time.Now()
