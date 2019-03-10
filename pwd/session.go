@@ -47,7 +47,7 @@ type SessionSetupInstanceConf struct {
 func (p *pwd) SessionNew(ctx context.Context, config types.SessionConfig) (*types.Session, error) {
 	defer observeAction("SessionNew", time.Now())
 
-	if u, _ := p.storage.UserGet(config.UserId); u.IsBanned {
+	if u, err := p.storage.UserGet(config.UserId); err == nil && u.IsBanned {
 		return nil, fmt.Errorf("User %s is banned\n", config.UserId)
 	}
 

@@ -35,6 +35,7 @@ func TestSessionNew(t *testing.T) {
 	_d.On("DaemonHost").Return("localhost")
 	_d.On("NetworkConnect", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
 	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
+	_s.On("UserGet", mock.Anything).Return(&types.User{}, nil)
 	_s.On("SessionCount").Return(1, nil)
 	_s.On("InstanceCount").Return(0, nil)
 	_s.On("ClientCount").Return(0, nil)
@@ -89,19 +90,7 @@ func TestSessionFailWhenUserIsBanned(t *testing.T) {
 	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
 	sp := provisioner.NewOverlaySessionProvisioner(_f)
 
-	_g.On("NewId").Return("aaaabbbbcccc")
-	_f.On("GetForSession", mock.AnythingOfType("*types.Session")).Return(_d, nil)
-	_d.On("NetworkCreate", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
-	_d.On("DaemonHost").Return("localhost")
-	_d.On("NetworkConnect", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
-	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
 	_s.On("UserGet", mock.Anything).Return(&types.User{IsBanned: true}, nil)
-	_s.On("SessionCount").Return(1, nil)
-	_s.On("InstanceCount").Return(0, nil)
-	_s.On("ClientCount").Return(0, nil)
-
-	var nilArgs []interface{}
-	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
 
 	p := NewPWD(_f, _e, _s, sp, ipf)
 	p.generator = _g
@@ -112,6 +101,12 @@ func TestSessionFailWhenUserIsBanned(t *testing.T) {
 	assert.NotNil(t, e)
 	assert.Nil(t, s)
 	assert.Contains(t, e.Error(), "banned")
+
+	_d.AssertExpectations(t)
+	_f.AssertExpectations(t)
+	_s.AssertExpectations(t)
+	_g.AssertExpectations(t)
+	_e.M.AssertExpectations(t)
 }
 
 /*
