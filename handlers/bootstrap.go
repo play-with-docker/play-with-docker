@@ -61,6 +61,7 @@ func Register(extend HandlerExtender) {
 		if strings.Contains(origin, "localhost") ||
 			strings.HasSuffix(origin, "play-with-docker.com") ||
 			strings.HasSuffix(origin, "play-with-kubernetes.com") ||
+			strings.HasSuffix(origin, "docker.com") ||
 			strings.HasSuffix(origin, "play-with-moby.com") {
 			return true
 		}
