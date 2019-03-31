@@ -240,14 +240,18 @@ func initOauthProviders(p *types.Playground) {
 		config.Providers[p.Id]["facebook"] = conf
 	}
 	if p.DockerClientID != "" && p.DockerClientSecret != "" {
-		oauth2.RegisterBrokenAuthHeaderProvider(".id.docker.com")
+		endpoint := "id.docker.com"
+		if len(p.DockerHost) > 0 {
+			endpoint = p.DockerHost
+		}
+		oauth2.RegisterBrokenAuthHeaderProvider(fmt.Sprintf(".%s", endpoint))
 		conf := &oauth2.Config{
 			ClientID:     p.DockerClientID,
 			ClientSecret: p.DockerClientSecret,
 			Scopes:       []string{"openid"},
 			Endpoint: oauth2.Endpoint{
-				AuthURL:  "https://id.docker.com/id/oauth/authorize/",
-				TokenURL: "https://id.docker.com/id/oauth/token",
+				AuthURL:  fmt.Sprintf("https://%s/id/oauth/authorize/", endpoint),
+				TokenURL: fmt.Sprintf("https://%s/id/oauth/token", endpoint),
 			},
 		}
 
