@@ -1,0 +1,2 @@
+[cluster_config]
+  custom_kubelet_flags = ["--http-check-frequency=20s", "--containerized=false"]
