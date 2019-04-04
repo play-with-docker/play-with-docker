@@ -1,15 +1,15 @@
-ARG VERSION=franela/docker:18.09-ee-dind
+ARG VERSION=franela/docker:18.09.2-ee-dind
 #ARG VERSION=franela/docker:17.06.2-dind-ubuntu
 #ARG VERSION=franela/docker:18.01-dind-ubuntu
 
 FROM ${VERSION}
 
 RUN apt-get update \ 
-    && apt-get install -y git tmux python-pip apache2-utils vim curl jq bash-completion tree zip \
+    && apt-get install -y git tmux python-pip apache2-utils vim curl jq bash-completion screen tree zip \
     && rm -rf /var/lib/apt/lists/*
 
 # Add kubectl client
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.8.6/bin/linux/amd64/kubectl \
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.11.7/bin/linux/amd64/kubectl \
     && chmod +x ./kubectl \
     && mv ./kubectl /usr/local/bin/kubectl 
 
@@ -22,7 +22,7 @@ RUN curl -L https://github.com/docker/machine/releases/download/${MACHINE_VERSIO
 
 # Install a nice vimrc file and prompt (by soulshake)
 COPY ["docker-prompt", "sudo", "ucp-beta.sh", "/usr/local/bin/"]
-COPY [".vimrc",".profile", ".inputrc", ".gitconfig", "workshop_beta.lic", "./root/"]
+COPY [".vimrc",".profile", ".inputrc", ".gitconfig", "workshop_beta.lic", "ucp-config.toml", "./root/"]
 COPY ["motd", "/etc/motd"]
 COPY ["ee/daemon.json", "/etc/docker/"]
 COPY ["ee/cert.pem", "ee/key.pem", "/opt/pwd/certs/"]
@@ -33,7 +33,7 @@ COPY ["ee/ucp-cert.pem", "./root/cert.pem"]
 WORKDIR /root
 
 # Setup certs and uploads folders
-RUN mkdir -p /opt/pwd/certs /opt/pwd/uploads /var/lib/kubelet
+RUN mkdir -p /opt/pwd/certs /opt/pwd/uploads
 
 VOLUME ["/var/lib/kubelet"]
 
@@ -47,9 +47,9 @@ CMD cat /etc/hosts >/etc/hosts.bak && \
     sed -i "s/\DOCKER_TLSKEY/$DOCKER_TLSKEY/" /etc/docker/daemon.json && \
     mount -t securityfs none /sys/kernel/security && \
     mount --make-rshared / && \
-    #mount --make-shared -t tmpfs tmpfs /run && \
-    #mount --make-shared -t tmpfs tmpfs /var/lib/kubelet && \
-    #mount --make-shared /var/lib/docker && \
+    #mount --make-rshared -t tmpfs tmpfs /run && \
+    #mount --make-rshared /var/lib/kubelet && \
+    #mount --make-rshared /var/lib/docker && \
     dockerd > /docker.log 2>&1 & \
     while true ; do script -q -c "/bin/bash -l" /dev/null ; done
 # ... and then put a shell in the foreground, restarting it if it exits

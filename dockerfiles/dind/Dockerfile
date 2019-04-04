@@ -15,12 +15,15 @@ RUN mkdir -p /opt && cd /opt && \
     ./configure && make install LDFLAGS=-lintl && \
     rm -rf httping-2.5
 
-ENV COMPOSE_VERSION=1.22.0
-ENV MACHINE_VERSION=v0.15.0
+
+ENV DOCKERAPP_VERSION=v0.6.0
+ENV COMPOSE_VERSION=1.23.2
 # Install Compose and Machine
 RUN pip install docker-compose==${COMPOSE_VERSION}
-RUN curl -L https://github.com/docker/machine/releases/download/${MACHINE_VERSION}/docker-machine-Linux-x86_64 \
-    -o /usr/bin/docker-machine && chmod +x /usr/bin/docker-machine
+
+
+RUN curl -fsSL --output /tmp/docker-app-linux.tar.gz https://github.com/docker/app/releases/download/${DOCKERAPP_VERSION}/docker-app-linux.tar.gz \
+    && tar xf "/tmp/docker-app-linux.tar.gz" -C /usr/bin/ && mv /usr/bin/docker-app-linux /usr/bin/docker-app && rm /tmp/docker-app-linux.tar.gz
 
 # Add bash completion and set bash as default shell
 RUN mkdir /etc/bash_completion.d \
