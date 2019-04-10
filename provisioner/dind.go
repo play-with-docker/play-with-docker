@@ -77,6 +77,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		HostFQDN:      conf.PlaygroundFQDN,
 		Privileged:    true,
 		Networks:      []string{session.Id},
+		NetAlias:      []string{conf.Hostname},
 	}
 
 	dockerClient, err := d.factory.GetForSession(session)

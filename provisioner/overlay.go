@@ -42,7 +42,9 @@ func (p *overlaySessionProvisioner) SessionNew(ctx context.Context, s *types.Ses
 	}
 	log.Printf("Network [%s] created for session [%s]\n", s.Id, s.Id)
 
-	ip, err := dockerClient.NetworkConnect(config.L2ContainerName, s.Id, s.PwdIpAddress)
+	aliases := []string{config.PWDContainerName}
+
+	ip, err := dockerClient.NetworkConnect(config.L2ContainerName, s.Id, s.PwdIpAddress, aliases)
 	if err != nil {
 		log.Println(err)
 		return err
