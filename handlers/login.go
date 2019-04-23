@@ -166,7 +166,9 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 			&oauth2.Token{AccessToken: tok.AccessToken},
 		)
 		tc := oauth2.NewClient(ctx, ts)
-		resp, err := tc.Get("https://id.docker.com/api/id/v1/openid/userinfo")
+
+		endpoint := getDockerEndpoint(playground)
+		resp, err := tc.Get(fmt.Sprintf("https://%s/api/id/v1/openid/userinfo", endpoint))
 		if err != nil {
 			log.Printf("Could not get user from docker. Got: %v\n", err)
 			rw.WriteHeader(http.StatusInternalServerError)
@@ -197,11 +199,18 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 
 	cookieData := CookieID{Id: user.Id, UserName: user.Name, UserAvatar: user.Avatar}
 
-	if err := cookieData.SetCookie(rw); err != nil {
+	host := "localhost"
+	if req.Host != "" {
+		host = req.Host
+	}
+
+	if err := cookieData.SetCookie(rw, host); err != nil {
 		log.Printf("Could not encode cookie. Got: %v\n", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	r, _ := playground.Extras.GetString("LoginRedirect")
 
 	fmt.Fprintf(rw, `
 <html>
@@ -209,14 +218,23 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 	<script>
 	if (window.opener && !window.opener.closed) {
 	    try {
-	      window.opener.postMessage('done','*')
+	      window.opener.postMessage('done','*');
 	    }
 	    catch(e) {  }
 	    window.close();
+	} else {
+	    window.location = '%s';
 	}
 	</script>
     </head>
     <body>
     </body>
-</html>`)
+</html>`, r)
+}
+
+func getDockerEndpoint(p *types.Playground) string {
+	if len(p.DockerHost) > 0 {
+		return p.DockerHost
+	}
+	return "id.docker.com"
 }

@@ -240,10 +240,8 @@ func initOauthProviders(p *types.Playground) {
 		config.Providers[p.Id]["facebook"] = conf
 	}
 	if p.DockerClientID != "" && p.DockerClientSecret != "" {
-		endpoint := "id.docker.com"
-		if len(p.DockerHost) > 0 {
-			endpoint = p.DockerHost
-		}
+
+		endpoint := getDockerEndpoint(p)
 		oauth2.RegisterBrokenAuthHeaderProvider(fmt.Sprintf(".%s", endpoint))
 		conf := &oauth2.Config{
 			ClientID:     p.DockerClientID,

@@ -250,17 +250,18 @@ func (d *docker) ContainerDelete(name string) error {
 }
 
 type CreateContainerOpts struct {
-	Image         string
-	SessionId     string
-	ContainerName string
-	Hostname      string
-	ServerCert    []byte
-	ServerKey     []byte
-	CACert        []byte
-	Privileged    bool
-	HostFQDN      string
-	Labels        map[string]string
-	Networks      []string
+	Image          string
+	SessionId      string
+	ContainerName  string
+	Hostname       string
+	ServerCert     []byte
+	ServerKey      []byte
+	CACert         []byte
+	Privileged     bool
+	HostFQDN       string
+	Labels         map[string]string
+	Networks       []string
+	DindVolumeSize string
 }
 
 func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
@@ -342,7 +343,7 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 		_, err = d.c.VolumeCreate(context.Background(), volume.VolumesCreateBody{
 			Driver: "xfsvol",
 			DriverOpts: map[string]string{
-				"size": config.DindVolumeSize,
+				"size": opts.DindVolumeSize,
 			},
 			Name: opts.ContainerName,
 		})

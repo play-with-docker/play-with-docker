@@ -59,6 +59,7 @@ type PlaygroundConfigurationResponse struct {
 	AvailableDinDInstanceImages []string      `json:"available_dind_instance_images"`
 	AllowWindowsInstances       bool          `json:"allow_windows_instances"`
 	DefaultSessionDuration      time.Duration `json:"default_session_duration"`
+	DindVolumeSize              string        `json:"dind_volume_size"`
 }
 
 func GetCurrentPlayground(rw http.ResponseWriter, req *http.Request) {
@@ -69,12 +70,13 @@ func GetCurrentPlayground(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	json.NewEncoder(rw).Encode(PlaygroundConfigurationResponse{
-		Id:     playground.Id,
-		Domain: playground.Domain,
+		Id:                          playground.Id,
+		Domain:                      playground.Domain,
 		DefaultDinDInstanceImage:    playground.DefaultDinDInstanceImage,
 		AvailableDinDInstanceImages: playground.AvailableDinDInstanceImages,
 		AllowWindowsInstances:       playground.AllowWindowsInstances,
 		DefaultSessionDuration:      playground.DefaultSessionDuration,
+		DindVolumeSize:              playground.DindVolumeSize,
 	})
 }
 

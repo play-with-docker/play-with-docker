@@ -67,16 +67,17 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 	}
 	containerName := fmt.Sprintf("%s_%s", session.Id[:8], d.generator.NewId())
 	opts := docker.CreateContainerOpts{
-		Image:         conf.ImageName,
-		SessionId:     session.Id,
-		ContainerName: containerName,
-		Hostname:      conf.Hostname,
-		ServerCert:    conf.ServerCert,
-		ServerKey:     conf.ServerKey,
-		CACert:        conf.CACert,
-		HostFQDN:      conf.PlaygroundFQDN,
-		Privileged:    true,
-		Networks:      []string{session.Id},
+		Image:          conf.ImageName,
+		SessionId:      session.Id,
+		ContainerName:  containerName,
+		Hostname:       conf.Hostname,
+		ServerCert:     conf.ServerCert,
+		ServerKey:      conf.ServerKey,
+		CACert:         conf.CACert,
+		HostFQDN:       conf.PlaygroundFQDN,
+		Privileged:     true,
+		Networks:       []string{session.Id},
+		DindVolumeSize: conf.DindVolumeSize,
 	}
 
 	dockerClient, err := d.factory.GetForSession(session)

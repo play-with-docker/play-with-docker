@@ -15,7 +15,7 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessionId := vars["sessionId"]
 
-	body := types.InstanceConfig{PlaygroundFQDN: req.Host}
+	body := types.InstanceConfig{PlaygroundFQDN: req.Host, DindVolumeSize: "5G"}
 
 	json.NewDecoder(req.Body).Decode(&body)
 
@@ -49,6 +49,10 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 		log.Println(err)
 		rw.WriteHeader(http.StatusConflict)
 		return
+	}
+
+	if len(playground.DindVolumeSize) > 0 {
+		body.DindVolumeSize = playground.DindVolumeSize
 	}
 
 	i, err := core.InstanceNew(s, body)

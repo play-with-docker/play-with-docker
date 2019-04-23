@@ -38,4 +38,5 @@ type InstanceConfig struct {
 	Tls            bool
 	PlaygroundFQDN string
 	Type           string
+	DindVolumeSize string
 }
