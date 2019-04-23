@@ -665,7 +665,17 @@
 					{hostname: 'manager5', is_swarm_manager: true}
 				]
 			}
-		}
+		},
+		{
+                        title: '1 Manager and 1 Worker',
+                        icon: '/assets/swarm.png',
+                        setup: {
+                                instances: [
+                                        {hostname: 'manager1', is_swarm_manager: true},
+                                        {hostname: 'worker1', is_swarm_manager: false}
+                                ]
+                        }
+                }
 	];
 
     return {
