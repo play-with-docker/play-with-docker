@@ -32,6 +32,7 @@ func (s *sessionBuilderWriter) Write(p []byte) (n int, err error) {
 type SessionSetupConf struct {
 	Instances      []SessionSetupInstanceConf `json:"instances"`
 	PlaygroundFQDN string
+	DindVolumeSize string
 }
 
 type SessionSetupInstanceConf struct {
@@ -250,6 +251,7 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 				PlaygroundFQDN: sconf.PlaygroundFQDN,
 				Type:           conf.Type,
 				Tls:            conf.Tls,
+				DindVolumeSize: sconf.DindVolumeSize,
 			}
 			i, err := p.InstanceNew(session, instanceConf)
 			if err != nil {
