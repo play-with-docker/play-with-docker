@@ -125,7 +125,7 @@ function dind::wait-for-apiserver {
 }
 
 function dind::frob-cluster {
-  dind::frob-apiserver
+  #dind::frob-apiserver
   dind::wait-for-apiserver
   dind::frob-proxy
 }
