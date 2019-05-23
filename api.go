@@ -52,7 +52,7 @@ func main() {
 		log.Fatalf("Cannot parse duration Got: %v", err)
 	}
 
-	playground := types.Playground{Domain: config.PlaygroundDomain, DefaultDinDInstanceImage: "franela/dind", AllowWindowsInstances: config.NoWindows, DefaultSessionDuration: d, Tasks: []string{".*"}, DockerClientID: "cec293c0-f9dd-4f0b-8c3e-e29df7b956b7", DockerClientSecret: "fdf6f091-3766-44ef-b0be-ab3946e45ec3", DockerHost: "id-stage.docker.com", Extras: map[string]interface{}{"LoginRedirect": "http://localhost:3000"}}
+	playground := types.Playground{Domain: config.PlaygroundDomain, DefaultDinDInstanceImage: "franela/dind", AllowWindowsInstances: config.NoWindows, DefaultSessionDuration: d, Tasks: []string{".*"}, Extras: map[string]interface{}{"LoginRedirect": "http://localhost:3000"}}
 	if _, err := core.PlaygroundNew(playground); err != nil {
 		log.Fatalf("Cannot create default playground. Got: %v", err)
 	}
