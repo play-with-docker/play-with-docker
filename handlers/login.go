@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"golang.org/x/oauth2"
 
@@ -14,7 +15,7 @@ import (
 	fb "github.com/huandu/facebook"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 func LoggedInUser(rw http.ResponseWriter, req *http.Request) {
@@ -201,7 +202,9 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 
 	host := "localhost"
 	if req.Host != "" {
-		host = req.Host
+		// we get the parent domain so cookie is set
+		// in all subdomain and siblings
+		host = getParentDomain(req.Host)
 	}
 
 	if err := cookieData.SetCookie(rw, host); err != nil {
@@ -230,6 +233,16 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
     <body>
     </body>
 </html>`, r)
+}
+
+// getParentDomain returns the parent domain (if available)
+// of the currend domain
+func getParentDomain(host string) string {
+	levels := strings.Split(host, ".")
+	if len(levels) > 2 {
+		return strings.Join(levels[1:], ".")
+	}
+	return host
 }
 
 func getDockerEndpoint(p *types.Playground) string {
