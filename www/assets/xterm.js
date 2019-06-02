@@ -6,7 +6,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -15,18 +15,21 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Strings = require("./Strings");
-var Browser_1 = require("./shared/utils/Browser");
+var Platform_1 = require("./common/Platform");
 var RenderDebouncer_1 = require("./ui/RenderDebouncer");
 var Lifecycle_1 = require("./ui/Lifecycle");
 var Lifecycle_2 = require("./common/Lifecycle");
+var ScreenDprMonitor_1 = require("./ui/ScreenDprMonitor");
 var MAX_ROWS_TO_READ = 20;
 var AccessibilityManager = (function (_super) {
     __extends(AccessibilityManager, _super);
-    function AccessibilityManager(_terminal) {
+    function AccessibilityManager(_terminal, _dimensions) {
         var _this = _super.call(this) || this;
         _this._terminal = _terminal;
+        _this._dimensions = _dimensions;
         _this._liveRegionLineCount = 0;
         _this._charsToConsume = [];
+        _this._charsToAnnounce = '';
         _this._accessibilityTreeRoot = document.createElement('div');
         _this._accessibilityTreeRoot.classList.add('xterm-accessibility');
         _this._rowContainer = document.createElement('div');
@@ -42,7 +45,7 @@ var AccessibilityManager = (function (_super) {
         _this._rowElements[_this._rowElements.length - 1].addEventListener('focus', _this._bottomBoundaryFocusListener);
         _this._refreshRowsDimensions();
         _this._accessibilityTreeRoot.appendChild(_this._rowContainer);
-        _this._renderRowsDebouncer = new RenderDebouncer_1.RenderDebouncer(_this._terminal, _this._renderRows.bind(_this));
+        _this._renderRowsDebouncer = new RenderDebouncer_1.RenderDebouncer(_this._renderRows.bind(_this));
         _this._refreshRows();
         _this._liveRegion = document.createElement('div');
         _this._liveRegion.classList.add('live-region');
@@ -50,16 +53,17 @@ var AccessibilityManager = (function (_super) {
         _this._accessibilityTreeRoot.appendChild(_this._liveRegion);
         _this._terminal.element.insertAdjacentElement('afterbegin', _this._accessibilityTreeRoot);
         _this.register(_this._renderRowsDebouncer);
-        _this.register(_this._terminal.addDisposableListener('resize', function (data) { return _this._onResize(data.rows); }));
-        _this.register(_this._terminal.addDisposableListener('refresh', function (data) { return _this._refreshRows(data.start, data.end); }));
-        _this.register(_this._terminal.addDisposableListener('scroll', function (data) { return _this._refreshRows(); }));
+        _this.register(_this._terminal.onResize(function (e) { return _this._onResize(e.rows); }));
+        _this.register(_this._terminal.onRender(function (e) { return _this._refreshRows(e.start, e.end); }));
+        _this.register(_this._terminal.onScroll(function () { return _this._refreshRows(); }));
         _this.register(_this._terminal.addDisposableListener('a11y.char', function (char) { return _this._onChar(char); }));
-        _this.register(_this._terminal.addDisposableListener('linefeed', function () { return _this._onChar('\n'); }));
+        _this.register(_this._terminal.onLineFeed(function () { return _this._onChar('\n'); }));
         _this.register(_this._terminal.addDisposableListener('a11y.tab', function (spaceCount) { return _this._onTab(spaceCount); }));
-        _this.register(_this._terminal.addDisposableListener('key', function (keyChar) { return _this._onKey(keyChar); }));
+        _this.register(_this._terminal.onKey(function (e) { return _this._onKey(e.key); }));
         _this.register(_this._terminal.addDisposableListener('blur', function () { return _this._clearLiveRegion(); }));
-        _this.register(_this._terminal.addDisposableListener('dprchange', function () { return _this._refreshRowsDimensions(); }));
-        _this.register(_this._terminal.renderer.addDisposableListener('resize', function () { return _this._refreshRowsDimensions(); }));
+        _this._screenDprMonitor = new ScreenDprMonitor_1.ScreenDprMonitor();
+        _this.register(_this._screenDprMonitor);
+        _this._screenDprMonitor.setListener(function () { return _this._refreshRowsDimensions(); });
         _this.register(Lifecycle_1.addDisposableDomListener(window, 'resize', function () { return _this._refreshRowsDimensions(); }));
         return _this;
     }
@@ -140,11 +144,11 @@ var AccessibilityManager = (function (_super) {
             if (this._charsToConsume.length > 0) {
                 var shiftedChar = this._charsToConsume.shift();
                 if (shiftedChar !== char) {
-                    this._announceCharacter(char);
+                    this._charsToAnnounce += char;
                 }
             }
             else {
-                this._announceCharacter(char);
+                this._charsToAnnounce += char;
             }
             if (char === '\n') {
                 this._liveRegionLineCount++;
@@ -152,7 +156,7 @@ var AccessibilityManager = (function (_super) {
                     this._liveRegion.textContent += Strings.tooMuchOutput;
                 }
             }
-            if (Browser_1.isMac) {
+            if (Platform_1.isMac) {
                 if (this._liveRegion.textContent && this._liveRegion.textContent.length > 0 && !this._liveRegion.parentNode) {
                     setTimeout(function () {
                         _this._accessibilityTreeRoot.appendChild(_this._liveRegion);
@@ -164,7 +168,7 @@ var AccessibilityManager = (function (_super) {
     AccessibilityManager.prototype._clearLiveRegion = function () {
         this._liveRegion.textContent = '';
         this._liveRegionLineCount = 0;
-        if (Browser_1.isMac) {
+        if (Platform_1.isMac) {
             if (this._liveRegion.parentNode) {
                 this._accessibilityTreeRoot.removeChild(this._liveRegion);
             }
@@ -175,7 +179,7 @@ var AccessibilityManager = (function (_super) {
         this._charsToConsume.push(keyChar);
     };
     AccessibilityManager.prototype._refreshRows = function (start, end) {
-        this._renderRowsDebouncer.refresh(start, end);
+        this._renderRowsDebouncer.refresh(start, end, this._terminal.rows);
     };
     AccessibilityManager.prototype._renderRows = function (start, end) {
         var buffer = this._terminal.buffer;
@@ -184,13 +188,16 @@ var AccessibilityManager = (function (_super) {
             var lineData = buffer.translateBufferLineToString(buffer.ydisp + i, true);
             var posInSet = (buffer.ydisp + i + 1).toString();
             var element = this._rowElements[i];
-            element.textContent = lineData.length === 0 ? Strings.blankLine : lineData;
-            element.setAttribute('aria-posinset', posInSet);
-            element.setAttribute('aria-setsize', setSize);
+            if (element) {
+                element.textContent = lineData.length === 0 ? Strings.blankLine : lineData;
+                element.setAttribute('aria-posinset', posInSet);
+                element.setAttribute('aria-setsize', setSize);
+            }
         }
+        this._announceCharacters();
     };
     AccessibilityManager.prototype._refreshRowsDimensions = function () {
-        if (!this._terminal.renderer.dimensions.actualCellHeight) {
+        if (!this._dimensions.actualCellHeight) {
             return;
         }
         if (this._rowElements.length !== this._terminal.rows) {
@@ -200,59 +207,72 @@ var AccessibilityManager = (function (_super) {
             this._refreshRowDimensions(this._rowElements[i]);
         }
     };
-    AccessibilityManager.prototype._refreshRowDimensions = function (element) {
-        element.style.height = this._terminal.renderer.dimensions.actualCellHeight + "px";
+    AccessibilityManager.prototype.setDimensions = function (dimensions) {
+        this._dimensions = dimensions;
+        this._refreshRowsDimensions();
     };
-    AccessibilityManager.prototype._announceCharacter = function (char) {
-        if (char === ' ') {
-            this._liveRegion.innerHTML += '&nbsp;';
+    AccessibilityManager.prototype._refreshRowDimensions = function (element) {
+        element.style.height = this._dimensions.actualCellHeight + "px";
+    };
+    AccessibilityManager.prototype._announceCharacters = function () {
+        if (this._charsToAnnounce.length === 0) {
+            return;
         }
-        else {
-            this._liveRegion.textContent += char;
-        }
+        this._liveRegion.textContent += this._charsToAnnounce;
+        this._charsToAnnounce = '';
     };
     return AccessibilityManager;
 }(Lifecycle_2.Disposable));
 exports.AccessibilityManager = AccessibilityManager;
 
-},{"./Strings":13,"./common/Lifecycle":18,"./shared/utils/Browser":46,"./ui/Lifecycle":48,"./ui/RenderDebouncer":50}],2:[function(require,module,exports){
+},{"./Strings":16,"./common/Lifecycle":24,"./common/Platform":25,"./ui/Lifecycle":59,"./ui/RenderDebouncer":60,"./ui/ScreenDprMonitor":61}],2:[function(require,module,exports){
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
 var CircularList_1 = require("./common/CircularList");
-var EventEmitter_1 = require("./common/EventEmitter");
-var BufferLine_1 = require("./BufferLine");
-exports.DEFAULT_ATTR = (0 << 18) | (257 << 9) | (256 << 0);
-exports.CHAR_DATA_ATTR_INDEX = 0;
-exports.CHAR_DATA_CHAR_INDEX = 1;
-exports.CHAR_DATA_WIDTH_INDEX = 2;
-exports.CHAR_DATA_CODE_INDEX = 3;
+var BufferLine_1 = require("./core/buffer/BufferLine");
+var BufferReflow_1 = require("./core/buffer/BufferReflow");
+var Marker_1 = require("./core/buffer/Marker");
 exports.MAX_BUFFER_SIZE = 4294967295;
-exports.NULL_CELL_CHAR = ' ';
-exports.NULL_CELL_WIDTH = 1;
-exports.NULL_CELL_CODE = 32;
 var Buffer = (function () {
     function Buffer(_terminal, _hasScrollback) {
         this._terminal = _terminal;
         this._hasScrollback = _hasScrollback;
+        this.savedCurAttrData = BufferLine_1.DEFAULT_ATTR_DATA.clone();
         this.markers = [];
+        this._nullCell = BufferLine_1.CellData.fromCharData([0, BufferLine_1.NULL_CELL_CHAR, BufferLine_1.NULL_CELL_WIDTH, BufferLine_1.NULL_CELL_CODE]);
+        this._whitespaceCell = BufferLine_1.CellData.fromCharData([0, BufferLine_1.WHITESPACE_CELL_CHAR, BufferLine_1.WHITESPACE_CELL_WIDTH, BufferLine_1.WHITESPACE_CELL_CODE]);
+        this._cols = this._terminal.cols;
+        this._rows = this._terminal.rows;
         this.clear();
     }
+    Buffer.prototype.getNullCell = function (attr) {
+        if (attr) {
+            this._nullCell.fg = attr.fg;
+            this._nullCell.bg = attr.bg;
+        }
+        else {
+            this._nullCell.fg = 0;
+            this._nullCell.bg = 0;
+        }
+        return this._nullCell;
+    };
+    Buffer.prototype.getWhitespaceCell = function (attr) {
+        if (attr) {
+            this._whitespaceCell.fg = attr.fg;
+            this._whitespaceCell.bg = attr.bg;
+        }
+        else {
+            this._whitespaceCell.fg = 0;
+            this._whitespaceCell.bg = 0;
+        }
+        return this._whitespaceCell;
+    };
+    Buffer.prototype.getBlankLine = function (attr, isWrapped) {
+        return new BufferLine_1.BufferLine(this._terminal.cols, this.getNullCell(attr), isWrapped);
+    };
     Object.defineProperty(Buffer.prototype, "hasScrollback", {
         get: function () {
-            return this._hasScrollback && this.lines.maxLength > this._terminal.rows;
+            return this._hasScrollback && this.lines.maxLength > this._rows;
         },
         enumerable: true,
         configurable: true
@@ -261,7 +281,7 @@ var Buffer = (function () {
         get: function () {
             var absoluteY = this.ybase + this.y;
             var relativeY = absoluteY - this.ydisp;
-            return (relativeY >= 0 && relativeY < this._terminal.rows);
+            return (relativeY >= 0 && relativeY < this._rows);
         },
         enumerable: true,
         configurable: true
@@ -273,11 +293,14 @@ var Buffer = (function () {
         var correctBufferLength = rows + this._terminal.options.scrollback;
         return correctBufferLength > exports.MAX_BUFFER_SIZE ? exports.MAX_BUFFER_SIZE : correctBufferLength;
     };
-    Buffer.prototype.fillViewportRows = function () {
+    Buffer.prototype.fillViewportRows = function (fillAttr) {
         if (this.lines.length === 0) {
-            var i = this._terminal.rows;
+            if (fillAttr === undefined) {
+                fillAttr = BufferLine_1.DEFAULT_ATTR_DATA;
+            }
+            var i = this._rows;
             while (i--) {
-                this.lines.push(BufferLine_1.BufferLine.blankLine(this._terminal.cols, exports.DEFAULT_ATTR));
+                this.lines.push(this.getBlankLine(fillAttr));
             }
         }
     };
@@ -286,28 +309,26 @@ var Buffer = (function () {
         this.ybase = 0;
         this.y = 0;
         this.x = 0;
-        this.lines = new CircularList_1.CircularList(this._getCorrectBufferLength(this._terminal.rows));
+        this.lines = new CircularList_1.CircularList(this._getCorrectBufferLength(this._rows));
         this.scrollTop = 0;
-        this.scrollBottom = this._terminal.rows - 1;
+        this.scrollBottom = this._rows - 1;
         this.setupTabStops();
     };
     Buffer.prototype.resize = function (newCols, newRows) {
+        var nullCell = this.getNullCell(BufferLine_1.DEFAULT_ATTR_DATA);
         var newMaxLength = this._getCorrectBufferLength(newRows);
         if (newMaxLength > this.lines.maxLength) {
             this.lines.maxLength = newMaxLength;
         }
         if (this.lines.length > 0) {
-            if (this._terminal.cols < newCols) {
-                var ch = [exports.DEFAULT_ATTR, exports.NULL_CELL_CHAR, exports.NULL_CELL_WIDTH, exports.NULL_CELL_CODE];
+            if (this._cols < newCols) {
                 for (var i = 0; i < this.lines.length; i++) {
-                    while (this.lines.get(i).length < newCols) {
-                        this.lines.get(i).push(ch);
-                    }
+                    this.lines.get(i).resize(newCols, nullCell);
                 }
             }
             var addToY = 0;
-            if (this._terminal.rows < newRows) {
-                for (var y = this._terminal.rows; y < newRows; y++) {
+            if (this._rows < newRows) {
+                for (var y = this._rows; y < newRows; y++) {
                     if (this.lines.length < newRows + this.ybase) {
                         if (this.ybase > 0 && this.lines.length <= this.ybase + this.y + addToY + 1) {
                             this.ybase--;
@@ -317,13 +338,13 @@ var Buffer = (function () {
                             }
                         }
                         else {
-                            this.lines.push(BufferLine_1.BufferLine.blankLine(newCols, exports.DEFAULT_ATTR));
+                            this.lines.push(new BufferLine_1.BufferLine(newCols, nullCell));
                         }
                     }
                 }
             }
             else {
-                for (var y = this._terminal.rows; y > newRows; y--) {
+                for (var y = this._rows; y > newRows; y--) {
                     if (this.lines.length > newRows + this.ybase) {
                         if (this.lines.length > this.ybase + this.y + 1) {
                             this.lines.pop();
@@ -354,15 +375,207 @@ var Buffer = (function () {
             this.scrollTop = 0;
         }
         this.scrollBottom = newRows - 1;
+        if (this._isReflowEnabled) {
+            this._reflow(newCols, newRows);
+            if (this._cols > newCols) {
+                for (var i = 0; i < this.lines.length; i++) {
+                    this.lines.get(i).resize(newCols, nullCell);
+                }
+            }
+        }
+        this._cols = newCols;
+        this._rows = newRows;
     };
-    Buffer.prototype.stringIndexToBufferIndex = function (lineIndex, stringIndex) {
+    Object.defineProperty(Buffer.prototype, "_isReflowEnabled", {
+        get: function () {
+            return this._hasScrollback && !this._terminal.options.windowsMode;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Buffer.prototype._reflow = function (newCols, newRows) {
+        if (this._cols === newCols) {
+            return;
+        }
+        if (newCols > this._cols) {
+            this._reflowLarger(newCols, newRows);
+        }
+        else {
+            this._reflowSmaller(newCols, newRows);
+        }
+    };
+    Buffer.prototype._reflowLarger = function (newCols, newRows) {
+        var toRemove = BufferReflow_1.reflowLargerGetLinesToRemove(this.lines, this._cols, newCols, this.ybase + this.y, this.getNullCell(BufferLine_1.DEFAULT_ATTR_DATA));
+        if (toRemove.length > 0) {
+            var newLayoutResult = BufferReflow_1.reflowLargerCreateNewLayout(this.lines, toRemove);
+            BufferReflow_1.reflowLargerApplyNewLayout(this.lines, newLayoutResult.layout);
+            this._reflowLargerAdjustViewport(newCols, newRows, newLayoutResult.countRemoved);
+        }
+    };
+    Buffer.prototype._reflowLargerAdjustViewport = function (newCols, newRows, countRemoved) {
+        var nullCell = this.getNullCell(BufferLine_1.DEFAULT_ATTR_DATA);
+        var viewportAdjustments = countRemoved;
+        while (viewportAdjustments-- > 0) {
+            if (this.ybase === 0) {
+                if (this.y > 0) {
+                    this.y--;
+                }
+                if (this.lines.length < newRows) {
+                    this.lines.push(new BufferLine_1.BufferLine(newCols, nullCell));
+                }
+            }
+            else {
+                if (this.ydisp === this.ybase) {
+                    this.ydisp--;
+                }
+                this.ybase--;
+            }
+        }
+    };
+    Buffer.prototype._reflowSmaller = function (newCols, newRows) {
+        var nullCell = this.getNullCell(BufferLine_1.DEFAULT_ATTR_DATA);
+        var toInsert = [];
+        var countToInsert = 0;
+        for (var y = this.lines.length - 1; y >= 0; y--) {
+            var nextLine = this.lines.get(y);
+            if (!nextLine || !nextLine.isWrapped && nextLine.getTrimmedLength() <= newCols) {
+                continue;
+            }
+            var wrappedLines = [nextLine];
+            while (nextLine.isWrapped && y > 0) {
+                nextLine = this.lines.get(--y);
+                wrappedLines.unshift(nextLine);
+            }
+            var absoluteY = this.ybase + this.y;
+            if (absoluteY >= y && absoluteY < y + wrappedLines.length) {
+                continue;
+            }
+            var lastLineLength = wrappedLines[wrappedLines.length - 1].getTrimmedLength();
+            var destLineLengths = BufferReflow_1.reflowSmallerGetNewLineLengths(wrappedLines, this._cols, newCols);
+            var linesToAdd = destLineLengths.length - wrappedLines.length;
+            var trimmedLines = void 0;
+            if (this.ybase === 0 && this.y !== this.lines.length - 1) {
+                trimmedLines = Math.max(0, this.y - this.lines.maxLength + linesToAdd);
+            }
+            else {
+                trimmedLines = Math.max(0, this.lines.length - this.lines.maxLength + linesToAdd);
+            }
+            var newLines = [];
+            for (var i = 0; i < linesToAdd; i++) {
+                var newLine = this.getBlankLine(BufferLine_1.DEFAULT_ATTR_DATA, true);
+                newLines.push(newLine);
+            }
+            if (newLines.length > 0) {
+                toInsert.push({
+                    start: y + wrappedLines.length + countToInsert,
+                    newLines: newLines
+                });
+                countToInsert += newLines.length;
+            }
+            wrappedLines.push.apply(wrappedLines, newLines);
+            var destLineIndex = destLineLengths.length - 1;
+            var destCol = destLineLengths[destLineIndex];
+            if (destCol === 0) {
+                destLineIndex--;
+                destCol = destLineLengths[destLineIndex];
+            }
+            var srcLineIndex = wrappedLines.length - linesToAdd - 1;
+            var srcCol = lastLineLength;
+            while (srcLineIndex >= 0) {
+                var cellsToCopy = Math.min(srcCol, destCol);
+                wrappedLines[destLineIndex].copyCellsFrom(wrappedLines[srcLineIndex], srcCol - cellsToCopy, destCol - cellsToCopy, cellsToCopy, true);
+                destCol -= cellsToCopy;
+                if (destCol === 0) {
+                    destLineIndex--;
+                    destCol = destLineLengths[destLineIndex];
+                }
+                srcCol -= cellsToCopy;
+                if (srcCol === 0) {
+                    srcLineIndex--;
+                    var wrappedLinesIndex = Math.max(srcLineIndex, 0);
+                    srcCol = BufferReflow_1.getWrappedLineTrimmedLength(wrappedLines, wrappedLinesIndex, this._cols);
+                }
+            }
+            for (var i = 0; i < wrappedLines.length; i++) {
+                if (destLineLengths[i] < newCols) {
+                    wrappedLines[i].setCell(destLineLengths[i], nullCell);
+                }
+            }
+            var viewportAdjustments = linesToAdd - trimmedLines;
+            while (viewportAdjustments-- > 0) {
+                if (this.ybase === 0) {
+                    if (this.y < newRows - 1) {
+                        this.y++;
+                        this.lines.pop();
+                    }
+                    else {
+                        this.ybase++;
+                        this.ydisp++;
+                    }
+                }
+                else {
+                    if (this.ybase < Math.min(this.lines.maxLength, this.lines.length + countToInsert) - newRows) {
+                        if (this.ybase === this.ydisp) {
+                            this.ydisp++;
+                        }
+                        this.ybase++;
+                    }
+                }
+            }
+        }
+        if (toInsert.length > 0) {
+            var insertEvents = [];
+            var originalLines = [];
+            for (var i = 0; i < this.lines.length; i++) {
+                originalLines.push(this.lines.get(i));
+            }
+            var originalLinesLength = this.lines.length;
+            var originalLineIndex = originalLinesLength - 1;
+            var nextToInsertIndex = 0;
+            var nextToInsert = toInsert[nextToInsertIndex];
+            this.lines.length = Math.min(this.lines.maxLength, this.lines.length + countToInsert);
+            var countInsertedSoFar = 0;
+            for (var i = Math.min(this.lines.maxLength - 1, originalLinesLength + countToInsert - 1); i >= 0; i--) {
+                if (nextToInsert && nextToInsert.start > originalLineIndex + countInsertedSoFar) {
+                    for (var nextI = nextToInsert.newLines.length - 1; nextI >= 0; nextI--) {
+                        this.lines.set(i--, nextToInsert.newLines[nextI]);
+                    }
+                    i++;
+                    insertEvents.push({
+                        index: originalLineIndex + 1,
+                        amount: nextToInsert.newLines.length
+                    });
+                    countInsertedSoFar += nextToInsert.newLines.length;
+                    nextToInsert = toInsert[++nextToInsertIndex];
+                }
+                else {
+                    this.lines.set(i, originalLines[originalLineIndex--]);
+                }
+            }
+            var insertCountEmitted = 0;
+            for (var i = insertEvents.length - 1; i >= 0; i--) {
+                insertEvents[i].index += insertCountEmitted;
+                this.lines.onInsertEmitter.fire(insertEvents[i]);
+                insertCountEmitted += insertEvents[i].amount;
+            }
+            var amountToTrim = Math.max(0, originalLinesLength + countToInsert - this.lines.maxLength);
+            if (amountToTrim > 0) {
+                this.lines.onTrimEmitter.fire(amountToTrim);
+            }
+        }
+    };
+    Buffer.prototype.stringIndexToBufferIndex = function (lineIndex, stringIndex, trimRight) {
+        if (trimRight === void 0) { trimRight = false; }
         while (stringIndex) {
             var line = this.lines.get(lineIndex);
             if (!line) {
-                [-1, -1];
+                return [-1, -1];
             }
-            for (var i = 0; i < line.length; ++i) {
-                stringIndex -= line.get(i)[exports.CHAR_DATA_CHAR_INDEX].length;
+            var length_1 = (trimRight) ? line.getTrimmedLength() : line.length;
+            for (var i = 0; i < length_1; ++i) {
+                if (line.get(i)[BufferLine_1.CHAR_DATA_WIDTH_INDEX]) {
+                    stringIndex -= line.get(i)[BufferLine_1.CHAR_DATA_CHAR_INDEX].length || 1;
+                }
                 if (stringIndex < 0) {
                     return [lineIndex, i];
                 }
@@ -373,49 +586,11 @@ var Buffer = (function () {
     };
     Buffer.prototype.translateBufferLineToString = function (lineIndex, trimRight, startCol, endCol) {
         if (startCol === void 0) { startCol = 0; }
-        if (endCol === void 0) { endCol = null; }
-        var lineString = '';
         var line = this.lines.get(lineIndex);
         if (!line) {
             return '';
         }
-        var startIndex = startCol;
-        if (endCol === null) {
-            endCol = line.length;
-        }
-        var endIndex = endCol;
-        for (var i = 0; i < line.length; i++) {
-            var char = line.get(i);
-            lineString += char[exports.CHAR_DATA_CHAR_INDEX];
-            if (char[exports.CHAR_DATA_WIDTH_INDEX] === 0) {
-                if (startCol >= i) {
-                    startIndex--;
-                }
-                if (endCol > i) {
-                    endIndex--;
-                }
-            }
-            else {
-                if (char[exports.CHAR_DATA_CHAR_INDEX].length > 1) {
-                    if (startCol > i) {
-                        startIndex += char[exports.CHAR_DATA_CHAR_INDEX].length - 1;
-                    }
-                    if (endCol > i) {
-                        endIndex += char[exports.CHAR_DATA_CHAR_INDEX].length - 1;
-                    }
-                }
-            }
-        }
-        if (trimRight) {
-            var rightWhitespaceIndex = lineString.search(/\s+$/);
-            if (rightWhitespaceIndex !== -1) {
-                endIndex = Math.min(endIndex, rightWhitespaceIndex);
-            }
-            if (endIndex <= startIndex) {
-                return '';
-            }
-        }
-        return lineString.substring(startIndex, endIndex);
+        return line.translateToString(trimRight, startCol, endCol);
     };
     Buffer.prototype.getWrappedRangeForLine = function (y) {
         var first = y;
@@ -438,7 +613,7 @@ var Buffer = (function () {
             this.tabs = {};
             i = 0;
         }
-        for (; i < this._terminal.cols; i += this._terminal.options.tabStopWidth) {
+        for (; i < this._cols; i += this._terminal.options.tabStopWidth) {
             this.tabs[i] = true;
         }
     };
@@ -448,27 +623,40 @@ var Buffer = (function () {
         }
         while (!this.tabs[--x] && x > 0)
             ;
-        return x >= this._terminal.cols ? this._terminal.cols - 1 : x < 0 ? 0 : x;
+        return x >= this._cols ? this._cols - 1 : x < 0 ? 0 : x;
     };
     Buffer.prototype.nextStop = function (x) {
         if (x === null || x === undefined) {
             x = this.x;
         }
-        while (!this.tabs[++x] && x < this._terminal.cols)
+        while (!this.tabs[++x] && x < this._cols)
             ;
-        return x >= this._terminal.cols ? this._terminal.cols - 1 : x < 0 ? 0 : x;
+        return x >= this._cols ? this._cols - 1 : x < 0 ? 0 : x;
     };
     Buffer.prototype.addMarker = function (y) {
         var _this = this;
-        var marker = new Marker(y);
+        var marker = new Marker_1.Marker(y);
         this.markers.push(marker);
-        marker.register(this.lines.addDisposableListener('trim', function (amount) {
+        marker.register(this.lines.onTrim(function (amount) {
             marker.line -= amount;
             if (marker.line < 0) {
                 marker.dispose();
             }
         }));
-        marker.register(marker.addDisposableListener('dispose', function () { return _this._removeMarker(marker); }));
+        marker.register(this.lines.onInsert(function (event) {
+            if (marker.line >= event.index) {
+                marker.line += event.amount;
+            }
+        }));
+        marker.register(this.lines.onDelete(function (event) {
+            if (marker.line >= event.index && marker.line < event.index + event.amount) {
+                marker.dispose();
+            }
+            if (marker.line > event.index) {
+                marker.line -= event.amount;
+            }
+        }));
+        marker.register(marker.onDispose(function () { return _this._removeMarker(marker); }));
         return marker;
     };
     Buffer.prototype._removeMarker = function (marker) {
@@ -480,32 +668,6 @@ var Buffer = (function () {
     return Buffer;
 }());
 exports.Buffer = Buffer;
-var Marker = (function (_super) {
-    __extends(Marker, _super);
-    function Marker(line) {
-        var _this = _super.call(this) || this;
-        _this.line = line;
-        _this._id = Marker._nextId++;
-        _this.isDisposed = false;
-        return _this;
-    }
-    Object.defineProperty(Marker.prototype, "id", {
-        get: function () { return this._id; },
-        enumerable: true,
-        configurable: true
-    });
-    Marker.prototype.dispose = function () {
-        if (this.isDisposed) {
-            return;
-        }
-        this.isDisposed = true;
-        this.emit('dispose');
-        _super.prototype.dispose.call(this);
-    };
-    Marker._nextId = 1;
-    return Marker;
-}(EventEmitter_1.EventEmitter));
-exports.Marker = Marker;
 var BufferStringIterator = (function () {
     function BufferStringIterator(_buffer, _trimRight, _startIndex, _endIndex, _startOverscan, _endOverscan) {
         if (_startIndex === void 0) { _startIndex = 0; }
@@ -541,7 +703,7 @@ var BufferStringIterator = (function () {
         range.last = Math.min(range.last, this._buffer.lines.length);
         var result = '';
         for (var i = range.first; i <= range.last; ++i) {
-            result += this._buffer.translateBufferLineToString(i, (this._trimRight) ? i === range.last : false);
+            result += this._buffer.translateBufferLineToString(i, this._trimRight);
         }
         this._current = range.last + 1;
         return { range: range, content: result };
@@ -550,107 +712,26 @@ var BufferStringIterator = (function () {
 }());
 exports.BufferStringIterator = BufferStringIterator;
 
-},{"./BufferLine":3,"./common/CircularList":16,"./common/EventEmitter":17}],3:[function(require,module,exports){
+},{"./common/CircularList":20,"./core/buffer/BufferLine":29,"./core/buffer/BufferReflow":30,"./core/buffer/Marker":31}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Buffer_1 = require("./Buffer");
-var BufferLine = (function () {
-    function BufferLine(cols, ch, isWrapped) {
-        this.isWrapped = false;
-        this._data = [];
-        this.length = this._data.length;
-        if (cols) {
-            if (!ch) {
-                ch = [0, Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE];
-            }
-            for (var i = 0; i < cols; i++) {
-                this.push(ch);
-            }
-        }
-        if (isWrapped) {
-            this.isWrapped = true;
-        }
-    }
-    BufferLine.blankLine = function (cols, attr, isWrapped) {
-        var ch = [attr, Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE];
-        return new BufferLine(cols, ch, isWrapped);
-    };
-    BufferLine.prototype.get = function (index) {
-        return this._data[index];
-    };
-    BufferLine.prototype.set = function (index, data) {
-        this._data[index] = data;
-    };
-    BufferLine.prototype.pop = function () {
-        var data = this._data.pop();
-        this.length = this._data.length;
-        return data;
-    };
-    BufferLine.prototype.push = function (data) {
-        this._data.push(data);
-        this.length = this._data.length;
-    };
-    BufferLine.prototype.splice = function (start, deleteCount) {
-        var items = [];
-        for (var _i = 2; _i < arguments.length; _i++) {
-            items[_i - 2] = arguments[_i];
-        }
-        var _a;
-        var removed = (_a = this._data).splice.apply(_a, [start, deleteCount].concat(items));
-        this.length = this._data.length;
-        return removed;
-    };
-    BufferLine.prototype.insertCells = function (pos, n, ch) {
-        while (n--) {
-            this.splice(pos, 0, ch);
-            this.pop();
-        }
-    };
-    BufferLine.prototype.deleteCells = function (pos, n, fill) {
-        while (n--) {
-            this.splice(pos, 1);
-            this.push(fill);
-        }
-    };
-    BufferLine.prototype.replaceCells = function (start, end, fill) {
-        while (start < end && start < this.length) {
-            this.set(start++, fill);
-        }
-    };
-    return BufferLine;
-}());
-exports.BufferLine = BufferLine;
-
-},{"./Buffer":2}],4:[function(require,module,exports){
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var Buffer_1 = require("./Buffer");
-var EventEmitter_1 = require("./common/EventEmitter");
-var BufferSet = (function (_super) {
-    __extends(BufferSet, _super);
+var EventEmitter2_1 = require("./common/EventEmitter2");
+var BufferSet = (function () {
     function BufferSet(_terminal) {
-        var _this = _super.call(this) || this;
-        _this._terminal = _terminal;
-        _this._normal = new Buffer_1.Buffer(_this._terminal, true);
-        _this._normal.fillViewportRows();
-        _this._alt = new Buffer_1.Buffer(_this._terminal, false);
-        _this._activeBuffer = _this._normal;
-        _this.setupTabStops();
-        return _this;
+        this._terminal = _terminal;
+        this._onBufferActivate = new EventEmitter2_1.EventEmitter2();
+        this._normal = new Buffer_1.Buffer(this._terminal, true);
+        this._normal.fillViewportRows();
+        this._alt = new Buffer_1.Buffer(this._terminal, false);
+        this._activeBuffer = this._normal;
+        this.setupTabStops();
     }
+    Object.defineProperty(BufferSet.prototype, "onBufferActivate", {
+        get: function () { return this._onBufferActivate.event; },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(BufferSet.prototype, "alt", {
         get: function () {
             return this._alt;
@@ -676,20 +757,24 @@ var BufferSet = (function (_super) {
         if (this._activeBuffer === this._normal) {
             return;
         }
+        this._normal.x = this._alt.x;
+        this._normal.y = this._alt.y;
         this._alt.clear();
         this._activeBuffer = this._normal;
-        this.emit('activate', {
+        this._onBufferActivate.fire({
             activeBuffer: this._normal,
             inactiveBuffer: this._alt
         });
     };
-    BufferSet.prototype.activateAltBuffer = function () {
+    BufferSet.prototype.activateAltBuffer = function (fillAttr) {
         if (this._activeBuffer === this._alt) {
             return;
         }
-        this._alt.fillViewportRows();
+        this._alt.fillViewportRows(fillAttr);
+        this._alt.x = this._normal.x;
+        this._alt.y = this._normal.y;
         this._activeBuffer = this._alt;
-        this.emit('activate', {
+        this._onBufferActivate.fire({
             activeBuffer: this._alt,
             inactiveBuffer: this._normal
         });
@@ -703,12 +788,65 @@ var BufferSet = (function (_super) {
         this._alt.setupTabStops(i);
     };
     return BufferSet;
-}(EventEmitter_1.EventEmitter));
+}());
 exports.BufferSet = BufferSet;
 
-},{"./Buffer":2,"./common/EventEmitter":17}],5:[function(require,module,exports){
+},{"./Buffer":2,"./common/EventEmitter2":23}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var EventEmitter2_1 = require("./common/EventEmitter2");
+var CharMeasure = (function () {
+    function CharMeasure(document, parentElement) {
+        this._onCharSizeChanged = new EventEmitter2_1.EventEmitter2();
+        this._document = document;
+        this._parentElement = parentElement;
+        this._measureElement = this._document.createElement('span');
+        this._measureElement.classList.add('xterm-char-measure-element');
+        this._measureElement.textContent = 'W';
+        this._measureElement.setAttribute('aria-hidden', 'true');
+        this._parentElement.appendChild(this._measureElement);
+    }
+    Object.defineProperty(CharMeasure.prototype, "onCharSizeChanged", {
+        get: function () { return this._onCharSizeChanged.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CharMeasure.prototype, "width", {
+        get: function () {
+            return this._width;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CharMeasure.prototype, "height", {
+        get: function () {
+            return this._height;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    CharMeasure.prototype.measure = function (options) {
+        this._measureElement.style.fontFamily = options.fontFamily;
+        this._measureElement.style.fontSize = options.fontSize + "px";
+        var geometry = this._measureElement.getBoundingClientRect();
+        if (geometry.width === 0 || geometry.height === 0) {
+            return;
+        }
+        var adjustedHeight = Math.ceil(geometry.height);
+        if (this._width !== geometry.width || this._height !== adjustedHeight) {
+            this._width = geometry.width;
+            this._height = adjustedHeight;
+            this._onCharSizeChanged.fire();
+        }
+    };
+    return CharMeasure;
+}());
+exports.CharMeasure = CharMeasure;
+
+},{"./common/EventEmitter2":23}],5:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var TypedArrayUtils_1 = require("./common/TypedArrayUtils");
 exports.wcwidth = (function (opts) {
     var COMBINING_BMP = [
         [0x0300, 0x036F], [0x0483, 0x0486], [0x0488, 0x0489],
@@ -783,33 +921,6 @@ exports.wcwidth = (function (opts) {
         }
         return false;
     }
-    function wcwidthBMP(ucs) {
-        if (ucs === 0) {
-            return opts.nul;
-        }
-        if (ucs < 32 || (ucs >= 0x7f && ucs < 0xa0)) {
-            return opts.control;
-        }
-        if (bisearch(ucs, COMBINING_BMP)) {
-            return 0;
-        }
-        if (isWideBMP(ucs)) {
-            return 2;
-        }
-        return 1;
-    }
-    function isWideBMP(ucs) {
-        return (ucs >= 0x1100 && (ucs <= 0x115f ||
-            ucs === 0x2329 ||
-            ucs === 0x232a ||
-            (ucs >= 0x2e80 && ucs <= 0xa4cf && ucs !== 0x303f) ||
-            (ucs >= 0xac00 && ucs <= 0xd7a3) ||
-            (ucs >= 0xf900 && ucs <= 0xfaff) ||
-            (ucs >= 0xfe10 && ucs <= 0xfe19) ||
-            (ucs >= 0xfe30 && ucs <= 0xfe6f) ||
-            (ucs >= 0xff00 && ucs <= 0xff60) ||
-            (ucs >= 0xffe0 && ucs <= 0xffe6)));
-    }
     function wcwidthHigh(ucs) {
         if (bisearch(ucs, COMBINING_HIGH)) {
             return 0;
@@ -820,54 +931,54 @@ exports.wcwidth = (function (opts) {
         return 1;
     }
     var control = opts.control | 0;
-    var table = null;
-    function initTable() {
-        var CODEPOINTS = 65536;
-        var BITWIDTH = 2;
-        var ITEMSIZE = 32;
-        var CONTAINERSIZE = CODEPOINTS * BITWIDTH / ITEMSIZE;
-        var CODEPOINTS_PER_ITEM = ITEMSIZE / BITWIDTH;
-        table = (typeof Uint32Array === 'undefined')
-            ? new Array(CONTAINERSIZE)
-            : new Uint32Array(CONTAINERSIZE);
-        for (var i = 0; i < CONTAINERSIZE; ++i) {
-            var num = 0;
-            var pos = CODEPOINTS_PER_ITEM;
-            while (pos--) {
-                num = (num << 2) | wcwidthBMP(CODEPOINTS_PER_ITEM * i + pos);
-            }
-            table[i] = num;
-        }
-        return table;
+    var table = new Uint8Array(65536);
+    TypedArrayUtils_1.fill(table, 1);
+    table[0] = opts.nul;
+    TypedArrayUtils_1.fill(table, opts.control, 1, 32);
+    TypedArrayUtils_1.fill(table, opts.control, 0x7f, 0xa0);
+    TypedArrayUtils_1.fill(table, 2, 0x1100, 0x1160);
+    table[0x2329] = 2;
+    table[0x232a] = 2;
+    TypedArrayUtils_1.fill(table, 2, 0x2e80, 0xa4d0);
+    table[0x303f] = 1;
+    TypedArrayUtils_1.fill(table, 2, 0xac00, 0xd7a4);
+    TypedArrayUtils_1.fill(table, 2, 0xf900, 0xfb00);
+    TypedArrayUtils_1.fill(table, 2, 0xfe10, 0xfe1a);
+    TypedArrayUtils_1.fill(table, 2, 0xfe30, 0xfe70);
+    TypedArrayUtils_1.fill(table, 2, 0xff00, 0xff61);
+    TypedArrayUtils_1.fill(table, 2, 0xffe0, 0xffe7);
+    for (var r = 0; r < COMBINING_BMP.length; ++r) {
+        TypedArrayUtils_1.fill(table, 0, COMBINING_BMP[r][0], COMBINING_BMP[r][1] + 1);
     }
     return function (num) {
-        num = num | 0;
         if (num < 32) {
             return control | 0;
         }
         if (num < 127) {
             return 1;
         }
-        var t = table || initTable();
         if (num < 65536) {
-            return t[num >> 4] >> ((num & 15) << 1) & 3;
+            return table[num];
         }
         return wcwidthHigh(num);
     };
 })({ nul: 0, control: 0 });
 function getStringCellWidth(s) {
     var result = 0;
-    for (var i = 0; i < s.length; ++i) {
+    var length = s.length;
+    for (var i = 0; i < length; ++i) {
         var code = s.charCodeAt(i);
         if (0xD800 <= code && code <= 0xDBFF) {
-            var low = s.charCodeAt(i + 1);
-            if (isNaN(low)) {
-                return result;
+            if (++i >= length) {
+                return result + exports.wcwidth(code);
             }
-            code = ((code - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000;
-        }
-        if (0xDC00 <= code && code <= 0xDFFF) {
-            continue;
+            var second = s.charCodeAt(i);
+            if (0xDC00 <= second && second <= 0xDFFF) {
+                code = (code - 0xD800) * 0x400 + second - 0xDC00 + 0x10000;
+            }
+            else {
+                result += exports.wcwidth(second);
+            }
         }
         result += exports.wcwidth(code);
     }
@@ -875,7 +986,87 @@ function getStringCellWidth(s) {
 }
 exports.getStringCellWidth = getStringCellWidth;
 
-},{}],6:[function(require,module,exports){
+},{"./common/TypedArrayUtils":26}],6:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function prepareTextForTerminal(text) {
+    return text.replace(/\r?\n/g, '\r');
+}
+exports.prepareTextForTerminal = prepareTextForTerminal;
+function bracketTextForPaste(text, bracketedPasteMode) {
+    if (bracketedPasteMode) {
+        return '\x1b[200~' + text + '\x1b[201~';
+    }
+    return text;
+}
+exports.bracketTextForPaste = bracketTextForPaste;
+function copyHandler(ev, term, selectionManager) {
+    if (term.browser.isMSIE) {
+        window.clipboardData.setData('Text', selectionManager.selectionText);
+    }
+    else {
+        ev.clipboardData.setData('text/plain', selectionManager.selectionText);
+    }
+    ev.preventDefault();
+}
+exports.copyHandler = copyHandler;
+function pasteHandler(ev, term) {
+    ev.stopPropagation();
+    var text;
+    var dispatchPaste = function (text) {
+        text = prepareTextForTerminal(text);
+        text = bracketTextForPaste(text, term.bracketedPasteMode);
+        term.handler(text);
+        term.textarea.value = '';
+        term.emit('paste', text);
+        term.cancel(ev);
+    };
+    if (term.browser.isMSIE) {
+        if (window.clipboardData) {
+            text = window.clipboardData.getData('Text');
+            dispatchPaste(text);
+        }
+    }
+    else {
+        if (ev.clipboardData) {
+            text = ev.clipboardData.getData('text/plain');
+            dispatchPaste(text);
+        }
+    }
+}
+exports.pasteHandler = pasteHandler;
+function moveTextAreaUnderMouseCursor(ev, term) {
+    var pos = term.screenElement.getBoundingClientRect();
+    var left = ev.clientX - pos.left - 10;
+    var top = ev.clientY - pos.top - 10;
+    term.textarea.style.position = 'absolute';
+    term.textarea.style.width = '20px';
+    term.textarea.style.height = '20px';
+    term.textarea.style.left = left + "px";
+    term.textarea.style.top = top + "px";
+    term.textarea.style.zIndex = '1000';
+    term.textarea.focus();
+    setTimeout(function () {
+        term.textarea.style.position = null;
+        term.textarea.style.width = null;
+        term.textarea.style.height = null;
+        term.textarea.style.left = null;
+        term.textarea.style.top = null;
+        term.textarea.style.zIndex = null;
+    }, 200);
+}
+exports.moveTextAreaUnderMouseCursor = moveTextAreaUnderMouseCursor;
+function rightClickHandler(ev, term, selectionManager, shouldSelectWord) {
+    moveTextAreaUnderMouseCursor(ev, term);
+    if (shouldSelectWord && !selectionManager.isClickInSelection(ev)) {
+        selectionManager.selectWordAtCursor(ev);
+    }
+    term.textarea.value = selectionManager.selectionText;
+    term.textarea.select();
+}
+exports.rightClickHandler = rightClickHandler;
+
+},{}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var CompositionHelper = (function () {
@@ -920,12 +1111,12 @@ var CompositionHelper = (function () {
         }
         return true;
     };
-    CompositionHelper.prototype._finalizeComposition = function (waitForPropogation) {
+    CompositionHelper.prototype._finalizeComposition = function (waitForPropagation) {
         var _this = this;
         this._compositionView.classList.remove('active');
         this._isComposing = false;
         this._clearTextareaPosition();
-        if (!waitForPropogation) {
+        if (!waitForPropagation) {
             this._isSendingComposition = false;
             var input = this._textarea.value.substring(this._compositionPosition.start, this._compositionPosition.end);
             this._terminal.handler(input);
@@ -977,6 +1168,8 @@ var CompositionHelper = (function () {
             this._compositionView.style.top = cursorTop + 'px';
             this._compositionView.style.height = cellHeight + 'px';
             this._compositionView.style.lineHeight = cellHeight + 'px';
+            this._compositionView.style.fontFamily = this._terminal.options.fontFamily;
+            this._compositionView.style.fontSize = this._terminal.options.fontSize + 'px';
             var compositionViewBounds = this._compositionView.getBoundingClientRect();
             this._textarea.style.left = cursorLeft + 'px';
             this._textarea.style.top = cursorTop + 'px';
@@ -996,7 +1189,7 @@ var CompositionHelper = (function () {
 }());
 exports.CompositionHelper = CompositionHelper;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -1004,7 +1197,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -1013,6 +1206,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Lifecycle_1 = require("./common/Lifecycle");
+var TextDecoder_1 = require("./core/input/TextDecoder");
 function r(low, high) {
     var c = high - low;
     var arr = new Array(c);
@@ -1041,14 +1235,14 @@ exports.TransitionTable = TransitionTable;
 var PRINTABLES = r(0x20, 0x7f);
 var EXECUTABLES = r(0x00, 0x18);
 EXECUTABLES.push(0x19);
-EXECUTABLES.concat(r(0x1c, 0x20));
-var DEFAULT_TRANSITION = 1 << 4 | 0;
+EXECUTABLES.push.apply(EXECUTABLES, r(0x1c, 0x20));
+var NON_ASCII_PRINTABLE = 0xA0;
 exports.VT500_TRANSITION_TABLE = (function () {
     var table = new TransitionTable(4095);
     var states = r(0, 13 + 1);
     var state;
     for (state in states) {
-        for (var code = 0; code < 160; ++code) {
+        for (var code = 0; code <= NON_ASCII_PRINTABLE; ++code) {
             table.add(code, state, 1, 0);
         }
     }
@@ -1086,6 +1280,7 @@ exports.VT500_TRANSITION_TABLE = (function () {
     table.addMany(PRINTABLES, 7, 0, 7);
     table.addMany(EXECUTABLES, 7, 0, 7);
     table.add(0x9c, 7, 0, 0);
+    table.add(0x7f, 7, 0, 7);
     table.add(0x5b, 1, 11, 3);
     table.addMany(r(0x40, 0x7f), 3, 7, 0);
     table.addMany(r(0x30, 0x3a), 3, 8, 4);
@@ -1142,6 +1337,7 @@ exports.VT500_TRANSITION_TABLE = (function () {
     table.addMany(PRINTABLES, 13, 13, 13);
     table.add(0x7f, 13, 0, 13);
     table.addMany([0x1b, 0x9c], 13, 14, 0);
+    table.add(NON_ASCII_PRINTABLE, 8, 5, 8);
     return table;
 })();
 var DcsDummy = (function () {
@@ -1178,6 +1374,7 @@ var EscapeSequenceParser = (function (_super) {
         _this._dcsHandlers = Object.create(null);
         _this._activeDcsHandler = null;
         _this._errorHandler = _this._errorHandlerFb;
+        _this.setEscHandler('\\', function () { });
         return _this;
     }
     EscapeSequenceParser.prototype.dispose = function () {
@@ -1190,8 +1387,8 @@ var EscapeSequenceParser = (function (_super) {
         this._errorHandlerFb = null;
         this._printHandler = null;
         this._executeHandlers = null;
-        this._csiHandlers = null;
         this._escHandlers = null;
+        this._csiHandlers = null;
         this._oscHandlers = null;
         this._dcsHandlers = null;
         this._activeDcsHandler = null;
@@ -1213,8 +1410,24 @@ var EscapeSequenceParser = (function (_super) {
     EscapeSequenceParser.prototype.setExecuteHandlerFallback = function (callback) {
         this._executeHandlerFb = callback;
     };
+    EscapeSequenceParser.prototype.addCsiHandler = function (flag, callback) {
+        var index = flag.charCodeAt(0);
+        if (this._csiHandlers[index] === undefined) {
+            this._csiHandlers[index] = [];
+        }
+        var handlerList = this._csiHandlers[index];
+        handlerList.push(callback);
+        return {
+            dispose: function () {
+                var handlerIndex = handlerList.indexOf(callback);
+                if (handlerIndex !== -1) {
+                    handlerList.splice(handlerIndex, 1);
+                }
+            }
+        };
+    };
     EscapeSequenceParser.prototype.setCsiHandler = function (flag, callback) {
-        this._csiHandlers[flag.charCodeAt(0)] = callback;
+        this._csiHandlers[flag.charCodeAt(0)] = [callback];
     };
     EscapeSequenceParser.prototype.clearCsiHandler = function (flag) {
         if (this._csiHandlers[flag.charCodeAt(0)])
@@ -1233,8 +1446,23 @@ var EscapeSequenceParser = (function (_super) {
     EscapeSequenceParser.prototype.setEscHandlerFallback = function (callback) {
         this._escHandlerFb = callback;
     };
+    EscapeSequenceParser.prototype.addOscHandler = function (ident, callback) {
+        if (this._oscHandlers[ident] === undefined) {
+            this._oscHandlers[ident] = [];
+        }
+        var handlerList = this._oscHandlers[ident];
+        handlerList.push(callback);
+        return {
+            dispose: function () {
+                var handlerIndex = handlerList.indexOf(callback);
+                if (handlerIndex !== -1) {
+                    handlerList.splice(handlerIndex, 1);
+                }
+            }
+        };
+    };
     EscapeSequenceParser.prototype.setOscHandler = function (ident, callback) {
-        this._oscHandlers[ident] = callback;
+        this._oscHandlers[ident] = [callback];
     };
     EscapeSequenceParser.prototype.clearOscHandler = function (ident) {
         if (this._oscHandlers[ident])
@@ -1266,7 +1494,7 @@ var EscapeSequenceParser = (function (_super) {
         this._collect = '';
         this._activeDcsHandler = null;
     };
-    EscapeSequenceParser.prototype.parse = function (data) {
+    EscapeSequenceParser.prototype.parse = function (data, length) {
         var code = 0;
         var transition = 0;
         var error = false;
@@ -1279,14 +1507,13 @@ var EscapeSequenceParser = (function (_super) {
         var table = this.TRANSITIONS.table;
         var dcsHandler = this._activeDcsHandler;
         var callback = null;
-        var l = data.length;
-        for (var i = 0; i < l; ++i) {
-            code = data.charCodeAt(i);
+        for (var i = 0; i < length; ++i) {
+            code = data[i];
             if (currentState === 0 && code > 0x1f && code < 0x80) {
                 print = (~print) ? print : i;
                 do
                     i++;
-                while (i < l && data.charCodeAt(i) > 0x1f && data.charCodeAt(i) < 0x80);
+                while (i < length && data[i] > 0x1f && data[i] < 0x80);
                 i--;
                 continue;
             }
@@ -1294,7 +1521,7 @@ var EscapeSequenceParser = (function (_super) {
                 params[params.length - 1] = params[params.length - 1] * 10 + code - 48;
                 continue;
             }
-            transition = (code < 0xa0) ? (table[currentState << 8 | code]) : DEFAULT_TRANSITION;
+            transition = table[currentState << 8 | (code < 0xa0 ? code : NON_ASCII_PRINTABLE)];
             switch (transition >> 4) {
                 case 2:
                     print = (~print) ? print : i;
@@ -1325,10 +1552,6 @@ var EscapeSequenceParser = (function (_super) {
                         switch (currentState) {
                             case 0:
                                 print = (~print) ? print : i;
-                                break;
-                            case 8:
-                                osc += String.fromCharCode(code);
-                                transition |= 8;
                                 break;
                             case 6:
                                 transition |= 6;
@@ -1365,11 +1588,16 @@ var EscapeSequenceParser = (function (_super) {
                     }
                     break;
                 case 7:
-                    callback = this._csiHandlers[code];
-                    if (callback)
-                        callback(params, collect);
-                    else
+                    var handlers = this._csiHandlers[code];
+                    var j = handlers ? handlers.length - 1 : -1;
+                    for (; j >= 0; j--) {
+                        if (handlers[j](params, collect) !== false) {
+                            break;
+                        }
+                    }
+                    if (j < 0) {
                         this._csiHandlerFb(collect, params, code);
+                    }
                     break;
                 case 8:
                     if (code === 0x3b)
@@ -1428,7 +1656,15 @@ var EscapeSequenceParser = (function (_super) {
                     osc = '';
                     break;
                 case 5:
-                    osc += data.charAt(i);
+                    for (var j_1 = i + 1;; j_1++) {
+                        if (j_1 >= length
+                            || (code = data[j_1]) < 0x20
+                            || (code > 0x7f && code <= 0x9f)) {
+                            osc += TextDecoder_1.utf32ToString(data, i, j_1);
+                            i = j_1 - 1;
+                            break;
+                        }
+                    }
                     break;
                 case 6:
                     if (osc && code !== 0x18 && code !== 0x1a) {
@@ -1439,11 +1675,16 @@ var EscapeSequenceParser = (function (_super) {
                         else {
                             var identifier = parseInt(osc.substring(0, idx));
                             var content = osc.substring(idx + 1);
-                            callback = this._oscHandlers[identifier];
-                            if (callback)
-                                callback(content);
-                            else
+                            var handlers_1 = this._oscHandlers[identifier];
+                            var j_2 = handlers_1 ? handlers_1.length - 1 : -1;
+                            for (; j_2 >= 0; j_2--) {
+                                if (handlers_1[j_2](content) !== false) {
+                                    break;
+                                }
+                            }
+                            if (j_2 < 0) {
                                 this._oscHandlerFb(identifier, content);
+                            }
                         }
                     }
                     if (code === 0x1b)
@@ -1457,10 +1698,10 @@ var EscapeSequenceParser = (function (_super) {
             currentState = transition & 15;
         }
         if (currentState === 0 && ~print) {
-            this._printHandler(data, print, data.length);
+            this._printHandler(data, print, length);
         }
         else if (currentState === 13 && ~dcs && dcsHandler) {
-            dcsHandler.put(data, dcs, data.length);
+            dcsHandler.put(data, dcs, length);
         }
         this._osc = osc;
         this._collect = collect;
@@ -1472,7 +1713,7 @@ var EscapeSequenceParser = (function (_super) {
 }(Lifecycle_1.Disposable));
 exports.EscapeSequenceParser = EscapeSequenceParser;
 
-},{"./common/Lifecycle":18}],8:[function(require,module,exports){
+},{"./common/Lifecycle":24,"./core/input/TextDecoder":34}],9:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -1480,7 +1721,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -1490,39 +1731,29 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var EscapeSequences_1 = require("./common/data/EscapeSequences");
 var Charsets_1 = require("./core/data/Charsets");
-var Buffer_1 = require("./Buffer");
 var CharWidth_1 = require("./CharWidth");
 var EscapeSequenceParser_1 = require("./EscapeSequenceParser");
 var Lifecycle_1 = require("./common/Lifecycle");
-var BufferLine_1 = require("./BufferLine");
+var TypedArrayUtils_1 = require("./common/TypedArrayUtils");
+var TextDecoder_1 = require("./core/input/TextDecoder");
+var BufferLine_1 = require("./core/buffer/BufferLine");
+var EventEmitter2_1 = require("./common/EventEmitter2");
 var GLEVEL = { '(': 0, ')': 1, '*': 2, '+': 3, '-': 1, '.': 2 };
-var RequestTerminfo = (function () {
-    function RequestTerminfo(_terminal) {
-        this._terminal = _terminal;
-    }
-    RequestTerminfo.prototype.hook = function (collect, params, flag) {
-        this._data = '';
-    };
-    RequestTerminfo.prototype.put = function (data, start, end) {
-        this._data += data.substring(start, end);
-    };
-    RequestTerminfo.prototype.unhook = function () {
-        this._terminal.handler(EscapeSequences_1.C0.ESC + "P0+r" + this._data + EscapeSequences_1.C0.ESC + "\\");
-    };
-    return RequestTerminfo;
-}());
 var DECRQSS = (function () {
     function DECRQSS(_terminal) {
         this._terminal = _terminal;
+        this._data = new Uint32Array(0);
     }
     DECRQSS.prototype.hook = function (collect, params, flag) {
-        this._data = '';
+        this._data = new Uint32Array(0);
     };
     DECRQSS.prototype.put = function (data, start, end) {
-        this._data += data.substring(start, end);
+        this._data = TypedArrayUtils_1.concat(this._data, data.subarray(start, end));
     };
     DECRQSS.prototype.unhook = function () {
-        switch (this._data) {
+        var data = TextDecoder_1.utf32ToString(this._data);
+        this._data = new Uint32Array(0);
+        switch (data) {
             case '"q':
                 return this._terminal.handler(EscapeSequences_1.C0.ESC + "P1$r0\"q" + EscapeSequences_1.C0.ESC + "\\");
             case '"p':
@@ -1539,8 +1770,8 @@ var DECRQSS = (function () {
                 style -= this._terminal.getOption('cursorBlink');
                 return this._terminal.handler(EscapeSequences_1.C0.ESC + "P1$r" + style + " q" + EscapeSequences_1.C0.ESC + "\\");
             default:
-                this._terminal.error('Unknown DCS $q %s', this._data);
-                this._terminal.handler(EscapeSequences_1.C0.ESC + "P0$r" + this._data + EscapeSequences_1.C0.ESC + "\\");
+                this._terminal.error('Unknown DCS $q %s', data);
+                this._terminal.handler(EscapeSequences_1.C0.ESC + "P0$r" + EscapeSequences_1.C0.ESC + "\\");
         }
     };
     return DECRQSS;
@@ -1552,8 +1783,15 @@ var InputHandler = (function (_super) {
         var _this = _super.call(this) || this;
         _this._terminal = _terminal;
         _this._parser = _parser;
+        _this._parseBuffer = new Uint32Array(4096);
+        _this._stringDecoder = new TextDecoder_1.StringToUtf32();
+        _this._utf8Decoder = new TextDecoder_1.Utf8ToUtf32();
+        _this._workCell = new BufferLine_1.CellData();
+        _this._onCursorMove = new EventEmitter2_1.EventEmitter2();
+        _this._onData = new EventEmitter2_1.EventEmitter2();
+        _this._onLineFeed = new EventEmitter2_1.EventEmitter2();
+        _this._onScroll = new EventEmitter2_1.EventEmitter2();
         _this.register(_this._parser);
-        _this._surrogateHigh = '';
         _this._parser.setCsiHandlerFallback(function (collect, params, flag) {
             _this._terminal.error('Unknown CSI code: ', { collect: collect, params: params, flag: String.fromCharCode(flag) });
         });
@@ -1651,9 +1889,28 @@ var InputHandler = (function (_super) {
             return state;
         });
         _this._parser.setDcsHandler('$q', new DECRQSS(_this._terminal));
-        _this._parser.setDcsHandler('+q', new RequestTerminfo(_this._terminal));
         return _this;
     }
+    Object.defineProperty(InputHandler.prototype, "onCursorMove", {
+        get: function () { return this._onCursorMove.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(InputHandler.prototype, "onData", {
+        get: function () { return this._onData.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(InputHandler.prototype, "onLineFeed", {
+        get: function () { return this._onLineFeed.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(InputHandler.prototype, "onScroll", {
+        get: function () { return this._onScroll.event; },
+        enumerable: true,
+        configurable: true
+    });
     InputHandler.prototype.dispose = function () {
         _super.prototype.dispose.call(this);
         this._terminal = null;
@@ -1668,20 +1925,36 @@ var InputHandler = (function (_super) {
         if (this._terminal.debug) {
             this._terminal.log('data: ' + data);
         }
-        if (this._surrogateHigh) {
-            data = this._surrogateHigh + data;
-            this._surrogateHigh = '';
+        if (this._parseBuffer.length < data.length) {
+            this._parseBuffer = new Uint32Array(data.length);
         }
-        this._parser.parse(data);
+        this._parser.parse(this._parseBuffer, this._stringDecoder.decode(data, this._parseBuffer));
+        buffer = this._terminal.buffer;
+        if (buffer.x !== cursorStartX || buffer.y !== cursorStartY) {
+            this._onCursorMove.fire();
+        }
+    };
+    InputHandler.prototype.parseUtf8 = function (data) {
+        if (!this._terminal) {
+            return;
+        }
+        var buffer = this._terminal.buffer;
+        var cursorStartX = buffer.x;
+        var cursorStartY = buffer.y;
+        if (this._terminal.debug) {
+            this._terminal.log('data: ' + data);
+        }
+        if (this._parseBuffer.length < data.length) {
+            this._parseBuffer = new Uint32Array(data.length);
+        }
+        this._parser.parse(this._parseBuffer, this._utf8Decoder.decode(data, this._parseBuffer));
         buffer = this._terminal.buffer;
         if (buffer.x !== cursorStartX || buffer.y !== cursorStartY) {
             this._terminal.emit('cursormove');
         }
     };
     InputHandler.prototype.print = function (data, start, end) {
-        var char;
         var code;
-        var low;
         var chWidth;
         var buffer = this._terminal.buffer;
         var charset = this._terminal.charset;
@@ -1689,46 +1962,27 @@ var InputHandler = (function (_super) {
         var cols = this._terminal.cols;
         var wraparoundMode = this._terminal.wraparoundMode;
         var insertMode = this._terminal.insertMode;
-        var curAttr = this._terminal.curAttr;
+        var curAttr = this._terminal.curAttrData;
         var bufferRow = buffer.lines.get(buffer.y + buffer.ybase);
         this._terminal.updateRange(buffer.y);
-        for (var stringPosition = start; stringPosition < end; ++stringPosition) {
-            char = data.charAt(stringPosition);
-            code = data.charCodeAt(stringPosition);
-            if (0xD800 <= code && code <= 0xDBFF) {
-                low = data.charCodeAt(stringPosition + 1);
-                if (isNaN(low)) {
-                    this._surrogateHigh = char;
-                    continue;
-                }
-                code = ((code - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000;
-                char += data.charAt(stringPosition + 1);
-            }
-            if (0xDC00 <= code && code <= 0xDFFF) {
-                continue;
-            }
+        for (var pos = start; pos < end; ++pos) {
+            code = data[pos];
             chWidth = CharWidth_1.wcwidth(code);
-            if (charset) {
-                char = charset[char] || char;
-                code = char.charCodeAt(0);
+            if (code < 127 && charset) {
+                var ch = charset[String.fromCharCode(code)];
+                if (ch) {
+                    code = ch.charCodeAt(0);
+                }
             }
             if (screenReaderMode) {
-                this._terminal.emit('a11y.char', char);
+                this._terminal.emit('a11y.char', TextDecoder_1.stringFromCodePoint(code));
             }
             if (!chWidth && buffer.x) {
-                var chMinusOne = bufferRow.get(buffer.x - 1);
-                if (chMinusOne) {
-                    if (!chMinusOne[Buffer_1.CHAR_DATA_WIDTH_INDEX]) {
-                        var chMinusTwo = bufferRow.get(buffer.x - 2);
-                        if (chMinusTwo) {
-                            chMinusTwo[Buffer_1.CHAR_DATA_CHAR_INDEX] += char;
-                            chMinusTwo[Buffer_1.CHAR_DATA_CODE_INDEX] = code;
-                        }
-                    }
-                    else {
-                        chMinusOne[Buffer_1.CHAR_DATA_CHAR_INDEX] += char;
-                        chMinusOne[Buffer_1.CHAR_DATA_CODE_INDEX] = code;
-                    }
+                if (!bufferRow.getWidth(buffer.x - 1)) {
+                    bufferRow.addCodepointToCell(buffer.x - 2, code);
+                }
+                else {
+                    bufferRow.addCodepointToCell(buffer.x - 1, code);
                 }
                 continue;
             }
@@ -1752,23 +2006,25 @@ var InputHandler = (function (_super) {
                 }
             }
             if (insertMode) {
-                for (var moves = 0; moves < chWidth; ++moves) {
-                    var removed = bufferRow.pop();
-                    var chMinusTwo = bufferRow.get(buffer.x - 2);
-                    if (removed[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 0
-                        && chMinusTwo
-                        && chMinusTwo[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 2) {
-                        bufferRow.set(this._terminal.cols - 2, [curAttr, Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE]);
-                    }
-                    bufferRow.splice(buffer.x, 0, [curAttr, Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE]);
+                bufferRow.insertCells(buffer.x, chWidth, buffer.getNullCell(curAttr));
+                if (bufferRow.getWidth(cols - 1) === 2) {
+                    bufferRow.setCellFromCodePoint(cols - 1, BufferLine_1.NULL_CELL_CODE, BufferLine_1.NULL_CELL_WIDTH, curAttr.fg, curAttr.bg);
                 }
             }
-            bufferRow.set(buffer.x++, [curAttr, char, chWidth, code]);
-            if (chWidth === 2) {
-                bufferRow.set(buffer.x++, [curAttr, '', 0, undefined]);
+            bufferRow.setCellFromCodePoint(buffer.x++, code, chWidth, curAttr.fg, curAttr.bg);
+            if (chWidth > 0) {
+                while (--chWidth) {
+                    bufferRow.setCellFromCodePoint(buffer.x++, 0, 0, curAttr.fg, curAttr.bg);
+                }
             }
         }
         this._terminal.updateRange(buffer.y);
+    };
+    InputHandler.prototype.addCsiHandler = function (flag, callback) {
+        return this._parser.addCsiHandler(flag, callback);
+    };
+    InputHandler.prototype.addOscHandler = function (ident, callback) {
+        return this._parser.addOscHandler(ident, callback);
     };
     InputHandler.prototype.bell = function () {
         this._terminal.bell();
@@ -1786,7 +2042,7 @@ var InputHandler = (function (_super) {
         if (buffer.x >= this._terminal.cols) {
             buffer.x--;
         }
-        this._terminal.emit('linefeed');
+        this._onLineFeed.fire();
     };
     InputHandler.prototype.carriageReturn = function () {
         this._terminal.buffer.x = 0;
@@ -1810,7 +2066,7 @@ var InputHandler = (function (_super) {
         this._terminal.setgLevel(0);
     };
     InputHandler.prototype.insertChars = function (params) {
-        this._terminal.buffer.lines.get(this._terminal.buffer.y + this._terminal.buffer.ybase).insertCells(this._terminal.buffer.x, params[0] || 1, [this._terminal.eraseAttr(), Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE]);
+        this._terminal.buffer.lines.get(this._terminal.buffer.y + this._terminal.buffer.ybase).insertCells(this._terminal.buffer.x, params[0] || 1, this._terminal.buffer.getNullCell(this._terminal.eraseAttrData()));
         this._terminal.updateRange(this._terminal.buffer.y);
     };
     InputHandler.prototype.cursorUp = function (params) {
@@ -1918,8 +2174,16 @@ var InputHandler = (function (_super) {
             this._terminal.buffer.x = this._terminal.buffer.nextStop();
         }
     };
-    InputHandler.prototype._eraseInBufferLine = function (y, start, end) {
-        this._terminal.buffer.lines.get(this._terminal.buffer.ybase + y).replaceCells(start, end, [this._terminal.eraseAttr(), Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE]);
+    InputHandler.prototype._eraseInBufferLine = function (y, start, end, clearWrap) {
+        if (clearWrap === void 0) { clearWrap = false; }
+        var line = this._terminal.buffer.lines.get(this._terminal.buffer.ybase + y);
+        line.replaceCells(start, end, this._terminal.buffer.getNullCell(this._terminal.eraseAttrData()));
+        if (clearWrap) {
+            line.isWrapped = false;
+        }
+    };
+    InputHandler.prototype._resetBufferLine = function (y) {
+        this._eraseInBufferLine(y, 0, this._terminal.cols, true);
     };
     InputHandler.prototype.eraseInDisplay = function (params) {
         var j;
@@ -1927,18 +2191,21 @@ var InputHandler = (function (_super) {
             case 0:
                 j = this._terminal.buffer.y;
                 this._terminal.updateRange(j);
-                this._eraseInBufferLine(j++, this._terminal.buffer.x, this._terminal.cols);
+                this._eraseInBufferLine(j++, this._terminal.buffer.x, this._terminal.cols, this._terminal.buffer.x === 0);
                 for (; j < this._terminal.rows; j++) {
-                    this._eraseInBufferLine(j, 0, this._terminal.cols);
+                    this._resetBufferLine(j);
                 }
                 this._terminal.updateRange(j);
                 break;
             case 1:
                 j = this._terminal.buffer.y;
                 this._terminal.updateRange(j);
-                this._eraseInBufferLine(j, 0, this._terminal.buffer.x + 1);
+                this._eraseInBufferLine(j, 0, this._terminal.buffer.x + 1, true);
+                if (this._terminal.buffer.x + 1 >= this._terminal.cols) {
+                    this._terminal.buffer.lines.get(j + 1).isWrapped = false;
+                }
                 while (j--) {
-                    this._eraseInBufferLine(j, 0, this._terminal.cols);
+                    this._resetBufferLine(j);
                 }
                 this._terminal.updateRange(0);
                 break;
@@ -1946,7 +2213,7 @@ var InputHandler = (function (_super) {
                 j = this._terminal.rows;
                 this._terminal.updateRange(j - 1);
                 while (j--) {
-                    this._eraseInBufferLine(j, 0, this._terminal.cols);
+                    this._resetBufferLine(j);
                 }
                 this._terminal.updateRange(0);
                 break;
@@ -1956,7 +2223,7 @@ var InputHandler = (function (_super) {
                     this._terminal.buffer.lines.trimStart(scrollBackSize);
                     this._terminal.buffer.ybase = Math.max(this._terminal.buffer.ybase - scrollBackSize, 0);
                     this._terminal.buffer.ydisp = Math.max(this._terminal.buffer.ydisp - scrollBackSize, 0);
-                    this._terminal.emit('scroll', 0);
+                    this._onScroll.fire(0);
                 }
                 break;
         }
@@ -1986,7 +2253,7 @@ var InputHandler = (function (_super) {
         var scrollBottomAbsolute = this._terminal.rows - 1 + buffer.ybase - scrollBottomRowsOffset + 1;
         while (param--) {
             buffer.lines.splice(scrollBottomAbsolute - 1, 1);
-            buffer.lines.splice(row, 0, BufferLine_1.BufferLine.blankLine(this._terminal.cols, this._terminal.eraseAttr()));
+            buffer.lines.splice(row, 0, buffer.getBlankLine(this._terminal.eraseAttrData()));
         }
         this._terminal.updateRange(buffer.y);
         this._terminal.updateRange(buffer.scrollBottom);
@@ -2003,13 +2270,13 @@ var InputHandler = (function (_super) {
         j = this._terminal.rows - 1 + buffer.ybase - j;
         while (param--) {
             buffer.lines.splice(row, 1);
-            buffer.lines.splice(j, 0, BufferLine_1.BufferLine.blankLine(this._terminal.cols, this._terminal.eraseAttr()));
+            buffer.lines.splice(j, 0, buffer.getBlankLine(this._terminal.eraseAttrData()));
         }
         this._terminal.updateRange(buffer.y);
         this._terminal.updateRange(buffer.scrollBottom);
     };
     InputHandler.prototype.deleteChars = function (params) {
-        this._terminal.buffer.lines.get(this._terminal.buffer.y + this._terminal.buffer.ybase).deleteCells(this._terminal.buffer.x, params[0] || 1, [this._terminal.eraseAttr(), Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE]);
+        this._terminal.buffer.lines.get(this._terminal.buffer.y + this._terminal.buffer.ybase).deleteCells(this._terminal.buffer.x, params[0] || 1, this._terminal.buffer.getNullCell(this._terminal.eraseAttrData()));
         this._terminal.updateRange(this._terminal.buffer.y);
     };
     InputHandler.prototype.scrollUp = function (params) {
@@ -2017,7 +2284,7 @@ var InputHandler = (function (_super) {
         var buffer = this._terminal.buffer;
         while (param--) {
             buffer.lines.splice(buffer.ybase + buffer.scrollTop, 1);
-            buffer.lines.splice(buffer.ybase + buffer.scrollBottom, 0, BufferLine_1.BufferLine.blankLine(this._terminal.cols, Buffer_1.DEFAULT_ATTR));
+            buffer.lines.splice(buffer.ybase + buffer.scrollBottom, 0, buffer.getBlankLine(BufferLine_1.DEFAULT_ATTR_DATA));
         }
         this._terminal.updateRange(buffer.scrollTop);
         this._terminal.updateRange(buffer.scrollBottom);
@@ -2028,14 +2295,14 @@ var InputHandler = (function (_super) {
             var buffer = this._terminal.buffer;
             while (param--) {
                 buffer.lines.splice(buffer.ybase + buffer.scrollBottom, 1);
-                buffer.lines.splice(buffer.ybase + buffer.scrollBottom, 0, BufferLine_1.BufferLine.blankLine(this._terminal.cols, Buffer_1.DEFAULT_ATTR));
+                buffer.lines.splice(buffer.ybase + buffer.scrollTop, 0, buffer.getBlankLine(BufferLine_1.DEFAULT_ATTR_DATA));
             }
             this._terminal.updateRange(buffer.scrollTop);
             this._terminal.updateRange(buffer.scrollBottom);
         }
     };
     InputHandler.prototype.eraseChars = function (params) {
-        this._terminal.buffer.lines.get(this._terminal.buffer.y + this._terminal.buffer.ybase).replaceCells(this._terminal.buffer.x, this._terminal.buffer.x + (params[0] || 1), [this._terminal.eraseAttr(), Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE]);
+        this._terminal.buffer.lines.get(this._terminal.buffer.y + this._terminal.buffer.ybase).replaceCells(this._terminal.buffer.x, this._terminal.buffer.x + (params[0] || 1), this._terminal.buffer.getNullCell(this._terminal.eraseAttrData()));
     };
     InputHandler.prototype.cursorBackwardTab = function (params) {
         var param = params[0] || 1;
@@ -2067,7 +2334,8 @@ var InputHandler = (function (_super) {
     InputHandler.prototype.repeatPrecedingCharacter = function (params) {
         var buffer = this._terminal.buffer;
         var line = buffer.lines.get(buffer.ybase + buffer.y);
-        line.replaceCells(buffer.x, buffer.x + (params[0] || 1), line.get(buffer.x - 1) || [Buffer_1.DEFAULT_ATTR, Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE]);
+        line.loadCell(buffer.x - 1, this._workCell);
+        line.replaceCells(buffer.x, buffer.x + (params[0] || 1), (this._workCell.content !== undefined) ? this._workCell : buffer.getNullCell(BufferLine_1.DEFAULT_ATTR_DATA));
     };
     InputHandler.prototype.sendDeviceAttributes = function (params, collect) {
         if (params[0] > 0) {
@@ -2184,7 +2452,9 @@ var InputHandler = (function (_super) {
                 case 66:
                     this._terminal.log('Serial port requested application keypad.');
                     this._terminal.applicationKeypad = true;
-                    this._terminal.viewport.syncScrollArea();
+                    if (this._terminal.viewport) {
+                        this._terminal.viewport.syncScrollArea();
+                    }
                     break;
                 case 9:
                 case 1000:
@@ -2194,8 +2464,12 @@ var InputHandler = (function (_super) {
                     this._terminal.vt200Mouse = params[0] === 1000;
                     this._terminal.normalMouse = params[0] > 1000;
                     this._terminal.mouseEvents = true;
-                    this._terminal.element.classList.add('enable-mouse-events');
-                    this._terminal.selectionManager.disable();
+                    if (this._terminal.element) {
+                        this._terminal.element.classList.add('enable-mouse-events');
+                    }
+                    if (this._terminal.selectionManager) {
+                        this._terminal.selectionManager.disable();
+                    }
                     this._terminal.log('Binding to mouse events.');
                     break;
                 case 1004:
@@ -2213,11 +2487,18 @@ var InputHandler = (function (_super) {
                 case 25:
                     this._terminal.cursorHidden = false;
                     break;
+                case 1048:
+                    this.saveCursor(params);
+                    break;
                 case 1049:
+                    this.saveCursor(params);
                 case 47:
                 case 1047:
-                    this._terminal.buffers.activateAltBuffer();
-                    this._terminal.viewport.syncScrollArea();
+                    this._terminal.buffers.activateAltBuffer(this._terminal.eraseAttrData());
+                    this._terminal.refresh(0, this._terminal.rows - 1);
+                    if (this._terminal.viewport) {
+                        this._terminal.viewport.syncScrollArea();
+                    }
                     this._terminal.showCursor();
                     break;
                 case 2004:
@@ -2264,7 +2545,9 @@ var InputHandler = (function (_super) {
                 case 66:
                     this._terminal.log('Switching back to normal keypad.');
                     this._terminal.applicationKeypad = false;
-                    this._terminal.viewport.syncScrollArea();
+                    if (this._terminal.viewport) {
+                        this._terminal.viewport.syncScrollArea();
+                    }
                     break;
                 case 9:
                 case 1000:
@@ -2274,8 +2557,12 @@ var InputHandler = (function (_super) {
                     this._terminal.vt200Mouse = false;
                     this._terminal.normalMouse = false;
                     this._terminal.mouseEvents = false;
-                    this._terminal.element.classList.remove('enable-mouse-events');
-                    this._terminal.selectionManager.enable();
+                    if (this._terminal.element) {
+                        this._terminal.element.classList.remove('enable-mouse-events');
+                    }
+                    if (this._terminal.selectionManager) {
+                        this._terminal.selectionManager.enable();
+                    }
                     break;
                 case 1004:
                     this._terminal.sendFocus = false;
@@ -2292,12 +2579,20 @@ var InputHandler = (function (_super) {
                 case 25:
                     this._terminal.cursorHidden = true;
                     break;
+                case 1048:
+                    this.restoreCursor(params);
+                    break;
                 case 1049:
                 case 47:
                 case 1047:
                     this._terminal.buffers.activateNormalBuffer();
+                    if (params[0] === 1049) {
+                        this.restoreCursor(params);
+                    }
                     this._terminal.refresh(0, this._terminal.rows - 1);
-                    this._terminal.viewport.syncScrollArea();
+                    if (this._terminal.viewport) {
+                        this._terminal.viewport.syncScrollArea();
+                    }
                     this._terminal.showCursor();
                     break;
                 case 2004:
@@ -2308,129 +2603,134 @@ var InputHandler = (function (_super) {
     };
     InputHandler.prototype.charAttributes = function (params) {
         if (params.length === 1 && params[0] === 0) {
-            this._terminal.curAttr = Buffer_1.DEFAULT_ATTR;
+            this._terminal.curAttrData.fg = BufferLine_1.DEFAULT_ATTR_DATA.fg;
+            this._terminal.curAttrData.bg = BufferLine_1.DEFAULT_ATTR_DATA.bg;
             return;
         }
         var l = params.length;
-        var flags = this._terminal.curAttr >> 18;
-        var fg = (this._terminal.curAttr >> 9) & 0x1ff;
-        var bg = this._terminal.curAttr & 0x1ff;
         var p;
+        var attr = this._terminal.curAttrData;
         for (var i = 0; i < l; i++) {
             p = params[i];
             if (p >= 30 && p <= 37) {
-                fg = p - 30;
+                attr.fg &= ~(50331648 | 255);
+                attr.fg |= 16777216 | (p - 30);
             }
             else if (p >= 40 && p <= 47) {
-                bg = p - 40;
+                attr.bg &= ~(50331648 | 255);
+                attr.bg |= 16777216 | (p - 40);
             }
             else if (p >= 90 && p <= 97) {
-                p += 8;
-                fg = p - 90;
+                attr.fg &= ~(50331648 | 255);
+                attr.fg |= 16777216 | (p - 90) | 8;
             }
             else if (p >= 100 && p <= 107) {
-                p += 8;
-                bg = p - 100;
+                attr.bg &= ~(50331648 | 255);
+                attr.bg |= 16777216 | (p - 100) | 8;
             }
             else if (p === 0) {
-                flags = Buffer_1.DEFAULT_ATTR >> 18;
-                fg = (Buffer_1.DEFAULT_ATTR >> 9) & 0x1ff;
-                bg = Buffer_1.DEFAULT_ATTR & 0x1ff;
+                attr.fg = BufferLine_1.DEFAULT_ATTR_DATA.fg;
+                attr.bg = BufferLine_1.DEFAULT_ATTR_DATA.bg;
             }
             else if (p === 1) {
-                flags |= 1;
+                attr.fg |= 134217728;
             }
             else if (p === 3) {
-                flags |= 64;
+                attr.bg |= 67108864;
             }
             else if (p === 4) {
-                flags |= 2;
+                attr.fg |= 268435456;
             }
             else if (p === 5) {
-                flags |= 4;
+                attr.fg |= 536870912;
             }
             else if (p === 7) {
-                flags |= 8;
+                attr.fg |= 67108864;
             }
             else if (p === 8) {
-                flags |= 16;
+                attr.fg |= 1073741824;
             }
             else if (p === 2) {
-                flags |= 32;
+                attr.bg |= 134217728;
             }
             else if (p === 22) {
-                flags &= ~1;
-                flags &= ~32;
+                attr.fg &= ~134217728;
+                attr.bg &= ~134217728;
             }
             else if (p === 23) {
-                flags &= ~64;
+                attr.bg &= ~67108864;
             }
             else if (p === 24) {
-                flags &= ~2;
+                attr.fg &= ~268435456;
             }
             else if (p === 25) {
-                flags &= ~4;
+                attr.fg &= ~536870912;
             }
             else if (p === 27) {
-                flags &= ~8;
+                attr.fg &= ~67108864;
             }
             else if (p === 28) {
-                flags &= ~16;
+                attr.fg &= ~1073741824;
             }
             else if (p === 39) {
-                fg = (Buffer_1.DEFAULT_ATTR >> 9) & 0x1ff;
+                attr.fg &= ~(50331648 | 16777215);
+                attr.fg |= BufferLine_1.DEFAULT_ATTR_DATA.fg & (255 | 16777215);
             }
             else if (p === 49) {
-                bg = Buffer_1.DEFAULT_ATTR & 0x1ff;
+                attr.bg &= ~(50331648 | 16777215);
+                attr.bg |= BufferLine_1.DEFAULT_ATTR_DATA.bg & (255 | 16777215);
             }
             else if (p === 38) {
                 if (params[i + 1] === 2) {
                     i += 2;
-                    fg = this._terminal.matchColor(params[i] & 0xff, params[i + 1] & 0xff, params[i + 2] & 0xff);
-                    if (fg === -1)
-                        fg = 0x1ff;
+                    attr.fg |= 50331648;
+                    attr.fg &= ~16777215;
+                    attr.fg |= BufferLine_1.AttributeData.fromColorRGB([params[i], params[i + 1], params[i + 2]]);
                     i += 2;
                 }
                 else if (params[i + 1] === 5) {
                     i += 2;
                     p = params[i] & 0xff;
-                    fg = p;
+                    attr.fg &= ~(50331648 | 255);
+                    attr.fg |= 33554432 | p;
                 }
             }
             else if (p === 48) {
                 if (params[i + 1] === 2) {
                     i += 2;
-                    bg = this._terminal.matchColor(params[i] & 0xff, params[i + 1] & 0xff, params[i + 2] & 0xff);
-                    if (bg === -1)
-                        bg = 0x1ff;
+                    attr.bg |= 50331648;
+                    attr.bg &= ~16777215;
+                    attr.bg |= BufferLine_1.AttributeData.fromColorRGB([params[i], params[i + 1], params[i + 2]]);
                     i += 2;
                 }
                 else if (params[i + 1] === 5) {
                     i += 2;
                     p = params[i] & 0xff;
-                    bg = p;
+                    attr.bg &= ~(50331648 | 255);
+                    attr.bg |= 33554432 | p;
                 }
             }
             else if (p === 100) {
-                fg = (Buffer_1.DEFAULT_ATTR >> 9) & 0x1ff;
-                bg = Buffer_1.DEFAULT_ATTR & 0x1ff;
+                attr.fg &= ~(50331648 | 16777215);
+                attr.fg |= BufferLine_1.DEFAULT_ATTR_DATA.fg & (255 | 16777215);
+                attr.bg &= ~(50331648 | 16777215);
+                attr.bg |= BufferLine_1.DEFAULT_ATTR_DATA.bg & (255 | 16777215);
             }
             else {
                 this._terminal.error('Unknown SGR attribute: %d.', p);
             }
         }
-        this._terminal.curAttr = (flags << 18) | (fg << 9) | bg;
     };
     InputHandler.prototype.deviceStatus = function (params, collect) {
         if (!collect) {
             switch (params[0]) {
                 case 5:
-                    this._terminal.emit('data', EscapeSequences_1.C0.ESC + "[0n");
+                    this._onData.fire(EscapeSequences_1.C0.ESC + "[0n");
                     break;
                 case 6:
                     var y = this._terminal.buffer.y + 1;
                     var x = this._terminal.buffer.x + 1;
-                    this._terminal.emit('data', EscapeSequences_1.C0.ESC + "[" + y + ";" + x + "R");
+                    this._onData.fire(EscapeSequences_1.C0.ESC + "[" + y + ";" + x + "R");
                     break;
             }
         }
@@ -2439,7 +2739,7 @@ var InputHandler = (function (_super) {
                 case 6:
                     var y = this._terminal.buffer.y + 1;
                     var x = this._terminal.buffer.x + 1;
-                    this._terminal.emit('data', EscapeSequences_1.C0.ESC + "[?" + y + ";" + x + "R");
+                    this._onData.fire(EscapeSequences_1.C0.ESC + "[?" + y + ";" + x + "R");
                     break;
                 case 15:
                     break;
@@ -2459,11 +2759,13 @@ var InputHandler = (function (_super) {
             this._terminal.originMode = false;
             this._terminal.wraparoundMode = true;
             this._terminal.applicationKeypad = false;
-            this._terminal.viewport.syncScrollArea();
+            if (this._terminal.viewport) {
+                this._terminal.viewport.syncScrollArea();
+            }
             this._terminal.applicationCursor = false;
             this._terminal.buffer.scrollTop = 0;
             this._terminal.buffer.scrollBottom = this._terminal.rows - 1;
-            this._terminal.curAttr = Buffer_1.DEFAULT_ATTR;
+            this._terminal.curAttrData = BufferLine_1.DEFAULT_ATTR_DATA;
             this._terminal.buffer.x = this._terminal.buffer.y = 0;
             this._terminal.charset = null;
             this._terminal.glevel = 0;
@@ -2492,8 +2794,9 @@ var InputHandler = (function (_super) {
         }
     };
     InputHandler.prototype.setScrollRegion = function (params, collect) {
-        if (collect)
+        if (collect) {
             return;
+        }
         this._terminal.buffer.scrollTop = (params[0] || 1) - 1;
         this._terminal.buffer.scrollBottom = (params[1] && params[1] <= this._terminal.rows ? params[1] : this._terminal.rows) - 1;
         this._terminal.buffer.x = 0;
@@ -2502,12 +2805,14 @@ var InputHandler = (function (_super) {
     InputHandler.prototype.saveCursor = function (params) {
         this._terminal.buffer.savedX = this._terminal.buffer.x;
         this._terminal.buffer.savedY = this._terminal.buffer.y;
-        this._terminal.savedCurAttr = this._terminal.curAttr;
+        this._terminal.buffer.savedCurAttrData.fg = this._terminal.curAttrData.fg;
+        this._terminal.buffer.savedCurAttrData.bg = this._terminal.curAttrData.bg;
     };
     InputHandler.prototype.restoreCursor = function (params) {
         this._terminal.buffer.x = this._terminal.buffer.savedX || 0;
         this._terminal.buffer.y = this._terminal.buffer.savedY || 0;
-        this._terminal.curAttr = this._terminal.savedCurAttr || Buffer_1.DEFAULT_ATTR;
+        this._terminal.curAttrData.fg = this._terminal.buffer.savedCurAttrData.fg;
+        this._terminal.curAttrData.bg = this._terminal.buffer.savedCurAttrData.bg;
     };
     InputHandler.prototype.setTitle = function (data) {
         this._terminal.handleTitle(data);
@@ -2535,11 +2840,15 @@ var InputHandler = (function (_super) {
         this._terminal.setgCharset(0, Charsets_1.DEFAULT_CHARSET);
     };
     InputHandler.prototype.selectCharset = function (collectAndFlag) {
-        if (collectAndFlag.length !== 2)
-            return this.selectDefaultCharset();
-        if (collectAndFlag[0] === '/')
+        if (collectAndFlag.length !== 2) {
+            this.selectDefaultCharset();
             return;
+        }
+        if (collectAndFlag[0] === '/') {
+            return;
+        }
         this._terminal.setgCharset(GLEVEL[collectAndFlag[0]], Charsets_1.CHARSETS[collectAndFlag[1]] || Charsets_1.DEFAULT_CHARSET);
+        return;
     };
     InputHandler.prototype.index = function () {
         this._terminal.index();
@@ -2561,39 +2870,40 @@ var InputHandler = (function (_super) {
 }(Lifecycle_1.Disposable));
 exports.InputHandler = InputHandler;
 
-},{"./Buffer":2,"./BufferLine":3,"./CharWidth":5,"./EscapeSequenceParser":7,"./common/Lifecycle":18,"./common/data/EscapeSequences":19,"./core/data/Charsets":20}],9:[function(require,module,exports){
+},{"./CharWidth":5,"./EscapeSequenceParser":8,"./common/EventEmitter2":23,"./common/Lifecycle":24,"./common/TypedArrayUtils":26,"./common/data/EscapeSequences":28,"./core/buffer/BufferLine":29,"./core/data/Charsets":32,"./core/input/TextDecoder":34}],10:[function(require,module,exports){
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-var MouseZoneManager_1 = require("./ui/MouseZoneManager");
-var EventEmitter_1 = require("./common/EventEmitter");
-var Buffer_1 = require("./Buffer");
+var MouseZoneManager_1 = require("./MouseZoneManager");
 var CharWidth_1 = require("./CharWidth");
-var Linkifier = (function (_super) {
-    __extends(Linkifier, _super);
+var EventEmitter2_1 = require("./common/EventEmitter2");
+var Linkifier = (function () {
     function Linkifier(_terminal) {
-        var _this = _super.call(this) || this;
-        _this._terminal = _terminal;
-        _this._linkMatchers = [];
-        _this._nextLinkMatcherId = 0;
-        _this._rowsToLinkify = {
+        this._terminal = _terminal;
+        this._linkMatchers = [];
+        this._nextLinkMatcherId = 0;
+        this._onLinkHover = new EventEmitter2_1.EventEmitter2();
+        this._onLinkLeave = new EventEmitter2_1.EventEmitter2();
+        this._onLinkTooltip = new EventEmitter2_1.EventEmitter2();
+        this._rowsToLinkify = {
             start: null,
             end: null
         };
-        return _this;
     }
+    Object.defineProperty(Linkifier.prototype, "onLinkHover", {
+        get: function () { return this._onLinkHover.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Linkifier.prototype, "onLinkLeave", {
+        get: function () { return this._onLinkLeave.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Linkifier.prototype, "onLinkTooltip", {
+        get: function () { return this._onLinkTooltip.event; },
+        enumerable: true,
+        configurable: true
+    });
     Linkifier.prototype.attachToDom = function (mouseZoneManager) {
         this._mouseZoneManager = mouseZoneManager;
     };
@@ -2692,12 +3002,17 @@ var Linkifier = (function (_super) {
             }
             stringIndex = text.indexOf(uri, stringIndex + 1);
             rex.lastIndex = stringIndex + uri.length;
+            if (stringIndex < 0) {
+                return "break";
+            }
             var bufferIndex = this_1._terminal.buffer.stringIndexToBufferIndex(rowIndex, stringIndex);
+            if (bufferIndex[0] < 0) {
+                return "break";
+            }
             var line = this_1._terminal.buffer.lines.get(bufferIndex[0]);
-            var char = line.get(bufferIndex[1]);
+            var attr = line.getFg(bufferIndex[1]);
             var fg;
-            if (char) {
-                var attr = char[Buffer_1.CHAR_DATA_ATTR_INDEX];
+            if (attr) {
                 fg = (attr >> 9) & 0x1ff;
             }
             if (matcher.validationCallback) {
@@ -2737,16 +3052,16 @@ var Linkifier = (function (_super) {
                 return matcher.handler(e, uri);
             }
             window.open(uri, '_blank');
-        }, function (e) {
-            _this.emit("linkhover", _this._createLinkHoverEvent(x1, y1, x2, y2, fg));
+        }, function () {
+            _this._onLinkHover.fire(_this._createLinkHoverEvent(x1, y1, x2, y2, fg));
             _this._terminal.element.classList.add('xterm-cursor-pointer');
         }, function (e) {
-            _this.emit("linktooltip", _this._createLinkHoverEvent(x1, y1, x2, y2, fg));
+            _this._onLinkTooltip.fire(_this._createLinkHoverEvent(x1, y1, x2, y2, fg));
             if (matcher.hoverTooltipCallback) {
                 matcher.hoverTooltipCallback(e, uri);
             }
         }, function () {
-            _this.emit("linkleave", _this._createLinkHoverEvent(x1, y1, x2, y2, fg));
+            _this._onLinkLeave.fire(_this._createLinkHoverEvent(x1, y1, x2, y2, fg));
             _this._terminal.element.classList.remove('xterm-cursor-pointer');
             if (matcher.hoverLeaveCallback) {
                 matcher.hoverLeaveCallback();
@@ -2764,10 +3079,47 @@ var Linkifier = (function (_super) {
     Linkifier.TIME_BEFORE_LINKIFY = 200;
     Linkifier.OVERSCAN_CHAR_LIMIT = 2000;
     return Linkifier;
-}(EventEmitter_1.EventEmitter));
+}());
 exports.Linkifier = Linkifier;
 
-},{"./Buffer":2,"./CharWidth":5,"./common/EventEmitter":17,"./ui/MouseZoneManager":49}],10:[function(require,module,exports){
+},{"./CharWidth":5,"./MouseZoneManager":12,"./common/EventEmitter2":23}],11:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var MouseHelper = (function () {
+    function MouseHelper(_renderCoordinator) {
+        this._renderCoordinator = _renderCoordinator;
+    }
+    MouseHelper.getCoordsRelativeToElement = function (event, element) {
+        var rect = element.getBoundingClientRect();
+        return [event.clientX - rect.left, event.clientY - rect.top];
+    };
+    MouseHelper.prototype.getCoords = function (event, element, charMeasure, colCount, rowCount, isSelection) {
+        if (!charMeasure.width || !charMeasure.height) {
+            return null;
+        }
+        var coords = MouseHelper.getCoordsRelativeToElement(event, element);
+        if (!coords) {
+            return null;
+        }
+        coords[0] = Math.ceil((coords[0] + (isSelection ? this._renderCoordinator.dimensions.actualCellWidth / 2 : 0)) / this._renderCoordinator.dimensions.actualCellWidth);
+        coords[1] = Math.ceil(coords[1] / this._renderCoordinator.dimensions.actualCellHeight);
+        coords[0] = Math.min(Math.max(coords[0], 1), colCount + (isSelection ? 1 : 0));
+        coords[1] = Math.min(Math.max(coords[1], 1), rowCount);
+        return coords;
+    };
+    MouseHelper.prototype.getRawByteCoords = function (event, element, charMeasure, colCount, rowCount) {
+        var coords = this.getCoords(event, element, charMeasure, colCount, rowCount);
+        var x = coords[0];
+        var y = coords[1];
+        x += 32;
+        y += 32;
+        return { x: x, y: y };
+    };
+    return MouseHelper;
+}());
+exports.MouseHelper = MouseHelper;
+
+},{}],12:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -2775,7 +3127,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -2783,12 +3135,193 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var MouseHelper_1 = require("./utils/MouseHelper");
-var Browser = require("./shared/utils/Browser");
-var EventEmitter_1 = require("./common/EventEmitter");
+var Lifecycle_1 = require("./common/Lifecycle");
+var Lifecycle_2 = require("./ui/Lifecycle");
+var HOVER_DURATION = 500;
+var MouseZoneManager = (function (_super) {
+    __extends(MouseZoneManager, _super);
+    function MouseZoneManager(_terminal) {
+        var _this = _super.call(this) || this;
+        _this._terminal = _terminal;
+        _this._zones = [];
+        _this._areZonesActive = false;
+        _this._tooltipTimeout = null;
+        _this._currentZone = null;
+        _this._lastHoverCoords = [null, null];
+        _this.register(Lifecycle_2.addDisposableDomListener(_this._terminal.element, 'mousedown', function (e) { return _this._onMouseDown(e); }));
+        _this._mouseMoveListener = function (e) { return _this._onMouseMove(e); };
+        _this._mouseLeaveListener = function (e) { return _this._onMouseLeave(e); };
+        _this._clickListener = function (e) { return _this._onClick(e); };
+        return _this;
+    }
+    MouseZoneManager.prototype.dispose = function () {
+        _super.prototype.dispose.call(this);
+        this._deactivate();
+    };
+    MouseZoneManager.prototype.add = function (zone) {
+        this._zones.push(zone);
+        if (this._zones.length === 1) {
+            this._activate();
+        }
+    };
+    MouseZoneManager.prototype.clearAll = function (start, end) {
+        if (this._zones.length === 0) {
+            return;
+        }
+        if (!end) {
+            start = 0;
+            end = this._terminal.rows - 1;
+        }
+        for (var i = 0; i < this._zones.length; i++) {
+            var zone = this._zones[i];
+            if ((zone.y1 > start && zone.y1 <= end + 1) ||
+                (zone.y2 > start && zone.y2 <= end + 1) ||
+                (zone.y1 < start && zone.y2 > end + 1)) {
+                if (this._currentZone && this._currentZone === zone) {
+                    this._currentZone.leaveCallback();
+                    this._currentZone = null;
+                }
+                this._zones.splice(i--, 1);
+            }
+        }
+        if (this._zones.length === 0) {
+            this._deactivate();
+        }
+    };
+    MouseZoneManager.prototype._activate = function () {
+        if (!this._areZonesActive) {
+            this._areZonesActive = true;
+            this._terminal.element.addEventListener('mousemove', this._mouseMoveListener);
+            this._terminal.element.addEventListener('mouseleave', this._mouseLeaveListener);
+            this._terminal.element.addEventListener('click', this._clickListener);
+        }
+    };
+    MouseZoneManager.prototype._deactivate = function () {
+        if (this._areZonesActive) {
+            this._areZonesActive = false;
+            this._terminal.element.removeEventListener('mousemove', this._mouseMoveListener);
+            this._terminal.element.removeEventListener('mouseleave', this._mouseLeaveListener);
+            this._terminal.element.removeEventListener('click', this._clickListener);
+        }
+    };
+    MouseZoneManager.prototype._onMouseMove = function (e) {
+        if (this._lastHoverCoords[0] !== e.pageX || this._lastHoverCoords[1] !== e.pageY) {
+            this._onHover(e);
+            this._lastHoverCoords = [e.pageX, e.pageY];
+        }
+    };
+    MouseZoneManager.prototype._onHover = function (e) {
+        var _this = this;
+        var zone = this._findZoneEventAt(e);
+        if (zone === this._currentZone) {
+            return;
+        }
+        if (this._currentZone) {
+            this._currentZone.leaveCallback();
+            this._currentZone = null;
+            if (this._tooltipTimeout) {
+                clearTimeout(this._tooltipTimeout);
+            }
+        }
+        if (!zone) {
+            return;
+        }
+        this._currentZone = zone;
+        if (zone.hoverCallback) {
+            zone.hoverCallback(e);
+        }
+        this._tooltipTimeout = setTimeout(function () { return _this._onTooltip(e); }, HOVER_DURATION);
+    };
+    MouseZoneManager.prototype._onTooltip = function (e) {
+        this._tooltipTimeout = null;
+        var zone = this._findZoneEventAt(e);
+        if (zone && zone.tooltipCallback) {
+            zone.tooltipCallback(e);
+        }
+    };
+    MouseZoneManager.prototype._onMouseDown = function (e) {
+        this._initialSelectionLength = this._terminal.getSelection().length;
+        if (!this._areZonesActive) {
+            return;
+        }
+        var zone = this._findZoneEventAt(e);
+        if (zone) {
+            if (zone.willLinkActivate(e)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }
+        }
+    };
+    MouseZoneManager.prototype._onMouseLeave = function (e) {
+        if (this._currentZone) {
+            this._currentZone.leaveCallback();
+            this._currentZone = null;
+            if (this._tooltipTimeout) {
+                clearTimeout(this._tooltipTimeout);
+            }
+        }
+    };
+    MouseZoneManager.prototype._onClick = function (e) {
+        var zone = this._findZoneEventAt(e);
+        var currentSelectionLength = this._terminal.getSelection().length;
+        if (zone && currentSelectionLength === this._initialSelectionLength) {
+            zone.clickCallback(e);
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    };
+    MouseZoneManager.prototype._findZoneEventAt = function (e) {
+        var coords = this._terminal.mouseHelper.getCoords(e, this._terminal.screenElement, this._terminal.charMeasure, this._terminal.cols, this._terminal.rows);
+        if (!coords) {
+            return null;
+        }
+        var x = coords[0];
+        var y = coords[1];
+        for (var i = 0; i < this._zones.length; i++) {
+            var zone = this._zones[i];
+            if (zone.y1 === zone.y2) {
+                if (y === zone.y1 && x >= zone.x1 && x < zone.x2) {
+                    return zone;
+                }
+            }
+            else {
+                if ((y === zone.y1 && x >= zone.x1) ||
+                    (y === zone.y2 && x < zone.x2) ||
+                    (y > zone.y1 && y < zone.y2)) {
+                    return zone;
+                }
+            }
+        }
+        return null;
+    };
+    return MouseZoneManager;
+}(Lifecycle_1.Disposable));
+exports.MouseZoneManager = MouseZoneManager;
+var MouseZone = (function () {
+    function MouseZone(x1, y1, x2, y2, clickCallback, hoverCallback, tooltipCallback, leaveCallback, willLinkActivate) {
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
+        this.clickCallback = clickCallback;
+        this.hoverCallback = hoverCallback;
+        this.tooltipCallback = tooltipCallback;
+        this.leaveCallback = leaveCallback;
+        this.willLinkActivate = willLinkActivate;
+    }
+    return MouseZone;
+}());
+exports.MouseZone = MouseZone;
+
+},{"./common/Lifecycle":24,"./ui/Lifecycle":59}],13:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var MouseHelper_1 = require("./MouseHelper");
+var Browser = require("./common/Platform");
 var SelectionModel_1 = require("./SelectionModel");
-var Buffer_1 = require("./Buffer");
 var AltClickHandler_1 = require("./handlers/AltClickHandler");
+var BufferLine_1 = require("./core/buffer/BufferLine");
+var EventEmitter2_1 = require("./common/EventEmitter2");
 var DRAG_SCROLL_MAX_THRESHOLD = 50;
 var DRAG_SCROLL_MAX_SPEED = 15;
 var DRAG_SCROLL_INTERVAL = 50;
@@ -2796,21 +3329,36 @@ var ALT_CLICK_MOVE_CURSOR_TIME = 500;
 var WORD_SEPARATORS = ' ()[]{}\'"';
 var NON_BREAKING_SPACE_CHAR = String.fromCharCode(160);
 var ALL_NON_BREAKING_SPACE_REGEX = new RegExp(NON_BREAKING_SPACE_CHAR, 'g');
-var SelectionManager = (function (_super) {
-    __extends(SelectionManager, _super);
+var SelectionManager = (function () {
     function SelectionManager(_terminal, _charMeasure) {
-        var _this = _super.call(this) || this;
-        _this._terminal = _terminal;
-        _this._charMeasure = _charMeasure;
-        _this._enabled = true;
-        _this._initListeners();
-        _this.enable();
-        _this._model = new SelectionModel_1.SelectionModel(_terminal);
-        _this._activeSelectionMode = 0;
-        return _this;
+        this._terminal = _terminal;
+        this._charMeasure = _charMeasure;
+        this._enabled = true;
+        this._workCell = new BufferLine_1.CellData();
+        this._onLinuxMouseSelection = new EventEmitter2_1.EventEmitter2();
+        this._onRedrawRequest = new EventEmitter2_1.EventEmitter2();
+        this._onSelectionChange = new EventEmitter2_1.EventEmitter2();
+        this._initListeners();
+        this.enable();
+        this._model = new SelectionModel_1.SelectionModel(_terminal);
+        this._activeSelectionMode = 0;
     }
+    Object.defineProperty(SelectionManager.prototype, "onLinuxMouseSelection", {
+        get: function () { return this._onLinuxMouseSelection.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SelectionManager.prototype, "onRedrawRequest", {
+        get: function () { return this._onRedrawRequest.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SelectionManager.prototype, "onSelectionChange", {
+        get: function () { return this._onSelectionChange.event; },
+        enumerable: true,
+        configurable: true
+    });
     SelectionManager.prototype.dispose = function () {
-        _super.prototype.dispose.call(this);
         this._removeMouseDownListeners();
     };
     Object.defineProperty(SelectionManager.prototype, "_buffer", {
@@ -2824,13 +3372,12 @@ var SelectionManager = (function (_super) {
         var _this = this;
         this._mouseMoveListener = function (event) { return _this._onMouseMove(event); };
         this._mouseUpListener = function (event) { return _this._onMouseUp(event); };
-        this._trimListener = function (amount) { return _this._onTrim(amount); };
         this.initBuffersListeners();
     };
     SelectionManager.prototype.initBuffersListeners = function () {
         var _this = this;
-        this._terminal.buffer.lines.on('trim', this._trimListener);
-        this._terminal.buffers.on('activate', function (e) { return _this._onBufferActivate(e); });
+        this._trimListener = this._terminal.buffer.lines.onTrim(function (amount) { return _this._onTrim(amount); });
+        this._terminal.buffers.onBufferActivate(function (e) { return _this._onBufferActivate(e); });
     };
     SelectionManager.prototype.disable = function () {
         this.clearSelection();
@@ -2879,7 +3426,7 @@ var SelectionManager = (function (_super) {
                 }
             }
             else {
-                var startRowEndCol = start[1] === end[1] ? end[0] : null;
+                var startRowEndCol = start[1] === end[1] ? end[0] : undefined;
                 result.push(this._buffer.translateBufferLineToString(start[1], true, start[0], startRowEndCol));
                 for (var i = start[1] + 1; i <= end[1] - 1; i++) {
                     var bufferLine = this._buffer.lines.get(i);
@@ -2914,22 +3461,23 @@ var SelectionManager = (function (_super) {
         this._model.clearSelection();
         this._removeMouseDownListeners();
         this.refresh();
+        this._onSelectionChange.fire();
     };
-    SelectionManager.prototype.refresh = function (isNewSelection) {
+    SelectionManager.prototype.refresh = function (isLinuxMouseSelection) {
         var _this = this;
         if (!this._refreshAnimationFrame) {
             this._refreshAnimationFrame = window.requestAnimationFrame(function () { return _this._refresh(); });
         }
-        if (Browser.isLinux && isNewSelection) {
+        if (Browser.isLinux && isLinuxMouseSelection) {
             var selectionText = this.selectionText;
             if (selectionText.length) {
-                this.emit('newselection', this.selectionText);
+                this._onLinuxMouseSelection.fire(this.selectionText);
             }
         }
     };
     SelectionManager.prototype._refresh = function () {
         this._refreshAnimationFrame = null;
-        this.emit('refresh', {
+        this._onRedrawRequest.fire({
             start: this._model.finalSelectionStart,
             end: this._model.finalSelectionEnd,
             columnSelectMode: this._activeSelectionMode === 3
@@ -2942,9 +3490,13 @@ var SelectionManager = (function (_super) {
         if (!start || !end) {
             return false;
         }
+        return this._areCoordsInSelection(coords, start, end);
+    };
+    SelectionManager.prototype._areCoordsInSelection = function (coords, start, end) {
         return (coords[1] > start[1] && coords[1] < end[1]) ||
-            (start[1] === end[1] && coords[1] === start[1] && coords[0] > start[0] && coords[0] < end[0]) ||
-            (start[1] < end[1] && coords[1] === end[1] && coords[0] < end[0]);
+            (start[1] === end[1] && coords[1] === start[1] && coords[0] >= start[0] && coords[0] < end[0]) ||
+            (start[1] < end[1] && coords[1] === end[1] && coords[0] < end[0]) ||
+            (start[1] < end[1] && coords[1] === start[1] && coords[0] >= start[0]);
     };
     SelectionManager.prototype.selectWordAtCursor = function (event) {
         var coords = this._getMouseBufferCoords(event);
@@ -2957,7 +3509,7 @@ var SelectionManager = (function (_super) {
     SelectionManager.prototype.selectAll = function () {
         this._model.isSelectAllActive = true;
         this.refresh();
-        this._terminal.emit('selection');
+        this._onSelectionChange.fire();
     };
     SelectionManager.prototype.selectLines = function (start, end) {
         this._model.clearSelection();
@@ -2966,7 +3518,7 @@ var SelectionManager = (function (_super) {
         this._model.selectionStart = [0, start];
         this._model.selectionEnd = [this._terminal.cols, end];
         this.refresh();
-        this._terminal.emit('selection');
+        this._onSelectionChange.fire();
     };
     SelectionManager.prototype._onTrim = function (amount) {
         var needsRefresh = this._model.onTrim(amount);
@@ -2975,7 +3527,7 @@ var SelectionManager = (function (_super) {
         }
     };
     SelectionManager.prototype._getMouseBufferCoords = function (event) {
-        var coords = this._terminal.mouseHelper.getCoords(event, this._terminal.screenElement, this._charMeasure, this._terminal.options.lineHeight, this._terminal.cols, this._terminal.rows, true);
+        var coords = this._terminal.mouseHelper.getCoords(event, this._terminal.screenElement, this._charMeasure, this._terminal.cols, this._terminal.rows, true);
         if (!coords) {
             return null;
         }
@@ -3071,8 +3623,7 @@ var SelectionManager = (function (_super) {
         if (line.length >= this._model.selectionStart[0]) {
             return;
         }
-        var char = line.get(this._model.selectionStart[0]);
-        if (char[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 0) {
+        if (line.hasWidth(this._model.selectionStart[0]) === 0) {
             this._model.selectionStart[0]++;
         }
     };
@@ -3122,8 +3673,7 @@ var SelectionManager = (function (_super) {
             }
         }
         if (this._model.selectionEnd[1] < this._buffer.lines.length) {
-            var char = this._buffer.lines.get(this._model.selectionEnd[1]).get(this._model.selectionEnd[0]);
-            if (char && char[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 0) {
+            if (this._buffer.lines.get(this._model.selectionEnd[1]).hasWidth(this._model.selectionEnd[0]) === 0) {
                 this._model.selectionEnd[0]++;
             }
         }
@@ -3158,23 +3708,26 @@ var SelectionManager = (function (_super) {
             (new AltClickHandler_1.AltClickHandler(event, this._terminal)).move();
         }
         else if (this.hasSelection) {
-            this._terminal.emit('selection');
+            this._onSelectionChange.fire();
         }
     };
     SelectionManager.prototype._onBufferActivate = function (e) {
+        var _this = this;
         this.clearSelection();
-        e.inactiveBuffer.lines.off('trim', this._trimListener);
-        e.activeBuffer.lines.on('trim', this._trimListener);
+        if (this._trimListener) {
+            this._trimListener.dispose();
+        }
+        this._trimListener = e.activeBuffer.lines.onTrim(function (amount) { return _this._onTrim(amount); });
     };
     SelectionManager.prototype._convertViewportColToCharacterIndex = function (bufferLine, coords) {
         var charIndex = coords[0];
         for (var i = 0; coords[0] >= i; i++) {
-            var char = bufferLine.get(i);
-            if (char[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 0) {
+            var length_1 = bufferLine.loadCell(i, this._workCell).getChars().length;
+            if (this._workCell.getWidth() === 0) {
                 charIndex--;
             }
-            else if (char[Buffer_1.CHAR_DATA_CHAR_INDEX].length > 1 && coords[0] !== i) {
-                charIndex += char[Buffer_1.CHAR_DATA_CHAR_INDEX].length - 1;
+            else if (length_1 > 1 && coords[0] !== i) {
+                charIndex += length_1 - 1;
             }
         }
         return charIndex;
@@ -3215,40 +3768,43 @@ var SelectionManager = (function (_super) {
         else {
             var startCol = coords[0];
             var endCol = coords[0];
-            if (bufferLine.get(startCol)[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 0) {
+            if (bufferLine.getWidth(startCol) === 0) {
                 leftWideCharCount++;
                 startCol--;
             }
-            if (bufferLine.get(endCol)[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 2) {
+            if (bufferLine.getWidth(endCol) === 2) {
                 rightWideCharCount++;
                 endCol++;
             }
-            if (bufferLine.get(endCol)[Buffer_1.CHAR_DATA_CHAR_INDEX].length > 1) {
-                rightLongCharOffset += bufferLine.get(endCol)[Buffer_1.CHAR_DATA_CHAR_INDEX].length - 1;
-                endIndex += bufferLine.get(endCol)[Buffer_1.CHAR_DATA_CHAR_INDEX].length - 1;
+            var length_2 = bufferLine.getString(endCol).length;
+            if (length_2 > 1) {
+                rightLongCharOffset += length_2 - 1;
+                endIndex += length_2 - 1;
             }
-            while (startCol > 0 && startIndex > 0 && !this._isCharWordSeparator(bufferLine.get(startCol - 1))) {
-                var char = bufferLine.get(startCol - 1);
-                if (char[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 0) {
+            while (startCol > 0 && startIndex > 0 && !this._isCharWordSeparator(bufferLine.loadCell(startCol - 1, this._workCell))) {
+                bufferLine.loadCell(startCol - 1, this._workCell);
+                var length_3 = this._workCell.getChars().length;
+                if (this._workCell.getWidth() === 0) {
                     leftWideCharCount++;
                     startCol--;
                 }
-                else if (char[Buffer_1.CHAR_DATA_CHAR_INDEX].length > 1) {
-                    leftLongCharOffset += char[Buffer_1.CHAR_DATA_CHAR_INDEX].length - 1;
-                    startIndex -= char[Buffer_1.CHAR_DATA_CHAR_INDEX].length - 1;
+                else if (length_3 > 1) {
+                    leftLongCharOffset += length_3 - 1;
+                    startIndex -= length_3 - 1;
                 }
                 startIndex--;
                 startCol--;
             }
-            while (endCol < bufferLine.length && endIndex + 1 < line.length && !this._isCharWordSeparator(bufferLine.get(endCol + 1))) {
-                var char = bufferLine.get(endCol + 1);
-                if (char[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 2) {
+            while (endCol < bufferLine.length && endIndex + 1 < line.length && !this._isCharWordSeparator(bufferLine.loadCell(endCol + 1, this._workCell))) {
+                bufferLine.loadCell(endCol + 1, this._workCell);
+                var length_4 = this._workCell.getChars().length;
+                if (this._workCell.getWidth() === 2) {
                     rightWideCharCount++;
                     endCol++;
                 }
-                else if (char[Buffer_1.CHAR_DATA_CHAR_INDEX].length > 1) {
-                    rightLongCharOffset += char[Buffer_1.CHAR_DATA_CHAR_INDEX].length - 1;
-                    endIndex += char[Buffer_1.CHAR_DATA_CHAR_INDEX].length - 1;
+                else if (length_4 > 1) {
+                    rightLongCharOffset += length_4 - 1;
+                    endIndex += length_4 - 1;
                 }
                 endIndex++;
                 endCol++;
@@ -3269,9 +3825,9 @@ var SelectionManager = (function (_super) {
             return null;
         }
         if (followWrappedLinesAbove) {
-            if (start === 0 && bufferLine.get(0)[Buffer_1.CHAR_DATA_CODE_INDEX] !== 32) {
+            if (start === 0 && bufferLine.getCodePoint(0) !== 32) {
                 var previousBufferLine = this._buffer.lines.get(coords[1] - 1);
-                if (previousBufferLine && bufferLine.isWrapped && previousBufferLine.get(this._terminal.cols - 1)[Buffer_1.CHAR_DATA_CODE_INDEX] !== 32) {
+                if (previousBufferLine && bufferLine.isWrapped && previousBufferLine.getCodePoint(this._terminal.cols - 1) !== 32) {
                     var previousLineWordPosition = this._getWordAt([this._terminal.cols - 1, coords[1] - 1], false, true, false);
                     if (previousLineWordPosition) {
                         var offset = this._terminal.cols - previousLineWordPosition.start;
@@ -3282,9 +3838,9 @@ var SelectionManager = (function (_super) {
             }
         }
         if (followWrappedLinesBelow) {
-            if (start + length === this._terminal.cols && bufferLine.get(this._terminal.cols - 1)[Buffer_1.CHAR_DATA_CODE_INDEX] !== 32) {
+            if (start + length === this._terminal.cols && bufferLine.getCodePoint(this._terminal.cols - 1) !== 32) {
                 var nextBufferLine = this._buffer.lines.get(coords[1] + 1);
-                if (nextBufferLine && nextBufferLine.isWrapped && nextBufferLine.get(0)[Buffer_1.CHAR_DATA_CODE_INDEX] !== 32) {
+                if (nextBufferLine && nextBufferLine.isWrapped && nextBufferLine.getCodePoint(0) !== 32) {
                     var nextLineWordPosition = this._getWordAt([0, coords[1] + 1], false, false, true);
                     if (nextLineWordPosition) {
                         length += nextLineWordPosition.length;
@@ -3322,11 +3878,11 @@ var SelectionManager = (function (_super) {
             this._model.selectionEnd = [this._model.areSelectionValuesReversed() ? wordPosition.start : wordPosition.start + wordPosition.length, endRow];
         }
     };
-    SelectionManager.prototype._isCharWordSeparator = function (charData) {
-        if (charData[Buffer_1.CHAR_DATA_WIDTH_INDEX] === 0) {
+    SelectionManager.prototype._isCharWordSeparator = function (cell) {
+        if (cell.getWidth() === 0) {
             return false;
         }
-        return WORD_SEPARATORS.indexOf(charData[Buffer_1.CHAR_DATA_CHAR_INDEX]) >= 0;
+        return WORD_SEPARATORS.indexOf(cell.getChars()) >= 0;
     };
     SelectionManager.prototype._selectLineAt = function (line) {
         var wrappedRange = this._buffer.getWrappedRangeForLine(line);
@@ -3335,10 +3891,10 @@ var SelectionManager = (function (_super) {
         this._model.selectionStartLength = 0;
     };
     return SelectionManager;
-}(EventEmitter_1.EventEmitter));
+}());
 exports.SelectionManager = SelectionManager;
 
-},{"./Buffer":2,"./SelectionModel":11,"./common/EventEmitter":17,"./handlers/AltClickHandler":22,"./shared/utils/Browser":46,"./utils/MouseHelper":53}],11:[function(require,module,exports){
+},{"./MouseHelper":11,"./SelectionModel":14,"./common/EventEmitter2":23,"./common/Platform":25,"./core/buffer/BufferLine":29,"./handlers/AltClickHandler":35}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var SelectionModel = (function () {
@@ -3418,7 +3974,7 @@ var SelectionModel = (function () {
 }());
 exports.SelectionModel = SelectionModel;
 
-},{}],12:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_BELL_SOUND = 'data:audio/wav;base64,UklGRigBAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQBAADpAFgCwAMlBZoG/wdmCcoKRAypDQ8PbRDBEQQTOxRtFYcWlBePGIUZXhoiG88bcBz7HHIdzh0WHlMeZx51HmkeUx4WHs8dah0AHXwc3hs9G4saxRnyGBIYGBcQFv8U4RPAEoYRQBACD70NWwwHC6gJOwjWBloF7gOBAhABkf8b/qv8R/ve+Xf4Ife79W/0JfPZ8Z/wde9N7ijtE+wU6xvqM+lb6H7nw+YX5mrlxuQz5Mzje+Ma49fioeKD4nXiYeJy4pHitOL04j/jn+MN5IPkFOWs5U3mDefM55/ogOl36m7rdOyE7abuyu8D8Unyj/Pg9D/2qfcb+Yn6/vuK/Qj/lAAlAg==';
@@ -3426,23 +3982,32 @@ var SoundManager = (function () {
     function SoundManager(_terminal) {
         this._terminal = _terminal;
     }
+    Object.defineProperty(SoundManager, "audioContext", {
+        get: function () {
+            if (!SoundManager._audioContext) {
+                var audioContextCtor = window.AudioContext || window.webkitAudioContext;
+                if (!audioContextCtor) {
+                    console.warn('Web Audio API is not supported by this browser. Consider upgrading to the latest version');
+                    return null;
+                }
+                SoundManager._audioContext = new audioContextCtor();
+            }
+            return SoundManager._audioContext;
+        },
+        enumerable: true,
+        configurable: true
+    });
     SoundManager.prototype.playBellSound = function () {
-        var audioContextCtor = window.AudioContext || window.webkitAudioContext;
-        if (!this._audioContext && audioContextCtor) {
-            this._audioContext = new audioContextCtor();
+        var ctx = SoundManager.audioContext;
+        if (!ctx) {
+            return;
         }
-        if (this._audioContext) {
-            var bellAudioSource_1 = this._audioContext.createBufferSource();
-            var context_1 = this._audioContext;
-            this._audioContext.decodeAudioData(this._base64ToArrayBuffer(this._removeMimeType(this._terminal.options.bellSound)), function (buffer) {
-                bellAudioSource_1.buffer = buffer;
-                bellAudioSource_1.connect(context_1.destination);
-                bellAudioSource_1.start(0);
-            });
-        }
-        else {
-            console.warn('Sorry, but the Web Audio API is not supported by your browser. Please, consider upgrading to the latest version');
-        }
+        var bellAudioSource = ctx.createBufferSource();
+        ctx.decodeAudioData(this._base64ToArrayBuffer(this._removeMimeType(this._terminal.options.bellSound)), function (buffer) {
+            bellAudioSource.buffer = buffer;
+            bellAudioSource.connect(ctx.destination);
+            bellAudioSource.start(0);
+        });
     };
     SoundManager.prototype._base64ToArrayBuffer = function (base64) {
         var binaryString = window.atob(base64);
@@ -3461,14 +4026,14 @@ var SoundManager = (function () {
 }());
 exports.SoundManager = SoundManager;
 
-},{}],13:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blankLine = 'Blank line';
 exports.promptLabel = 'Terminal input';
 exports.tooMuchOutput = 'Too much output to announce, navigate to rows manually to read';
 
-},{}],14:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -3476,7 +4041,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -3489,30 +4054,35 @@ var Buffer_1 = require("./Buffer");
 var CompositionHelper_1 = require("./CompositionHelper");
 var EventEmitter_1 = require("./common/EventEmitter");
 var Viewport_1 = require("./Viewport");
-var Clipboard_1 = require("./handlers/Clipboard");
+var Clipboard_1 = require("./Clipboard");
 var EscapeSequences_1 = require("./common/data/EscapeSequences");
 var InputHandler_1 = require("./InputHandler");
 var Renderer_1 = require("./renderer/Renderer");
 var Linkifier_1 = require("./Linkifier");
 var SelectionManager_1 = require("./SelectionManager");
-var CharMeasure_1 = require("./ui/CharMeasure");
-var Browser = require("./shared/utils/Browser");
+var CharMeasure_1 = require("./CharMeasure");
+var Browser = require("./common/Platform");
 var Lifecycle_1 = require("./ui/Lifecycle");
 var Strings = require("./Strings");
-var MouseHelper_1 = require("./utils/MouseHelper");
-var Clone_1 = require("./utils/Clone");
+var MouseHelper_1 = require("./MouseHelper");
 var SoundManager_1 = require("./SoundManager");
-var ColorManager_1 = require("./renderer/ColorManager");
-var MouseZoneManager_1 = require("./ui/MouseZoneManager");
+var MouseZoneManager_1 = require("./MouseZoneManager");
 var AccessibilityManager_1 = require("./AccessibilityManager");
-var ScreenDprMonitor_1 = require("./ui/ScreenDprMonitor");
 var CharAtlasCache_1 = require("./renderer/atlas/CharAtlasCache");
 var DomRenderer_1 = require("./renderer/dom/DomRenderer");
 var Keyboard_1 = require("./core/input/Keyboard");
-var BufferLine_1 = require("./BufferLine");
+var Clone_1 = require("./common/Clone");
+var EventEmitter2_1 = require("./common/EventEmitter2");
+var BufferLine_1 = require("./core/buffer/BufferLine");
+var WindowsMode_1 = require("./WindowsMode");
+var ColorManager_1 = require("./ui/ColorManager");
+var RenderCoordinator_1 = require("./renderer/RenderCoordinator");
 var document = (typeof window !== 'undefined') ? window.document : null;
 var WRITE_BUFFER_PAUSE_THRESHOLD = 5;
-var WRITE_BATCH_SIZE = 300;
+var WRITE_TIMEOUT_MS = 12;
+var WRITE_BUFFER_LENGTH_THRESHOLD = 50;
+var MINIMUM_COLS = 2;
+var MINIMUM_ROWS = 1;
 var CONSTRUCTOR_ONLY_OPTIONS = ['cols', 'rows'];
 var DEFAULT_OPTIONS = {
     cols: 80,
@@ -3543,9 +4113,10 @@ var DEFAULT_OPTIONS = {
     useFlowControl: false,
     allowTransparency: false,
     tabStopWidth: 8,
-    theme: null,
+    theme: undefined,
     rightClickSelectsWord: Browser.isMac,
-    rendererType: 'canvas'
+    rendererType: 'canvas',
+    windowsMode: false
 };
 var Terminal = (function (_super) {
     __extends(Terminal, _super);
@@ -3553,12 +4124,80 @@ var Terminal = (function (_super) {
         if (options === void 0) { options = {}; }
         var _this = _super.call(this) || this;
         _this.browser = Browser;
+        _this._blankLine = null;
+        _this._onCursorMove = new EventEmitter2_1.EventEmitter2();
+        _this._onData = new EventEmitter2_1.EventEmitter2();
+        _this._onKey = new EventEmitter2_1.EventEmitter2();
+        _this._onLineFeed = new EventEmitter2_1.EventEmitter2();
+        _this._onRender = new EventEmitter2_1.EventEmitter2();
+        _this._onResize = new EventEmitter2_1.EventEmitter2();
+        _this._onScroll = new EventEmitter2_1.EventEmitter2();
+        _this._onSelectionChange = new EventEmitter2_1.EventEmitter2();
+        _this._onTitleChange = new EventEmitter2_1.EventEmitter2();
         _this.options = Clone_1.clone(options);
         _this._setup();
+        _this.onCursorMove(function () { return _this.emit('cursormove'); });
+        _this.onData(function (e) { return _this.emit('data', e); });
+        _this.onKey(function (e) { return _this.emit('key', e.key, e.domEvent); });
+        _this.onLineFeed(function () { return _this.emit('linefeed'); });
+        _this.onRender(function (e) { return _this.emit('refresh', e); });
+        _this.onResize(function (e) { return _this.emit('resize', e); });
+        _this.onSelectionChange(function () { return _this.emit('selection'); });
+        _this.onScroll(function (e) { return _this.emit('scroll', e); });
+        _this.onTitleChange(function (e) { return _this.emit('title', e); });
         return _this;
     }
+    Object.defineProperty(Terminal.prototype, "onCursorMove", {
+        get: function () { return this._onCursorMove.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onData", {
+        get: function () { return this._onData.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onKey", {
+        get: function () { return this._onKey.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onLineFeed", {
+        get: function () { return this._onLineFeed.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onRender", {
+        get: function () { return this._onRender.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onResize", {
+        get: function () { return this._onResize.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onScroll", {
+        get: function () { return this._onScroll.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onSelectionChange", {
+        get: function () { return this._onSelectionChange.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onTitleChange", {
+        get: function () { return this._onTitleChange.event; },
+        enumerable: true,
+        configurable: true
+    });
     Terminal.prototype.dispose = function () {
         _super.prototype.dispose.call(this);
+        if (this._windowsMode) {
+            this._windowsMode.dispose();
+            this._windowsMode = undefined;
+        }
         this._customKeyEventHandler = null;
         CharAtlasCache_1.removeTerminalFromCache(this);
         this.handler = function () { };
@@ -3578,10 +4217,10 @@ var Terminal = (function (_super) {
             }
         });
         this._parent = document ? document.body : null;
-        this.cols = this.options.cols;
-        this.rows = this.options.rows;
+        this.cols = Math.max(this.options.cols, MINIMUM_COLS);
+        this.rows = Math.max(this.options.rows, MINIMUM_ROWS);
         if (this.options.handler) {
-            this.on('data', this.options.handler);
+            this.onData(this.options.handler);
         }
         this.cursorState = 0;
         this.cursorHidden = false;
@@ -3596,16 +4235,20 @@ var Terminal = (function (_super) {
         this.gcharset = null;
         this.glevel = 0;
         this.charsets = [null];
-        this.curAttr = Buffer_1.DEFAULT_ATTR;
+        this.curAttrData = BufferLine_1.DEFAULT_ATTR_DATA.clone();
+        this._eraseAttrData = BufferLine_1.DEFAULT_ATTR_DATA.clone();
         this.params = [];
         this.currentParam = 0;
         this.writeBuffer = [];
+        this.writeBufferUtf8 = [];
         this._writeInProgress = false;
         this._xoffSentToCatchUp = false;
         this._userScrolling = false;
         this._inputHandler = new InputHandler_1.InputHandler(this);
+        this._inputHandler.onCursorMove(function () { return _this._onCursorMove.fire(); });
+        this._inputHandler.onLineFeed(function () { return _this._onLineFeed.fire(); });
+        this._inputHandler.onData(function (e) { return _this._onData.fire(e); });
         this.register(this._inputHandler);
-        this.renderer = this.renderer || null;
         this.selectionManager = this.selectionManager || null;
         this.linkifier = this.linkifier || new Linkifier_1.Linkifier(this);
         this._mouseZoneManager = this._mouseZoneManager || null;
@@ -3615,6 +4258,9 @@ var Terminal = (function (_super) {
             this.selectionManager.clearSelection();
             this.selectionManager.initBuffersListeners();
         }
+        if (this.options.windowsMode) {
+            this._windowsMode = WindowsMode_1.applyWindowsMode(this);
+        }
     };
     Object.defineProperty(Terminal.prototype, "buffer", {
         get: function () {
@@ -3623,17 +4269,19 @@ var Terminal = (function (_super) {
         enumerable: true,
         configurable: true
     });
-    Terminal.prototype.eraseAttr = function () {
-        return (Buffer_1.DEFAULT_ATTR & ~0x1ff) | (this.curAttr & 0x1ff);
+    Terminal.prototype.eraseAttrData = function () {
+        this._eraseAttrData.bg &= ~(50331648 | 0xFFFFFF);
+        this._eraseAttrData.bg |= this.curAttrData.bg & ~0xFC000000;
+        return this._eraseAttrData;
     };
     Terminal.prototype.focus = function () {
         if (this.textarea) {
-            this.textarea.focus();
+            this.textarea.focus({ preventScroll: true });
         }
     };
     Object.defineProperty(Terminal.prototype, "isFocused", {
         get: function () {
-            return document.activeElement === this.textarea;
+            return document.activeElement === this.textarea && document.hasFocus();
         },
         enumerable: true,
         configurable: true
@@ -3692,10 +4340,7 @@ var Terminal = (function (_super) {
                 }
                 break;
             case 'theme':
-                if (this.renderer) {
-                    this._setTheme(value);
-                    return;
-                }
+                this._setTheme(value);
                 break;
             case 'scrollback':
                 value = Math.min(value, Buffer_1.MAX_BUFFER_SIZE);
@@ -3722,8 +4367,8 @@ var Terminal = (function (_super) {
         switch (key) {
             case 'fontFamily':
             case 'fontSize':
-                if (this.renderer) {
-                    this.renderer.clear();
+                if (this._renderCoordinator) {
+                    this._renderCoordinator.clear();
                     this.charMeasure.measure(this.options);
                 }
                 break;
@@ -3734,21 +4379,15 @@ var Terminal = (function (_super) {
             case 'lineHeight':
             case 'fontWeight':
             case 'fontWeightBold':
-                if (this.renderer) {
-                    this.renderer.clear();
-                    this.renderer.onResize(this.cols, this.rows);
+                if (this._renderCoordinator) {
+                    this._renderCoordinator.clear();
+                    this._renderCoordinator.onResize(this.cols, this.rows);
                     this.refresh(0, this.rows - 1);
                 }
+                break;
             case 'rendererType':
-                if (this.renderer) {
-                    this.unregister(this.renderer);
-                    this.renderer.dispose();
-                    this.renderer = null;
-                }
-                this._setupRenderer();
-                this.renderer.onCharSizeChanged();
-                if (this._theme) {
-                    this.renderer.setTheme(this._theme);
+                if (this._renderCoordinator) {
+                    this._renderCoordinator.setRenderer(this._createRenderer());
                 }
                 break;
             case 'scrollback':
@@ -3759,8 +4398,8 @@ var Terminal = (function (_super) {
                 break;
             case 'screenReaderMode':
                 if (value) {
-                    if (!this._accessibilityManager) {
-                        this._accessibilityManager = new AccessibilityManager_1.AccessibilityManager(this);
+                    if (!this._accessibilityManager && this._renderCoordinator) {
+                        this._accessibilityManager = new AccessibilityManager_1.AccessibilityManager(this, this._renderCoordinator.dimensions);
                     }
                 }
                 else {
@@ -3773,9 +4412,22 @@ var Terminal = (function (_super) {
             case 'tabStopWidth':
                 this.buffers.setupTabStops();
                 break;
+            case 'windowsMode':
+                if (value) {
+                    if (!this._windowsMode) {
+                        this._windowsMode = WindowsMode_1.applyWindowsMode(this);
+                    }
+                }
+                else {
+                    if (this._windowsMode) {
+                        this._windowsMode.dispose();
+                        this._windowsMode = undefined;
+                    }
+                }
+                break;
         }
-        if (this.renderer) {
-            this.renderer.onOptionsChanged();
+        if (this._renderCoordinator) {
+            this._renderCoordinator.onOptionsChanged();
         }
     };
     Terminal.prototype._onTextAreaFocus = function (ev) {
@@ -3814,19 +4466,19 @@ var Terminal = (function (_super) {
         if (Browser.isFirefox) {
             this.register(Lifecycle_1.addDisposableDomListener(this.element, 'mousedown', function (event) {
                 if (event.button === 2) {
-                    Clipboard_1.rightClickHandler(event, _this.textarea, _this.selectionManager, _this.options.rightClickSelectsWord);
+                    Clipboard_1.rightClickHandler(event, _this, _this.selectionManager, _this.options.rightClickSelectsWord);
                 }
             }));
         }
         else {
             this.register(Lifecycle_1.addDisposableDomListener(this.element, 'contextmenu', function (event) {
-                Clipboard_1.rightClickHandler(event, _this.textarea, _this.selectionManager, _this.options.rightClickSelectsWord);
+                Clipboard_1.rightClickHandler(event, _this, _this.selectionManager, _this.options.rightClickSelectsWord);
             }));
         }
         if (Browser.isLinux) {
             this.register(Lifecycle_1.addDisposableDomListener(this.element, 'auxclick', function (event) {
                 if (event.button === 1) {
-                    Clipboard_1.moveTextAreaUnderMouseCursor(event, _this.textarea);
+                    Clipboard_1.moveTextAreaUnderMouseCursor(event, _this);
                 }
             }));
         }
@@ -3857,8 +4509,8 @@ var Terminal = (function (_super) {
         this.register(Lifecycle_1.addDisposableDomListener(this.textarea, 'compositionstart', function () { return _this._compositionHelper.compositionstart(); }));
         this.register(Lifecycle_1.addDisposableDomListener(this.textarea, 'compositionupdate', function (e) { return _this._compositionHelper.compositionupdate(e); }));
         this.register(Lifecycle_1.addDisposableDomListener(this.textarea, 'compositionend', function () { return _this._compositionHelper.compositionend(); }));
-        this.register(this.addDisposableListener('refresh', function () { return _this._compositionHelper.updateCompositionElements(); }));
-        this.register(this.addDisposableListener('refresh', function (data) { return _this._queueLinkification(data.start, data.end); }));
+        this.register(this.onRender(function () { return _this._compositionHelper.updateCompositionElements(); }));
+        this.register(this.onRender(function (e) { return _this._queueLinkification(e.start, e.end); }));
     };
     Terminal.prototype.open = function (parent) {
         var _this = this;
@@ -3868,9 +4520,6 @@ var Terminal = (function (_super) {
         }
         this._context = this._parent.ownerDocument.defaultView;
         this._document = this._parent.ownerDocument;
-        this._screenDprMonitor = new ScreenDprMonitor_1.ScreenDprMonitor();
-        this._screenDprMonitor.setListener(function () { return _this.emit('dprchange', window.devicePixelRatio); });
-        this.register(this._screenDprMonitor);
         this.element = this._document.createElement('div');
         this.element.dir = 'ltr';
         this.element.classList.add('terminal');
@@ -3892,7 +4541,7 @@ var Terminal = (function (_super) {
         fragment.appendChild(this.screenElement);
         this._mouseZoneManager = new MouseZoneManager_1.MouseZoneManager(this);
         this.register(this._mouseZoneManager);
-        this.register(this.addDisposableListener('scroll', function () { return _this._mouseZoneManager.clearAll(); }));
+        this.register(this.onScroll(function () { return _this._mouseZoneManager.clearAll(); }));
         this.linkifier.attachToDom(this._mouseZoneManager);
         this.textarea = document.createElement('textarea');
         this.textarea.classList.add('xterm-helper-textarea');
@@ -3911,59 +4560,73 @@ var Terminal = (function (_super) {
         this._helperContainer.appendChild(this._compositionView);
         this.charMeasure = new CharMeasure_1.CharMeasure(document, this._helperContainer);
         this.element.appendChild(fragment);
-        this._setupRenderer();
         this._theme = this.options.theme;
         this.options.theme = null;
-        this.viewport = new Viewport_1.Viewport(this, this._viewportElement, this._viewportScrollArea, this.charMeasure);
-        this.viewport.onThemeChanged(this.renderer.colorManager.colors);
+        this._colorManager = new ColorManager_1.ColorManager(document, this.options.allowTransparency);
+        this._colorManager.setTheme(this._theme);
+        var renderer = this._createRenderer();
+        this._renderCoordinator = new RenderCoordinator_1.RenderCoordinator(renderer, this.rows, this.screenElement);
+        this._renderCoordinator.onRender(function (e) { return _this._onRender.fire(e); });
+        this.onResize(function (e) { return _this._renderCoordinator.resize(e.cols, e.rows); });
+        this.viewport = new Viewport_1.Viewport(this, this._viewportElement, this._viewportScrollArea, this.charMeasure, this._renderCoordinator.dimensions);
+        this.viewport.onThemeChange(this._colorManager.colors);
         this.register(this.viewport);
-        this.register(this.addDisposableListener('cursormove', function () { return _this.renderer.onCursorMove(); }));
-        this.register(this.addDisposableListener('resize', function () { return _this.renderer.onResize(_this.cols, _this.rows); }));
-        this.register(this.addDisposableListener('blur', function () { return _this.renderer.onBlur(); }));
-        this.register(this.addDisposableListener('focus', function () { return _this.renderer.onFocus(); }));
-        this.register(this.addDisposableListener('dprchange', function () { return _this.renderer.onWindowResize(window.devicePixelRatio); }));
-        this.register(Lifecycle_1.addDisposableDomListener(window, 'resize', function () { return _this.renderer.onWindowResize(window.devicePixelRatio); }));
-        this.register(this.charMeasure.addDisposableListener('charsizechanged', function () { return _this.renderer.onCharSizeChanged(); }));
-        this.register(this.renderer.addDisposableListener('resize', function (dimensions) { return _this.viewport.syncScrollArea(); }));
+        this.register(this.onCursorMove(function () { return _this._renderCoordinator.onCursorMove(); }));
+        this.register(this.onResize(function () { return _this._renderCoordinator.onResize(_this.cols, _this.rows); }));
+        this.register(this.addDisposableListener('blur', function () { return _this._renderCoordinator.onBlur(); }));
+        this.register(this.addDisposableListener('focus', function () { return _this._renderCoordinator.onFocus(); }));
+        this.register(this.charMeasure.onCharSizeChanged(function () { return _this._renderCoordinator.onCharSizeChanged(); }));
+        this.register(this._renderCoordinator.onDimensionsChange(function () { return _this.viewport.syncScrollArea(); }));
         this.selectionManager = new SelectionManager_1.SelectionManager(this, this.charMeasure);
+        this.register(this.selectionManager.onSelectionChange(function () { return _this._onSelectionChange.fire(); }));
         this.register(Lifecycle_1.addDisposableDomListener(this.element, 'mousedown', function (e) { return _this.selectionManager.onMouseDown(e); }));
-        this.register(this.selectionManager.addDisposableListener('refresh', function (data) { return _this.renderer.onSelectionChanged(data.start, data.end, data.columnSelectMode); }));
-        this.register(this.selectionManager.addDisposableListener('newselection', function (text) {
+        this.register(this.selectionManager.onRedrawRequest(function (e) { return _this._renderCoordinator.onSelectionChanged(e.start, e.end, e.columnSelectMode); }));
+        this.register(this.selectionManager.onLinuxMouseSelection(function (text) {
             _this.textarea.value = text;
             _this.textarea.focus();
             _this.textarea.select();
         }));
-        this.register(this.addDisposableListener('scroll', function () {
+        this.register(this.onScroll(function () {
             _this.viewport.syncScrollArea();
             _this.selectionManager.refresh();
         }));
         this.register(Lifecycle_1.addDisposableDomListener(this._viewportElement, 'scroll', function () { return _this.selectionManager.refresh(); }));
-        this.mouseHelper = new MouseHelper_1.MouseHelper(this.renderer);
+        this.mouseHelper = new MouseHelper_1.MouseHelper(this._renderCoordinator);
+        this.element.classList.toggle('enable-mouse-events', this.mouseEvents);
+        if (this.mouseEvents) {
+            this.selectionManager.disable();
+        }
+        else {
+            this.selectionManager.enable();
+        }
         if (this.options.screenReaderMode) {
-            this._accessibilityManager = new AccessibilityManager_1.AccessibilityManager(this);
+            this._accessibilityManager = new AccessibilityManager_1.AccessibilityManager(this, this._renderCoordinator.dimensions);
+            this._accessibilityManager.register(this._renderCoordinator.onDimensionsChange(function (e) { return _this._accessibilityManager.setDimensions(e); }));
         }
         this.charMeasure.measure(this.options);
         this.refresh(0, this.rows - 1);
         this._initGlobal();
         this.bindMouse();
     };
-    Terminal.prototype._setupRenderer = function () {
+    Terminal.prototype._createRenderer = function () {
         switch (this.options.rendererType) {
             case 'canvas':
-                this.renderer = new Renderer_1.Renderer(this, this.options.theme);
+                return new Renderer_1.Renderer(this, this._colorManager.colors);
                 break;
             case 'dom':
-                this.renderer = new DomRenderer_1.DomRenderer(this, this.options.theme);
+                return new DomRenderer_1.DomRenderer(this, this._colorManager.colors);
                 break;
             default: throw new Error("Unrecognized rendererType \"" + this.options.rendererType + "\"");
         }
-        this.register(this.renderer);
     };
     Terminal.prototype._setTheme = function (theme) {
         this._theme = theme;
-        var colors = this.renderer.setTheme(theme);
+        this._colorManager.setTheme(theme);
+        if (this._renderCoordinator) {
+            this._renderCoordinator.setColors(this._colorManager.colors);
+        }
         if (this.viewport) {
-            this.viewport.onThemeChanged(colors);
+            this.viewport.onThemeChange(this._colorManager.colors);
         }
     };
     Terminal.prototype.bindMouse = function () {
@@ -3975,7 +4638,7 @@ var Terminal = (function (_super) {
             var button;
             var pos;
             button = getButton(ev);
-            pos = self.mouseHelper.getRawByteCoords(ev, self.screenElement, self.charMeasure, self.options.lineHeight, self.cols, self.rows);
+            pos = self.mouseHelper.getRawByteCoords(ev, self.screenElement, self.charMeasure, self.cols, self.rows);
             if (!pos)
                 return;
             sendEvent(button, pos);
@@ -3992,7 +4655,7 @@ var Terminal = (function (_super) {
         }
         function sendMove(ev) {
             var button = pressed;
-            var pos = self.mouseHelper.getRawByteCoords(ev, self.screenElement, self.charMeasure, self.options.lineHeight, self.cols, self.rows);
+            var pos = self.mouseHelper.getRawByteCoords(ev, self.screenElement, self.charMeasure, self.cols, self.rows);
             if (!pos)
                 return;
             button += 32;
@@ -4009,19 +4672,11 @@ var Terminal = (function (_super) {
                 data.push(ch);
             }
             else {
-                if (ch === 2047) {
-                    data.push(0);
+                if (ch > 2047) {
+                    data.push(2047);
                     return;
                 }
-                if (ch < 127) {
-                    data.push(ch);
-                }
-                else {
-                    if (ch > 2047)
-                        ch = 2047;
-                    data.push(0xC0 | (ch >> 6));
-                    data.push(0x80 | (ch & 0x3F));
-                }
+                data.push(ch);
             }
         }
         function sendEvent(button, pos) {
@@ -4121,7 +4776,7 @@ var Terminal = (function (_super) {
                         : 65;
                     break;
                 case 'wheel':
-                    button = ev.wheelDeltaY > 0
+                    button = ev.deltaY < 0
                         ? 64
                         : 65;
                     break;
@@ -4216,8 +4871,8 @@ var Terminal = (function (_super) {
         }));
     };
     Terminal.prototype.refresh = function (start, end) {
-        if (this.renderer) {
-            this.renderer.refreshRows(start, end);
+        if (this._renderCoordinator) {
+            this._renderCoordinator.refreshRows(start, end);
         }
     };
     Terminal.prototype._queueLinkification = function (start, end) {
@@ -4227,10 +4882,10 @@ var Terminal = (function (_super) {
     };
     Terminal.prototype.updateCursorStyle = function (ev) {
         if (this.selectionManager && this.selectionManager.shouldColumnSelect(ev)) {
-            this.element.classList.add('xterm-cursor-crosshair');
+            this.element.classList.add('column-select');
         }
         else {
-            this.element.classList.remove('xterm-cursor-crosshair');
+            this.element.classList.remove('column-select');
         }
     };
     Terminal.prototype.showCursor = function () {
@@ -4240,16 +4895,29 @@ var Terminal = (function (_super) {
         }
     };
     Terminal.prototype.scroll = function (isWrapped) {
-        var newLine = BufferLine_1.BufferLine.blankLine(this.cols, Buffer_1.DEFAULT_ATTR, isWrapped);
+        if (isWrapped === void 0) { isWrapped = false; }
+        var newLine;
+        newLine = this._blankLine;
+        var eraseAttr = this.eraseAttrData();
+        if (!newLine || newLine.length !== this.cols || newLine.getFg(0) !== eraseAttr.fg || newLine.getBg(0) !== eraseAttr.bg) {
+            newLine = this.buffer.getBlankLine(eraseAttr, isWrapped);
+            this._blankLine = newLine;
+        }
+        newLine.isWrapped = isWrapped;
         var topRow = this.buffer.ybase + this.buffer.scrollTop;
         var bottomRow = this.buffer.ybase + this.buffer.scrollBottom;
         if (this.buffer.scrollTop === 0) {
-            var willBufferBeTrimmed = this.buffer.lines.length === this.buffer.lines.maxLength;
+            var willBufferBeTrimmed = this.buffer.lines.isFull;
             if (bottomRow === this.buffer.lines.length - 1) {
-                this.buffer.lines.push(newLine);
+                if (willBufferBeTrimmed) {
+                    this.buffer.lines.recycle().copyFrom(newLine);
+                }
+                else {
+                    this.buffer.lines.push(newLine.clone());
+                }
             }
             else {
-                this.buffer.lines.splice(bottomRow + 1, 0, newLine);
+                this.buffer.lines.splice(bottomRow + 1, 0, newLine.clone());
             }
             if (!willBufferBeTrimmed) {
                 this.buffer.ybase++;
@@ -4266,14 +4934,14 @@ var Terminal = (function (_super) {
         else {
             var scrollRegionHeight = bottomRow - topRow + 1;
             this.buffer.lines.shiftElements(topRow + 1, scrollRegionHeight - 1, -1);
-            this.buffer.lines.set(bottomRow, newLine);
+            this.buffer.lines.set(bottomRow, newLine.clone());
         }
         if (!this._userScrolling) {
             this.buffer.ydisp = this.buffer.ybase;
         }
         this.updateRange(this.buffer.scrollTop);
         this.updateRange(this.buffer.scrollBottom);
-        this.emit('scroll', this.buffer.ydisp);
+        this._onScroll.fire(this.buffer.ydisp);
     };
     Terminal.prototype.scrollLines = function (disp, suppressScrollEvent) {
         if (disp < 0) {
@@ -4291,7 +4959,7 @@ var Terminal = (function (_super) {
             return;
         }
         if (!suppressScrollEvent) {
-            this.emit('scroll', this.buffer.ydisp);
+            this._onScroll.fire(this.buffer.ydisp);
         }
         this.refresh(0, this.rows - 1);
     };
@@ -4308,6 +4976,61 @@ var Terminal = (function (_super) {
         var scrollAmount = line - this.buffer.ydisp;
         if (scrollAmount !== 0) {
             this.scrollLines(scrollAmount);
+        }
+    };
+    Terminal.prototype.writeUtf8 = function (data) {
+        var _this = this;
+        if (this._isDisposed) {
+            return;
+        }
+        if (!data) {
+            return;
+        }
+        this.writeBufferUtf8.push(data);
+        if (this.options.useFlowControl && !this._xoffSentToCatchUp && this.writeBufferUtf8.length >= WRITE_BUFFER_PAUSE_THRESHOLD) {
+            this.handler(EscapeSequences_1.C0.DC3);
+            this._xoffSentToCatchUp = true;
+        }
+        if (!this._writeInProgress && this.writeBufferUtf8.length > 0) {
+            this._writeInProgress = true;
+            setTimeout(function () {
+                _this._innerWriteUtf8();
+            });
+        }
+    };
+    Terminal.prototype._innerWriteUtf8 = function (bufferOffset) {
+        var _this = this;
+        if (bufferOffset === void 0) { bufferOffset = 0; }
+        if (this._isDisposed) {
+            this.writeBufferUtf8 = [];
+        }
+        var startTime = Date.now();
+        while (this.writeBufferUtf8.length > bufferOffset) {
+            var data = this.writeBufferUtf8[bufferOffset];
+            bufferOffset++;
+            if (this._xoffSentToCatchUp && this.writeBufferUtf8.length === bufferOffset) {
+                this.handler(EscapeSequences_1.C0.DC1);
+                this._xoffSentToCatchUp = false;
+            }
+            this._refreshStart = this.buffer.y;
+            this._refreshEnd = this.buffer.y;
+            this._inputHandler.parseUtf8(data);
+            this.updateRange(this.buffer.y);
+            this.refresh(this._refreshStart, this._refreshEnd);
+            if (Date.now() - startTime >= WRITE_TIMEOUT_MS) {
+                break;
+            }
+        }
+        if (this.writeBufferUtf8.length > bufferOffset) {
+            if (bufferOffset > WRITE_BUFFER_LENGTH_THRESHOLD) {
+                this.writeBufferUtf8 = this.writeBufferUtf8.slice(bufferOffset);
+                bufferOffset = 0;
+            }
+            setTimeout(function () { return _this._innerWriteUtf8(bufferOffset); }, 0);
+        }
+        else {
+            this._writeInProgress = false;
+            this.writeBufferUtf8 = [];
         }
     };
     Terminal.prototype.write = function (data) {
@@ -4330,15 +5053,17 @@ var Terminal = (function (_super) {
             });
         }
     };
-    Terminal.prototype._innerWrite = function () {
+    Terminal.prototype._innerWrite = function (bufferOffset) {
         var _this = this;
+        if (bufferOffset === void 0) { bufferOffset = 0; }
         if (this._isDisposed) {
             this.writeBuffer = [];
         }
-        var writeBatch = this.writeBuffer.splice(0, WRITE_BATCH_SIZE);
-        while (writeBatch.length > 0) {
-            var data = writeBatch.shift();
-            if (this._xoffSentToCatchUp && writeBatch.length === 0 && this.writeBuffer.length === 0) {
+        var startTime = Date.now();
+        while (this.writeBuffer.length > bufferOffset) {
+            var data = this.writeBuffer[bufferOffset];
+            bufferOffset++;
+            if (this._xoffSentToCatchUp && this.writeBuffer.length === bufferOffset) {
                 this.handler(EscapeSequences_1.C0.DC1);
                 this._xoffSentToCatchUp = false;
             }
@@ -4347,12 +5072,20 @@ var Terminal = (function (_super) {
             this._inputHandler.parse(data);
             this.updateRange(this.buffer.y);
             this.refresh(this._refreshStart, this._refreshEnd);
+            if (Date.now() - startTime >= WRITE_TIMEOUT_MS) {
+                break;
+            }
         }
-        if (this.writeBuffer.length > 0) {
-            setTimeout(function () { return _this._innerWrite(); }, 0);
+        if (this.writeBuffer.length > bufferOffset) {
+            if (bufferOffset > WRITE_BUFFER_LENGTH_THRESHOLD) {
+                this.writeBuffer = this.writeBuffer.slice(bufferOffset);
+                bufferOffset = 0;
+            }
+            setTimeout(function () { return _this._innerWrite(bufferOffset); }, 0);
         }
         else {
             this._writeInProgress = false;
+            this.writeBuffer = [];
         }
     };
     Terminal.prototype.writeln = function (data) {
@@ -4360,6 +5093,12 @@ var Terminal = (function (_super) {
     };
     Terminal.prototype.attachCustomKeyEventHandler = function (customKeyEventHandler) {
         this._customKeyEventHandler = customKeyEventHandler;
+    };
+    Terminal.prototype.addCsiHandler = function (flag, callback) {
+        return this._inputHandler.addCsiHandler(flag, callback);
+    };
+    Terminal.prototype.addOscHandler = function (ident, callback) {
+        return this._inputHandler.addOscHandler(ident, callback);
     };
     Terminal.prototype.registerLinkMatcher = function (regex, handler, options) {
         var matcherId = this.linkifier.registerLinkMatcher(regex, handler, options);
@@ -4372,12 +5111,12 @@ var Terminal = (function (_super) {
         }
     };
     Terminal.prototype.registerCharacterJoiner = function (handler) {
-        var joinerId = this.renderer.registerCharacterJoiner(handler);
+        var joinerId = this._renderCoordinator.registerCharacterJoiner(handler);
         this.refresh(0, this.rows - 1);
         return joinerId;
     };
     Terminal.prototype.deregisterCharacterJoiner = function (joinerId) {
-        if (this.renderer.deregisterCharacterJoiner(joinerId)) {
+        if (this._renderCoordinator.deregisterCharacterJoiner(joinerId)) {
             this.refresh(0, this.rows - 1);
         }
     };
@@ -4397,8 +5136,22 @@ var Terminal = (function (_super) {
     Terminal.prototype.hasSelection = function () {
         return this.selectionManager ? this.selectionManager.hasSelection : false;
     };
+    Terminal.prototype.select = function (column, row, length) {
+        this.selectionManager.setSelection(column, row, length);
+    };
     Terminal.prototype.getSelection = function () {
         return this.selectionManager ? this.selectionManager.selectionText : '';
+    };
+    Terminal.prototype.getSelectionPosition = function () {
+        if (!this.selectionManager.hasSelection) {
+            return undefined;
+        }
+        return {
+            startColumn: this.selectionManager.selectionStart[0],
+            startRow: this.selectionManager.selectionStart[1],
+            endColumn: this.selectionManager.selectionEnd[0],
+            endRow: this.selectionManager.selectionEnd[1]
+        };
     };
     Terminal.prototype.clearSelection = function () {
         if (this.selectionManager) {
@@ -4445,7 +5198,7 @@ var Terminal = (function (_super) {
             return true;
         }
         this.emit('keydown', event);
-        this.emit('key', result.key, event);
+        this._onKey.fire({ key: result.key, domEvent: event });
         this.showCursor();
         this.handler(result.key);
         return this.cancel(event, true);
@@ -4494,7 +5247,7 @@ var Terminal = (function (_super) {
         }
         key = String.fromCharCode(key);
         this.emit('keypress', key, ev);
-        this.emit('key', key, ev);
+        this._onKey.fire({ key: key, domEvent: ev });
         this.showCursor();
         this.handler(key);
         return true;
@@ -4537,10 +5290,10 @@ var Terminal = (function (_super) {
             }
             return;
         }
-        if (x < 1)
-            x = 1;
-        if (y < 1)
-            y = 1;
+        if (x < MINIMUM_COLS)
+            x = MINIMUM_COLS;
+        if (y < MINIMUM_ROWS)
+            y = MINIMUM_ROWS;
         this.buffers.resize(x, y);
         this.cols = x;
         this.rows = y;
@@ -4549,7 +5302,7 @@ var Terminal = (function (_super) {
             this.charMeasure.measure(this.options);
         }
         this.refresh(0, this.rows - 1);
-        this.emit('resize', { cols: x, rows: y });
+        this._onResize.fire({ cols: x, rows: y });
     };
     Terminal.prototype.updateRange = function (y) {
         if (y < this._refreshStart)
@@ -4571,16 +5324,10 @@ var Terminal = (function (_super) {
         this.buffer.ybase = 0;
         this.buffer.y = 0;
         for (var i = 1; i < this.rows; i++) {
-            this.buffer.lines.push(BufferLine_1.BufferLine.blankLine(this.cols, Buffer_1.DEFAULT_ATTR));
+            this.buffer.lines.push(this.buffer.getBlankLine(BufferLine_1.DEFAULT_ATTR_DATA));
         }
         this.refresh(0, this.rows - 1);
-        this.emit('scroll', this.buffer.ydisp);
-    };
-    Terminal.prototype.ch = function (cur) {
-        if (cur) {
-            return [this.eraseAttr(), Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE];
-        }
-        return [Buffer_1.DEFAULT_ATTR, Buffer_1.NULL_CELL_CHAR, Buffer_1.NULL_CELL_WIDTH, Buffer_1.NULL_CELL_CODE];
+        this._onScroll.fire(this.buffer.ydisp);
     };
     Terminal.prototype.is = function (term) {
         return (this.options.termName + '').indexOf(term) === 0;
@@ -4595,10 +5342,10 @@ var Terminal = (function (_super) {
         if (this.buffer.ybase !== this.buffer.ydisp) {
             this.scrollToBottom();
         }
-        this.emit('data', data);
+        this._onData.fire(data);
     };
     Terminal.prototype.handleTitle = function (title) {
-        this.emit('title', title);
+        this._onTitleChange.fire(title);
     };
     Terminal.prototype.index = function () {
         this.buffer.y++;
@@ -4614,7 +5361,7 @@ var Terminal = (function (_super) {
         if (this.buffer.y === this.buffer.scrollTop) {
             var scrollRegionHeight = this.buffer.scrollBottom - this.buffer.scrollTop;
             this.buffer.lines.shiftElements(this.buffer.y + this.buffer.ybase, scrollRegionHeight, 1);
-            this.buffer.lines.set(this.buffer.y + this.buffer.ybase, BufferLine_1.BufferLine.blankLine(this.cols, this.eraseAttr()));
+            this.buffer.lines.set(this.buffer.y + this.buffer.ybase, this.buffer.getBlankLine(this.eraseAttrData()));
             this.updateRange(this.buffer.scrollTop);
             this.updateRange(this.buffer.scrollBottom);
         }
@@ -4628,10 +5375,20 @@ var Terminal = (function (_super) {
         var customKeyEventHandler = this._customKeyEventHandler;
         var inputHandler = this._inputHandler;
         var cursorState = this.cursorState;
+        var writeBuffer = this.writeBuffer;
+        var writeBufferUtf8 = this.writeBufferUtf8;
+        var writeInProgress = this._writeInProgress;
+        var xoffSentToCatchUp = this._xoffSentToCatchUp;
+        var userScrolling = this._userScrolling;
         this._setup();
         this._customKeyEventHandler = customKeyEventHandler;
         this._inputHandler = inputHandler;
         this.cursorState = cursorState;
+        this.writeBuffer = writeBuffer;
+        this.writeBufferUtf8 = writeBufferUtf8;
+        this._writeInProgress = writeInProgress;
+        this._xoffSentToCatchUp = xoffSentToCatchUp;
+        this._userScrolling = userScrolling;
         this.refresh(0, this.rows - 1);
         if (this.viewport) {
             this.viewport.syncScrollArea();
@@ -4648,36 +5405,6 @@ var Terminal = (function (_super) {
         ev.stopPropagation();
         return false;
     };
-    Terminal.prototype.matchColor = function (r1, g1, b1) {
-        var hash = (r1 << 16) | (g1 << 8) | b1;
-        if (matchColorCache[hash] !== null && matchColorCache[hash] !== undefined) {
-            return matchColorCache[hash];
-        }
-        var ldiff = Infinity;
-        var li = -1;
-        var i = 0;
-        var c;
-        var r2;
-        var g2;
-        var b2;
-        var diff;
-        for (; i < ColorManager_1.DEFAULT_ANSI_COLORS.length; i++) {
-            c = ColorManager_1.DEFAULT_ANSI_COLORS[i].rgba;
-            r2 = c >>> 24;
-            g2 = c >>> 16 & 0xFF;
-            b2 = c >>> 8 & 0xFF;
-            diff = matchColorDistance(r1, g1, b1, r2, g2, b2);
-            if (diff === 0) {
-                li = i;
-                break;
-            }
-            if (diff < ldiff) {
-                ldiff = diff;
-                li = i;
-            }
-        }
-        return matchColorCache[hash] = li;
-    };
     Terminal.prototype._visualBell = function () {
         return false;
     };
@@ -4692,14 +5419,8 @@ function wasModifierKeyOnlyEvent(ev) {
         ev.keyCode === 17 ||
         ev.keyCode === 18;
 }
-var matchColorCache = {};
-function matchColorDistance(r1, g1, b1, r2, g2, b2) {
-    return Math.pow(30 * (r1 - r2), 2)
-        + Math.pow(59 * (g1 - g2), 2)
-        + Math.pow(11 * (b1 - b2), 2);
-}
 
-},{"./AccessibilityManager":1,"./Buffer":2,"./BufferLine":3,"./BufferSet":4,"./CompositionHelper":6,"./InputHandler":8,"./Linkifier":9,"./SelectionManager":10,"./SoundManager":12,"./Strings":13,"./Viewport":15,"./common/EventEmitter":17,"./common/data/EscapeSequences":19,"./core/input/Keyboard":21,"./handlers/Clipboard":23,"./renderer/ColorManager":27,"./renderer/Renderer":31,"./renderer/atlas/CharAtlasCache":35,"./renderer/dom/DomRenderer":42,"./shared/utils/Browser":46,"./ui/CharMeasure":47,"./ui/Lifecycle":48,"./ui/MouseZoneManager":49,"./ui/ScreenDprMonitor":51,"./utils/Clone":52,"./utils/MouseHelper":53}],15:[function(require,module,exports){
+},{"./AccessibilityManager":1,"./Buffer":2,"./BufferSet":3,"./CharMeasure":4,"./Clipboard":6,"./CompositionHelper":7,"./InputHandler":9,"./Linkifier":10,"./MouseHelper":11,"./MouseZoneManager":12,"./SelectionManager":13,"./SoundManager":15,"./Strings":16,"./Viewport":18,"./WindowsMode":19,"./common/Clone":21,"./common/EventEmitter":22,"./common/EventEmitter2":23,"./common/Platform":25,"./common/data/EscapeSequences":28,"./core/buffer/BufferLine":29,"./core/input/Keyboard":33,"./renderer/RenderCoordinator":43,"./renderer/Renderer":44,"./renderer/atlas/CharAtlasCache":48,"./renderer/dom/DomRenderer":56,"./ui/ColorManager":58,"./ui/Lifecycle":59}],18:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -4707,7 +5428,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -4720,12 +5441,13 @@ var Lifecycle_2 = require("./ui/Lifecycle");
 var FALLBACK_SCROLL_BAR_WIDTH = 15;
 var Viewport = (function (_super) {
     __extends(Viewport, _super);
-    function Viewport(_terminal, _viewportElement, _scrollArea, _charMeasure) {
+    function Viewport(_terminal, _viewportElement, _scrollArea, _charMeasure, _dimensions) {
         var _this = _super.call(this) || this;
         _this._terminal = _terminal;
         _this._viewportElement = _viewportElement;
         _this._scrollArea = _scrollArea;
         _this._charMeasure = _charMeasure;
+        _this._dimensions = _dimensions;
         _this.scrollBarWidth = 0;
         _this._currentRowHeight = 0;
         _this._lastRecordedBufferLength = 0;
@@ -4740,7 +5462,10 @@ var Viewport = (function (_super) {
         setTimeout(function () { return _this.syncScrollArea(); }, 0);
         return _this;
     }
-    Viewport.prototype.onThemeChanged = function (colors) {
+    Viewport.prototype.onDimensionsChance = function (dimensions) {
+        this._dimensions = dimensions;
+    };
+    Viewport.prototype.onThemeChange = function (colors) {
         this._viewportElement.style.backgroundColor = colors.background.css;
     };
     Viewport.prototype._refresh = function () {
@@ -4751,9 +5476,9 @@ var Viewport = (function (_super) {
     };
     Viewport.prototype._innerRefresh = function () {
         if (this._charMeasure.height > 0) {
-            this._currentRowHeight = this._terminal.renderer.dimensions.scaledCellHeight / window.devicePixelRatio;
+            this._currentRowHeight = this._dimensions.scaledCellHeight / window.devicePixelRatio;
             this._lastRecordedViewportHeight = this._viewportElement.offsetHeight;
-            var newBufferHeight = Math.round(this._currentRowHeight * this._lastRecordedBufferLength) + (this._lastRecordedViewportHeight - this._terminal.renderer.dimensions.canvasHeight);
+            var newBufferHeight = Math.round(this._currentRowHeight * this._lastRecordedBufferLength) + (this._lastRecordedViewportHeight - this._dimensions.canvasHeight);
             if (this._lastRecordedBufferHeight !== newBufferHeight) {
                 this._lastRecordedBufferHeight = newBufferHeight;
                 this._scrollArea.style.height = this._lastRecordedBufferHeight + 'px';
@@ -4772,7 +5497,7 @@ var Viewport = (function (_super) {
             this._refresh();
             return;
         }
-        if (this._lastRecordedViewportHeight !== this._terminal.renderer.dimensions.canvasHeight) {
+        if (this._lastRecordedViewportHeight !== this._dimensions.canvasHeight) {
             this._refresh();
             return;
         }
@@ -4785,7 +5510,7 @@ var Viewport = (function (_super) {
             this._refresh();
             return;
         }
-        if (this._terminal.renderer.dimensions.scaledCellHeight / window.devicePixelRatio !== this._currentRowHeight) {
+        if (this._dimensions.scaledCellHeight / window.devicePixelRatio !== this._currentRowHeight) {
             this._refresh();
             return;
         }
@@ -4856,33 +5581,51 @@ var Viewport = (function (_super) {
 }(Lifecycle_1.Disposable));
 exports.Viewport = Viewport;
 
-},{"./common/Lifecycle":18,"./ui/Lifecycle":48}],16:[function(require,module,exports){
+},{"./common/Lifecycle":24,"./ui/Lifecycle":59}],19:[function(require,module,exports){
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-var EventEmitter_1 = require("./EventEmitter");
-var CircularList = (function (_super) {
-    __extends(CircularList, _super);
+var BufferLine_1 = require("./core/buffer/BufferLine");
+function applyWindowsMode(terminal) {
+    return terminal.onLineFeed(function () {
+        var line = terminal.buffer.lines.get(terminal.buffer.ybase + terminal.buffer.y - 1);
+        var lastChar = line.get(terminal.cols - 1);
+        if (lastChar[BufferLine_1.CHAR_DATA_CODE_INDEX] !== BufferLine_1.NULL_CELL_CODE && lastChar[BufferLine_1.CHAR_DATA_CODE_INDEX] !== BufferLine_1.WHITESPACE_CELL_CODE) {
+            var nextLine = terminal.buffer.lines.get(terminal.buffer.ybase + terminal.buffer.y);
+            nextLine.isWrapped = true;
+        }
+    });
+}
+exports.applyWindowsMode = applyWindowsMode;
+
+},{"./core/buffer/BufferLine":29}],20:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var EventEmitter2_1 = require("./EventEmitter2");
+var CircularList = (function () {
     function CircularList(_maxLength) {
-        var _this = _super.call(this) || this;
-        _this._maxLength = _maxLength;
-        _this._array = new Array(_this._maxLength);
-        _this._startIndex = 0;
-        _this._length = 0;
-        return _this;
+        this._maxLength = _maxLength;
+        this.onDeleteEmitter = new EventEmitter2_1.EventEmitter2();
+        this.onInsertEmitter = new EventEmitter2_1.EventEmitter2();
+        this.onTrimEmitter = new EventEmitter2_1.EventEmitter2();
+        this._array = new Array(this._maxLength);
+        this._startIndex = 0;
+        this._length = 0;
     }
+    Object.defineProperty(CircularList.prototype, "onDelete", {
+        get: function () { return this.onDeleteEmitter.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CircularList.prototype, "onInsert", {
+        get: function () { return this.onInsertEmitter.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(CircularList.prototype, "onTrim", {
+        get: function () { return this.onTrimEmitter.event; },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(CircularList.prototype, "maxLength", {
         get: function () {
             return this._maxLength;
@@ -4926,16 +5669,28 @@ var CircularList = (function (_super) {
     CircularList.prototype.push = function (value) {
         this._array[this._getCyclicIndex(this._length)] = value;
         if (this._length === this._maxLength) {
-            this._startIndex++;
-            if (this._startIndex === this._maxLength) {
-                this._startIndex = 0;
-            }
-            this.emit('trim', 1);
+            this._startIndex = ++this._startIndex % this._maxLength;
+            this.onTrimEmitter.fire(1);
         }
         else {
             this._length++;
         }
     };
+    CircularList.prototype.recycle = function () {
+        if (this._length !== this._maxLength) {
+            throw new Error('Can only recycle when the buffer is full');
+        }
+        this._startIndex = ++this._startIndex % this._maxLength;
+        this.onTrimEmitter.fire(1);
+        return this._array[this._getCyclicIndex(this._length - 1)];
+    };
+    Object.defineProperty(CircularList.prototype, "isFull", {
+        get: function () {
+            return this._length === this._maxLength;
+        },
+        enumerable: true,
+        configurable: true
+    });
     CircularList.prototype.pop = function () {
         return this._array[this._getCyclicIndex(this._length-- - 1)];
     };
@@ -4950,22 +5705,20 @@ var CircularList = (function (_super) {
             }
             this._length -= deleteCount;
         }
-        if (items && items.length) {
-            for (var i = this._length - 1; i >= start; i--) {
-                this._array[this._getCyclicIndex(i + items.length)] = this._array[this._getCyclicIndex(i)];
-            }
-            for (var i = 0; i < items.length; i++) {
-                this._array[this._getCyclicIndex(start + i)] = items[i];
-            }
-            if (this._length + items.length > this.maxLength) {
-                var countToTrim = (this._length + items.length) - this.maxLength;
-                this._startIndex += countToTrim;
-                this._length = this.maxLength;
-                this.emit('trim', countToTrim);
-            }
-            else {
-                this._length += items.length;
-            }
+        for (var i = this._length - 1; i >= start; i--) {
+            this._array[this._getCyclicIndex(i + items.length)] = this._array[this._getCyclicIndex(i)];
+        }
+        for (var i = 0; i < items.length; i++) {
+            this._array[this._getCyclicIndex(start + i)] = items[i];
+        }
+        if (this._length + items.length > this._maxLength) {
+            var countToTrim = (this._length + items.length) - this._maxLength;
+            this._startIndex += countToTrim;
+            this._length = this._maxLength;
+            this.onTrimEmitter.fire(countToTrim);
+        }
+        else {
+            this._length += items.length;
         }
     };
     CircularList.prototype.trimStart = function (count) {
@@ -4974,7 +5727,7 @@ var CircularList = (function (_super) {
         }
         this._startIndex += count;
         this._length -= count;
-        this.emit('trim', count);
+        this.onTrimEmitter.fire(count);
     };
     CircularList.prototype.shiftElements = function (start, count, offset) {
         if (count <= 0) {
@@ -4993,10 +5746,10 @@ var CircularList = (function (_super) {
             var expandListBy = (start + count + offset) - this._length;
             if (expandListBy > 0) {
                 this._length += expandListBy;
-                while (this._length > this.maxLength) {
+                while (this._length > this._maxLength) {
                     this._length--;
                     this._startIndex++;
-                    this.emit('trim', 1);
+                    this.onTrimEmitter.fire(1);
                 }
             }
         }
@@ -5007,13 +5760,32 @@ var CircularList = (function (_super) {
         }
     };
     CircularList.prototype._getCyclicIndex = function (index) {
-        return (this._startIndex + index) % this.maxLength;
+        return (this._startIndex + index) % this._maxLength;
     };
     return CircularList;
-}(EventEmitter_1.EventEmitter));
+}());
 exports.CircularList = CircularList;
 
-},{"./EventEmitter":17}],17:[function(require,module,exports){
+},{"./EventEmitter2":23}],21:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function clone(val, depth) {
+    if (depth === void 0) { depth = 5; }
+    if (typeof val !== 'object') {
+        return val;
+    }
+    if (val === null) {
+        return null;
+    }
+    var clonedObject = Array.isArray(val) ? [] : {};
+    for (var key in val) {
+        clonedObject[key] = depth <= 1 ? val[key] : clone(val[key], depth - 1);
+    }
+    return clonedObject;
+}
+exports.clone = clone;
+
+},{}],22:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -5021,7 +5793,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -5086,6 +5858,22 @@ var EventEmitter = (function (_super) {
             obj[i].apply(this, args);
         }
     };
+    EventEmitter.prototype.emitMayRemoveListeners = function (type) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        if (!this._events[type]) {
+            return;
+        }
+        var obj = this._events[type];
+        var length = obj.length;
+        for (var i = 0; i < obj.length; i++) {
+            obj[i].apply(this, args);
+            i -= length - obj.length;
+            length = obj.length;
+        }
+    };
     EventEmitter.prototype.listeners = function (type) {
         return this._events[type] || [];
     };
@@ -5097,7 +5885,51 @@ var EventEmitter = (function (_super) {
 }(Lifecycle_1.Disposable));
 exports.EventEmitter = EventEmitter;
 
-},{"./Lifecycle":18}],18:[function(require,module,exports){
+},{"./Lifecycle":24}],23:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var EventEmitter2 = (function () {
+    function EventEmitter2() {
+        this._listeners = [];
+    }
+    Object.defineProperty(EventEmitter2.prototype, "event", {
+        get: function () {
+            var _this = this;
+            if (!this._event) {
+                this._event = function (listener) {
+                    _this._listeners.push(listener);
+                    var disposable = {
+                        dispose: function () {
+                            for (var i = 0; i < _this._listeners.length; i++) {
+                                if (_this._listeners[i] === listener) {
+                                    _this._listeners.splice(i, 1);
+                                    return;
+                                }
+                            }
+                        }
+                    };
+                    return disposable;
+                };
+            }
+            return this._event;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    EventEmitter2.prototype.fire = function (data) {
+        var queue = [];
+        for (var i = 0; i < this._listeners.length; i++) {
+            queue.push(this._listeners[i]);
+        }
+        for (var i = 0; i < queue.length; i++) {
+            queue[i].call(undefined, data);
+        }
+    };
+    return EventEmitter2;
+}());
+exports.EventEmitter2 = EventEmitter2;
+
+},{}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Disposable = (function () {
@@ -5123,7 +5955,67 @@ var Disposable = (function () {
 }());
 exports.Disposable = Disposable;
 
-},{}],19:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var isNode = (typeof navigator === 'undefined') ? true : false;
+var userAgent = (isNode) ? 'node' : navigator.userAgent;
+var platform = (isNode) ? 'node' : navigator.platform;
+exports.isFirefox = !!~userAgent.indexOf('Firefox');
+exports.isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+exports.isMSIE = !!~userAgent.indexOf('MSIE') || !!~userAgent.indexOf('Trident');
+exports.isMac = contains(['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'], platform);
+exports.isIpad = platform === 'iPad';
+exports.isIphone = platform === 'iPhone';
+exports.isMSWindows = contains(['Windows', 'Win16', 'Win32', 'WinCE'], platform);
+exports.isLinux = platform.indexOf('Linux') >= 0;
+function contains(arr, el) {
+    return arr.indexOf(el) >= 0;
+}
+
+},{}],26:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function fill(array, value, start, end) {
+    if (array.fill) {
+        return array.fill(value, start, end);
+    }
+    return fillFallback(array, value, start, end);
+}
+exports.fill = fill;
+function fillFallback(array, value, start, end) {
+    if (start === void 0) { start = 0; }
+    if (end === void 0) { end = array.length; }
+    if (start >= array.length) {
+        return array;
+    }
+    start = (array.length + start) % array.length;
+    if (end >= array.length) {
+        end = array.length;
+    }
+    else {
+        end = (array.length + end) % array.length;
+    }
+    for (var i = start; i < end; ++i) {
+        array[i] = value;
+    }
+    return array;
+}
+exports.fillFallback = fillFallback;
+function concat(a, b) {
+    var result = new a.constructor(a.length + b.length);
+    result.set(a);
+    result.set(b, a.length);
+    return result;
+}
+exports.concat = concat;
+
+},{}],27:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DEFAULT_COLOR = 256;
+
+},{}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var C0;
@@ -5199,7 +6091,629 @@ var C1;
     C1.APC = '\x9f';
 })(C1 = exports.C1 || (exports.C1 = {}));
 
-},{}],20:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var TextDecoder_1 = require("../input/TextDecoder");
+var Types_1 = require("../../common/Types");
+exports.DEFAULT_ATTR = (0 << 18) | (Types_1.DEFAULT_COLOR << 9) | (256 << 0);
+exports.CHAR_DATA_ATTR_INDEX = 0;
+exports.CHAR_DATA_CHAR_INDEX = 1;
+exports.CHAR_DATA_WIDTH_INDEX = 2;
+exports.CHAR_DATA_CODE_INDEX = 3;
+exports.NULL_CELL_CHAR = '';
+exports.NULL_CELL_WIDTH = 1;
+exports.NULL_CELL_CODE = 0;
+exports.WHITESPACE_CELL_CHAR = ' ';
+exports.WHITESPACE_CELL_WIDTH = 1;
+exports.WHITESPACE_CELL_CODE = 32;
+var CELL_SIZE = 3;
+var AttributeData = (function () {
+    function AttributeData() {
+        this.fg = 0;
+        this.bg = 0;
+    }
+    AttributeData.toColorRGB = function (value) {
+        return [
+            value >>> 16 & 255,
+            value >>> 8 & 255,
+            value & 255
+        ];
+    };
+    AttributeData.fromColorRGB = function (value) {
+        return (value[0] & 255) << 16 | (value[1] & 255) << 8 | value[2] & 255;
+    };
+    AttributeData.prototype.clone = function () {
+        var newObj = new AttributeData();
+        newObj.fg = this.fg;
+        newObj.bg = this.bg;
+        return newObj;
+    };
+    AttributeData.prototype.isInverse = function () { return this.fg & 67108864; };
+    AttributeData.prototype.isBold = function () { return this.fg & 134217728; };
+    AttributeData.prototype.isUnderline = function () { return this.fg & 268435456; };
+    AttributeData.prototype.isBlink = function () { return this.fg & 536870912; };
+    AttributeData.prototype.isInvisible = function () { return this.fg & 1073741824; };
+    AttributeData.prototype.isItalic = function () { return this.bg & 67108864; };
+    AttributeData.prototype.isDim = function () { return this.bg & 134217728; };
+    AttributeData.prototype.getFgColorMode = function () { return this.fg & 50331648; };
+    AttributeData.prototype.getBgColorMode = function () { return this.bg & 50331648; };
+    AttributeData.prototype.isFgRGB = function () { return (this.fg & 50331648) === 50331648; };
+    AttributeData.prototype.isBgRGB = function () { return (this.bg & 50331648) === 50331648; };
+    AttributeData.prototype.isFgPalette = function () { return (this.fg & 50331648) === 16777216 || (this.fg & 50331648) === 33554432; };
+    AttributeData.prototype.isBgPalette = function () { return (this.bg & 50331648) === 16777216 || (this.bg & 50331648) === 33554432; };
+    AttributeData.prototype.isFgDefault = function () { return (this.fg & 50331648) === 0; };
+    AttributeData.prototype.isBgDefault = function () { return (this.bg & 50331648) === 0; };
+    AttributeData.prototype.getFgColor = function () {
+        switch (this.fg & 50331648) {
+            case 16777216:
+            case 33554432: return this.fg & 255;
+            case 50331648: return this.fg & 16777215;
+            default: return -1;
+        }
+    };
+    AttributeData.prototype.getBgColor = function () {
+        switch (this.bg & 50331648) {
+            case 16777216:
+            case 33554432: return this.bg & 255;
+            case 50331648: return this.bg & 16777215;
+            default: return -1;
+        }
+    };
+    return AttributeData;
+}());
+exports.AttributeData = AttributeData;
+exports.DEFAULT_ATTR_DATA = new AttributeData();
+var CellData = (function (_super) {
+    __extends(CellData, _super);
+    function CellData() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.content = 0;
+        _this.fg = 0;
+        _this.bg = 0;
+        _this.combinedData = '';
+        return _this;
+    }
+    CellData.fromCharData = function (value) {
+        var obj = new CellData();
+        obj.setFromCharData(value);
+        return obj;
+    };
+    CellData.prototype.isCombined = function () {
+        return this.content & 2097152;
+    };
+    CellData.prototype.getWidth = function () {
+        return this.content >> 22;
+    };
+    CellData.prototype.getChars = function () {
+        if (this.content & 2097152) {
+            return this.combinedData;
+        }
+        if (this.content & 2097151) {
+            return TextDecoder_1.stringFromCodePoint(this.content & 2097151);
+        }
+        return '';
+    };
+    CellData.prototype.getCode = function () {
+        return (this.isCombined())
+            ? this.combinedData.charCodeAt(this.combinedData.length - 1)
+            : this.content & 2097151;
+    };
+    CellData.prototype.setFromCharData = function (value) {
+        this.fg = value[exports.CHAR_DATA_ATTR_INDEX];
+        this.bg = 0;
+        var combined = false;
+        if (value[exports.CHAR_DATA_CHAR_INDEX].length > 2) {
+            combined = true;
+        }
+        else if (value[exports.CHAR_DATA_CHAR_INDEX].length === 2) {
+            var code = value[exports.CHAR_DATA_CHAR_INDEX].charCodeAt(0);
+            if (0xD800 <= code && code <= 0xDBFF) {
+                var second = value[exports.CHAR_DATA_CHAR_INDEX].charCodeAt(1);
+                if (0xDC00 <= second && second <= 0xDFFF) {
+                    this.content = ((code - 0xD800) * 0x400 + second - 0xDC00 + 0x10000) | (value[exports.CHAR_DATA_WIDTH_INDEX] << 22);
+                }
+                else {
+                    combined = true;
+                }
+            }
+            else {
+                combined = true;
+            }
+        }
+        else {
+            this.content = value[exports.CHAR_DATA_CHAR_INDEX].charCodeAt(0) | (value[exports.CHAR_DATA_WIDTH_INDEX] << 22);
+        }
+        if (combined) {
+            this.combinedData = value[exports.CHAR_DATA_CHAR_INDEX];
+            this.content = 2097152 | (value[exports.CHAR_DATA_WIDTH_INDEX] << 22);
+        }
+    };
+    CellData.prototype.getAsCharData = function () {
+        return [this.fg, this.getChars(), this.getWidth(), this.getCode()];
+    };
+    return CellData;
+}(AttributeData));
+exports.CellData = CellData;
+var BufferLine = (function () {
+    function BufferLine(cols, fillCellData, isWrapped) {
+        if (isWrapped === void 0) { isWrapped = false; }
+        this.isWrapped = isWrapped;
+        this._combined = {};
+        this._data = new Uint32Array(cols * CELL_SIZE);
+        var cell = fillCellData || CellData.fromCharData([0, exports.NULL_CELL_CHAR, exports.NULL_CELL_WIDTH, exports.NULL_CELL_CODE]);
+        for (var i = 0; i < cols; ++i) {
+            this.setCell(i, cell);
+        }
+        this.length = cols;
+    }
+    BufferLine.prototype.get = function (index) {
+        var content = this._data[index * CELL_SIZE + 0];
+        var cp = content & 2097151;
+        return [
+            this._data[index * CELL_SIZE + 1],
+            (content & 2097152)
+                ? this._combined[index]
+                : (cp) ? TextDecoder_1.stringFromCodePoint(cp) : '',
+            content >> 22,
+            (content & 2097152)
+                ? this._combined[index].charCodeAt(this._combined[index].length - 1)
+                : cp
+        ];
+    };
+    BufferLine.prototype.set = function (index, value) {
+        this._data[index * CELL_SIZE + 1] = value[exports.CHAR_DATA_ATTR_INDEX];
+        if (value[exports.CHAR_DATA_CHAR_INDEX].length > 1) {
+            this._combined[index] = value[1];
+            this._data[index * CELL_SIZE + 0] = index | 2097152 | (value[exports.CHAR_DATA_WIDTH_INDEX] << 22);
+        }
+        else {
+            this._data[index * CELL_SIZE + 0] = value[exports.CHAR_DATA_CHAR_INDEX].charCodeAt(0) | (value[exports.CHAR_DATA_WIDTH_INDEX] << 22);
+        }
+    };
+    BufferLine.prototype.getWidth = function (index) {
+        return this._data[index * CELL_SIZE + 0] >> 22;
+    };
+    BufferLine.prototype.hasWidth = function (index) {
+        return this._data[index * CELL_SIZE + 0] & 12582912;
+    };
+    BufferLine.prototype.getFg = function (index) {
+        return this._data[index * CELL_SIZE + 1];
+    };
+    BufferLine.prototype.getBg = function (index) {
+        return this._data[index * CELL_SIZE + 2];
+    };
+    BufferLine.prototype.hasContent = function (index) {
+        return this._data[index * CELL_SIZE + 0] & 4194303;
+    };
+    BufferLine.prototype.getCodePoint = function (index) {
+        var content = this._data[index * CELL_SIZE + 0];
+        if (content & 2097152) {
+            return this._combined[index].charCodeAt(this._combined[index].length - 1);
+        }
+        return content & 2097151;
+    };
+    BufferLine.prototype.isCombined = function (index) {
+        return this._data[index * CELL_SIZE + 0] & 2097152;
+    };
+    BufferLine.prototype.getString = function (index) {
+        var content = this._data[index * CELL_SIZE + 0];
+        if (content & 2097152) {
+            return this._combined[index];
+        }
+        if (content & 2097151) {
+            return TextDecoder_1.stringFromCodePoint(content & 2097151);
+        }
+        return '';
+    };
+    BufferLine.prototype.loadCell = function (index, cell) {
+        var startIndex = index * CELL_SIZE;
+        cell.content = this._data[startIndex + 0];
+        cell.fg = this._data[startIndex + 1];
+        cell.bg = this._data[startIndex + 2];
+        if (cell.content & 2097152) {
+            cell.combinedData = this._combined[index];
+        }
+        return cell;
+    };
+    BufferLine.prototype.setCell = function (index, cell) {
+        if (cell.content & 2097152) {
+            this._combined[index] = cell.combinedData;
+        }
+        this._data[index * CELL_SIZE + 0] = cell.content;
+        this._data[index * CELL_SIZE + 1] = cell.fg;
+        this._data[index * CELL_SIZE + 2] = cell.bg;
+    };
+    BufferLine.prototype.setCellFromCodePoint = function (index, codePoint, width, fg, bg) {
+        this._data[index * CELL_SIZE + 0] = codePoint | (width << 22);
+        this._data[index * CELL_SIZE + 1] = fg;
+        this._data[index * CELL_SIZE + 2] = bg;
+    };
+    BufferLine.prototype.addCodepointToCell = function (index, codePoint) {
+        var content = this._data[index * CELL_SIZE + 0];
+        if (content & 2097152) {
+            this._combined[index] += TextDecoder_1.stringFromCodePoint(codePoint);
+        }
+        else {
+            if (content & 2097151) {
+                this._combined[index] = TextDecoder_1.stringFromCodePoint(content & 2097151) + TextDecoder_1.stringFromCodePoint(codePoint);
+                content &= ~2097151;
+                content |= 2097152;
+            }
+            else {
+                content = codePoint | (1 << 22);
+            }
+            this._data[index * CELL_SIZE + 0] = content;
+        }
+    };
+    BufferLine.prototype.insertCells = function (pos, n, fillCellData) {
+        pos %= this.length;
+        if (n < this.length - pos) {
+            var cell = new CellData();
+            for (var i = this.length - pos - n - 1; i >= 0; --i) {
+                this.setCell(pos + n + i, this.loadCell(pos + i, cell));
+            }
+            for (var i = 0; i < n; ++i) {
+                this.setCell(pos + i, fillCellData);
+            }
+        }
+        else {
+            for (var i = pos; i < this.length; ++i) {
+                this.setCell(i, fillCellData);
+            }
+        }
+    };
+    BufferLine.prototype.deleteCells = function (pos, n, fillCellData) {
+        pos %= this.length;
+        if (n < this.length - pos) {
+            var cell = new CellData();
+            for (var i = 0; i < this.length - pos - n; ++i) {
+                this.setCell(pos + i, this.loadCell(pos + n + i, cell));
+            }
+            for (var i = this.length - n; i < this.length; ++i) {
+                this.setCell(i, fillCellData);
+            }
+        }
+        else {
+            for (var i = pos; i < this.length; ++i) {
+                this.setCell(i, fillCellData);
+            }
+        }
+    };
+    BufferLine.prototype.replaceCells = function (start, end, fillCellData) {
+        while (start < end && start < this.length) {
+            this.setCell(start++, fillCellData);
+        }
+    };
+    BufferLine.prototype.resize = function (cols, fillCellData) {
+        if (cols === this.length) {
+            return;
+        }
+        if (cols > this.length) {
+            var data = new Uint32Array(cols * CELL_SIZE);
+            if (this.length) {
+                if (cols * CELL_SIZE < this._data.length) {
+                    data.set(this._data.subarray(0, cols * CELL_SIZE));
+                }
+                else {
+                    data.set(this._data);
+                }
+            }
+            this._data = data;
+            for (var i = this.length; i < cols; ++i) {
+                this.setCell(i, fillCellData);
+            }
+        }
+        else {
+            if (cols) {
+                var data = new Uint32Array(cols * CELL_SIZE);
+                data.set(this._data.subarray(0, cols * CELL_SIZE));
+                this._data = data;
+                var keys = Object.keys(this._combined);
+                for (var i = 0; i < keys.length; i++) {
+                    var key = parseInt(keys[i], 10);
+                    if (key >= cols) {
+                        delete this._combined[key];
+                    }
+                }
+            }
+            else {
+                this._data = new Uint32Array(0);
+                this._combined = {};
+            }
+        }
+        this.length = cols;
+    };
+    BufferLine.prototype.fill = function (fillCellData) {
+        this._combined = {};
+        for (var i = 0; i < this.length; ++i) {
+            this.setCell(i, fillCellData);
+        }
+    };
+    BufferLine.prototype.copyFrom = function (line) {
+        if (this.length !== line.length) {
+            this._data = new Uint32Array(line._data);
+        }
+        else {
+            this._data.set(line._data);
+        }
+        this.length = line.length;
+        this._combined = {};
+        for (var el in line._combined) {
+            this._combined[el] = line._combined[el];
+        }
+        this.isWrapped = line.isWrapped;
+    };
+    BufferLine.prototype.clone = function () {
+        var newLine = new BufferLine(0);
+        newLine._data = new Uint32Array(this._data);
+        newLine.length = this.length;
+        for (var el in this._combined) {
+            newLine._combined[el] = this._combined[el];
+        }
+        newLine.isWrapped = this.isWrapped;
+        return newLine;
+    };
+    BufferLine.prototype.getTrimmedLength = function () {
+        for (var i = this.length - 1; i >= 0; --i) {
+            if ((this._data[i * CELL_SIZE + 0] & 4194303)) {
+                return i + (this._data[i * CELL_SIZE + 0] >> 22);
+            }
+        }
+        return 0;
+    };
+    BufferLine.prototype.copyCellsFrom = function (src, srcCol, destCol, length, applyInReverse) {
+        var srcData = src._data;
+        if (applyInReverse) {
+            for (var cell = length - 1; cell >= 0; cell--) {
+                for (var i = 0; i < CELL_SIZE; i++) {
+                    this._data[(destCol + cell) * CELL_SIZE + i] = srcData[(srcCol + cell) * CELL_SIZE + i];
+                }
+            }
+        }
+        else {
+            for (var cell = 0; cell < length; cell++) {
+                for (var i = 0; i < CELL_SIZE; i++) {
+                    this._data[(destCol + cell) * CELL_SIZE + i] = srcData[(srcCol + cell) * CELL_SIZE + i];
+                }
+            }
+        }
+        var srcCombinedKeys = Object.keys(src._combined);
+        for (var i = 0; i < srcCombinedKeys.length; i++) {
+            var key = parseInt(srcCombinedKeys[i], 10);
+            if (key >= srcCol) {
+                this._combined[key - srcCol + destCol] = src._combined[key];
+            }
+        }
+    };
+    BufferLine.prototype.translateToString = function (trimRight, startCol, endCol) {
+        if (trimRight === void 0) { trimRight = false; }
+        if (startCol === void 0) { startCol = 0; }
+        if (endCol === void 0) { endCol = this.length; }
+        if (trimRight) {
+            endCol = Math.min(endCol, this.getTrimmedLength());
+        }
+        var result = '';
+        while (startCol < endCol) {
+            var content = this._data[startCol * CELL_SIZE + 0];
+            var cp = content & 2097151;
+            result += (content & 2097152) ? this._combined[startCol] : (cp) ? TextDecoder_1.stringFromCodePoint(cp) : exports.WHITESPACE_CELL_CHAR;
+            startCol += (content >> 22) || 1;
+        }
+        return result;
+    };
+    return BufferLine;
+}());
+exports.BufferLine = BufferLine;
+
+},{"../../common/Types":27,"../input/TextDecoder":34}],30:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function reflowLargerGetLinesToRemove(lines, oldCols, newCols, bufferAbsoluteY, nullCell) {
+    var toRemove = [];
+    for (var y = 0; y < lines.length - 1; y++) {
+        var i = y;
+        var nextLine = lines.get(++i);
+        if (!nextLine.isWrapped) {
+            continue;
+        }
+        var wrappedLines = [lines.get(y)];
+        while (i < lines.length && nextLine.isWrapped) {
+            wrappedLines.push(nextLine);
+            nextLine = lines.get(++i);
+        }
+        if (bufferAbsoluteY >= y && bufferAbsoluteY < i) {
+            y += wrappedLines.length - 1;
+            continue;
+        }
+        var destLineIndex = 0;
+        var destCol = getWrappedLineTrimmedLength(wrappedLines, destLineIndex, oldCols);
+        var srcLineIndex = 1;
+        var srcCol = 0;
+        while (srcLineIndex < wrappedLines.length) {
+            var srcTrimmedTineLength = getWrappedLineTrimmedLength(wrappedLines, srcLineIndex, oldCols);
+            var srcRemainingCells = srcTrimmedTineLength - srcCol;
+            var destRemainingCells = newCols - destCol;
+            var cellsToCopy = Math.min(srcRemainingCells, destRemainingCells);
+            wrappedLines[destLineIndex].copyCellsFrom(wrappedLines[srcLineIndex], srcCol, destCol, cellsToCopy, false);
+            destCol += cellsToCopy;
+            if (destCol === newCols) {
+                destLineIndex++;
+                destCol = 0;
+            }
+            srcCol += cellsToCopy;
+            if (srcCol === srcTrimmedTineLength) {
+                srcLineIndex++;
+                srcCol = 0;
+            }
+            if (destCol === 0 && destLineIndex !== 0) {
+                if (wrappedLines[destLineIndex - 1].getWidth(newCols - 1) === 2) {
+                    wrappedLines[destLineIndex].copyCellsFrom(wrappedLines[destLineIndex - 1], newCols - 1, destCol++, 1, false);
+                    wrappedLines[destLineIndex - 1].setCell(newCols - 1, nullCell);
+                }
+            }
+        }
+        wrappedLines[destLineIndex].replaceCells(destCol, newCols, nullCell);
+        var countToRemove = 0;
+        for (var i_1 = wrappedLines.length - 1; i_1 > 0; i_1--) {
+            if (i_1 > destLineIndex || wrappedLines[i_1].getTrimmedLength() === 0) {
+                countToRemove++;
+            }
+            else {
+                break;
+            }
+        }
+        if (countToRemove > 0) {
+            toRemove.push(y + wrappedLines.length - countToRemove);
+            toRemove.push(countToRemove);
+        }
+        y += wrappedLines.length - 1;
+    }
+    return toRemove;
+}
+exports.reflowLargerGetLinesToRemove = reflowLargerGetLinesToRemove;
+function reflowLargerCreateNewLayout(lines, toRemove) {
+    var layout = [];
+    var nextToRemoveIndex = 0;
+    var nextToRemoveStart = toRemove[nextToRemoveIndex];
+    var countRemovedSoFar = 0;
+    for (var i = 0; i < lines.length; i++) {
+        if (nextToRemoveStart === i) {
+            var countToRemove = toRemove[++nextToRemoveIndex];
+            lines.onDeleteEmitter.fire({
+                index: i - countRemovedSoFar,
+                amount: countToRemove
+            });
+            i += countToRemove - 1;
+            countRemovedSoFar += countToRemove;
+            nextToRemoveStart = toRemove[++nextToRemoveIndex];
+        }
+        else {
+            layout.push(i);
+        }
+    }
+    return {
+        layout: layout,
+        countRemoved: countRemovedSoFar
+    };
+}
+exports.reflowLargerCreateNewLayout = reflowLargerCreateNewLayout;
+function reflowLargerApplyNewLayout(lines, newLayout) {
+    var newLayoutLines = [];
+    for (var i = 0; i < newLayout.length; i++) {
+        newLayoutLines.push(lines.get(newLayout[i]));
+    }
+    for (var i = 0; i < newLayoutLines.length; i++) {
+        lines.set(i, newLayoutLines[i]);
+    }
+    lines.length = newLayout.length;
+}
+exports.reflowLargerApplyNewLayout = reflowLargerApplyNewLayout;
+function reflowSmallerGetNewLineLengths(wrappedLines, oldCols, newCols) {
+    var newLineLengths = [];
+    var cellsNeeded = wrappedLines.map(function (l, i) { return getWrappedLineTrimmedLength(wrappedLines, i, oldCols); }).reduce(function (p, c) { return p + c; });
+    var srcCol = 0;
+    var srcLine = 0;
+    var cellsAvailable = 0;
+    while (cellsAvailable < cellsNeeded) {
+        if (cellsNeeded - cellsAvailable < newCols) {
+            newLineLengths.push(cellsNeeded - cellsAvailable);
+            break;
+        }
+        srcCol += newCols;
+        var oldTrimmedLength = getWrappedLineTrimmedLength(wrappedLines, srcLine, oldCols);
+        if (srcCol > oldTrimmedLength) {
+            srcCol -= oldTrimmedLength;
+            srcLine++;
+        }
+        var endsWithWide = wrappedLines[srcLine].getWidth(srcCol - 1) === 2;
+        if (endsWithWide) {
+            srcCol--;
+        }
+        var lineLength = endsWithWide ? newCols - 1 : newCols;
+        newLineLengths.push(lineLength);
+        cellsAvailable += lineLength;
+    }
+    return newLineLengths;
+}
+exports.reflowSmallerGetNewLineLengths = reflowSmallerGetNewLineLengths;
+function getWrappedLineTrimmedLength(lines, i, cols) {
+    if (i === lines.length - 1) {
+        return lines[i].getTrimmedLength();
+    }
+    var endsInNull = !(lines[i].hasContent(cols - 1)) && lines[i].getWidth(cols - 1) === 1;
+    var followingLineStartsWithWide = lines[i + 1].getWidth(0) === 2;
+    if (endsInNull && followingLineStartsWithWide) {
+        return cols - 1;
+    }
+    return cols;
+}
+exports.getWrappedLineTrimmedLength = getWrappedLineTrimmedLength;
+
+},{}],31:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var EventEmitter2_1 = require("../../common/EventEmitter2");
+var Lifecycle_1 = require("../../common/Lifecycle");
+var Marker = (function (_super) {
+    __extends(Marker, _super);
+    function Marker(line) {
+        var _this = _super.call(this) || this;
+        _this.line = line;
+        _this._id = Marker._nextId++;
+        _this.isDisposed = false;
+        _this._onDispose = new EventEmitter2_1.EventEmitter2();
+        return _this;
+    }
+    Object.defineProperty(Marker.prototype, "id", {
+        get: function () { return this._id; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Marker.prototype, "onDispose", {
+        get: function () { return this._onDispose.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Marker.prototype.dispose = function () {
+        if (this.isDisposed) {
+            return;
+        }
+        this.isDisposed = true;
+        this._onDispose.fire();
+    };
+    Marker._nextId = 1;
+    return Marker;
+}(Lifecycle_1.Disposable));
+exports.Marker = Marker;
+
+},{"../../common/EventEmitter2":23,"../../common/Lifecycle":24}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CHARSETS = {};
@@ -5360,7 +6874,7 @@ exports.CHARSETS['='] = {
     '~': 'û'
 };
 
-},{}],21:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var EscapeSequences_1 = require("../../common/data/EscapeSequences");
@@ -5699,13 +7213,278 @@ function evaluateKeyboardEvent(ev, applicationCursorMode, isMac, macOptionIsMeta
                     result.type = 1;
                 }
             }
+            else if (ev.key && !ev.ctrlKey && !ev.altKey && !ev.metaKey && ev.keyCode >= 48 && ev.key.length === 1) {
+                result.key = ev.key;
+            }
+            else if (ev.key && ev.ctrlKey) {
+                if (ev.key === '_') {
+                    result.key = EscapeSequences_1.C0.US;
+                }
+            }
             break;
     }
     return result;
 }
 exports.evaluateKeyboardEvent = evaluateKeyboardEvent;
 
-},{"../../common/data/EscapeSequences":19}],22:[function(require,module,exports){
+},{"../../common/data/EscapeSequences":28}],34:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function stringFromCodePoint(codePoint) {
+    if (codePoint > 0xFFFF) {
+        codePoint -= 0x10000;
+        return String.fromCharCode((codePoint >> 10) + 0xD800) + String.fromCharCode((codePoint % 0x400) + 0xDC00);
+    }
+    return String.fromCharCode(codePoint);
+}
+exports.stringFromCodePoint = stringFromCodePoint;
+function utf32ToString(data, start, end) {
+    if (start === void 0) { start = 0; }
+    if (end === void 0) { end = data.length; }
+    var result = '';
+    for (var i = start; i < end; ++i) {
+        var codepoint = data[i];
+        if (codepoint > 0xFFFF) {
+            codepoint -= 0x10000;
+            result += String.fromCharCode((codepoint >> 10) + 0xD800) + String.fromCharCode((codepoint % 0x400) + 0xDC00);
+        }
+        else {
+            result += String.fromCharCode(codepoint);
+        }
+    }
+    return result;
+}
+exports.utf32ToString = utf32ToString;
+var StringToUtf32 = (function () {
+    function StringToUtf32() {
+        this._interim = 0;
+    }
+    StringToUtf32.prototype.clear = function () {
+        this._interim = 0;
+    };
+    StringToUtf32.prototype.decode = function (input, target) {
+        var length = input.length;
+        if (!length) {
+            return 0;
+        }
+        var size = 0;
+        var startPos = 0;
+        if (this._interim) {
+            var second = input.charCodeAt(startPos++);
+            if (0xDC00 <= second && second <= 0xDFFF) {
+                target[size++] = (this._interim - 0xD800) * 0x400 + second - 0xDC00 + 0x10000;
+            }
+            else {
+                target[size++] = this._interim;
+                target[size++] = second;
+            }
+            this._interim = 0;
+        }
+        for (var i = startPos; i < length; ++i) {
+            var code = input.charCodeAt(i);
+            if (0xD800 <= code && code <= 0xDBFF) {
+                if (++i >= length) {
+                    this._interim = code;
+                    return size;
+                }
+                var second = input.charCodeAt(i);
+                if (0xDC00 <= second && second <= 0xDFFF) {
+                    target[size++] = (code - 0xD800) * 0x400 + second - 0xDC00 + 0x10000;
+                }
+                else {
+                    target[size++] = code;
+                    target[size++] = second;
+                }
+                continue;
+            }
+            target[size++] = code;
+        }
+        return size;
+    };
+    return StringToUtf32;
+}());
+exports.StringToUtf32 = StringToUtf32;
+var Utf8ToUtf32 = (function () {
+    function Utf8ToUtf32() {
+        this.interim = new Uint8Array(3);
+    }
+    Utf8ToUtf32.prototype.clear = function () {
+        this.interim.fill(0);
+    };
+    Utf8ToUtf32.prototype.decode = function (input, target) {
+        var length = input.length;
+        if (!length) {
+            return 0;
+        }
+        var size = 0;
+        var byte1;
+        var byte2;
+        var byte3;
+        var byte4;
+        var codepoint = 0;
+        var startPos = 0;
+        if (this.interim[0]) {
+            var discardInterim = false;
+            var cp = this.interim[0];
+            cp &= ((((cp & 0xE0) === 0xC0)) ? 0x1F : (((cp & 0xF0) === 0xE0)) ? 0x0F : 0x07);
+            var pos = 0;
+            var tmp = void 0;
+            while ((tmp = this.interim[++pos] & 0x3F) && pos < 4) {
+                cp <<= 6;
+                cp |= tmp;
+            }
+            var type = (((this.interim[0] & 0xE0) === 0xC0)) ? 2 : (((this.interim[0] & 0xF0) === 0xE0)) ? 3 : 4;
+            var missing = type - pos;
+            while (startPos < missing) {
+                if (startPos >= length) {
+                    return 0;
+                }
+                tmp = input[startPos++];
+                if ((tmp & 0xC0) !== 0x80) {
+                    startPos--;
+                    discardInterim = true;
+                    break;
+                }
+                else {
+                    this.interim[pos++] = tmp;
+                    cp <<= 6;
+                    cp |= tmp & 0x3F;
+                }
+            }
+            if (!discardInterim) {
+                if (type === 2) {
+                    if (cp < 0x80) {
+                        startPos--;
+                    }
+                    else {
+                        target[size++] = cp;
+                    }
+                }
+                else if (type === 3) {
+                    if (cp < 0x0800 || (cp >= 0xD800 && cp <= 0xDFFF)) {
+                    }
+                    else {
+                        target[size++] = cp;
+                    }
+                }
+                else {
+                    if (codepoint < 0x010000 || codepoint > 0x10FFFF) {
+                    }
+                    else {
+                        target[size++] = cp;
+                    }
+                }
+            }
+            this.interim.fill(0);
+        }
+        var fourStop = length - 4;
+        var i = startPos;
+        while (i < length) {
+            while (i < fourStop
+                && !((byte1 = input[i]) & 0x80)
+                && !((byte2 = input[i + 1]) & 0x80)
+                && !((byte3 = input[i + 2]) & 0x80)
+                && !((byte4 = input[i + 3]) & 0x80)) {
+                target[size++] = byte1;
+                target[size++] = byte2;
+                target[size++] = byte3;
+                target[size++] = byte4;
+                i += 4;
+            }
+            byte1 = input[i++];
+            if (byte1 < 0x80) {
+                target[size++] = byte1;
+            }
+            else if ((byte1 & 0xE0) === 0xC0) {
+                if (i >= length) {
+                    this.interim[0] = byte1;
+                    return size;
+                }
+                byte2 = input[i++];
+                if ((byte2 & 0xC0) !== 0x80) {
+                    i--;
+                    continue;
+                }
+                codepoint = (byte1 & 0x1F) << 6 | (byte2 & 0x3F);
+                if (codepoint < 0x80) {
+                    i--;
+                    continue;
+                }
+                target[size++] = codepoint;
+            }
+            else if ((byte1 & 0xF0) === 0xE0) {
+                if (i >= length) {
+                    this.interim[0] = byte1;
+                    return size;
+                }
+                byte2 = input[i++];
+                if ((byte2 & 0xC0) !== 0x80) {
+                    i--;
+                    continue;
+                }
+                if (i >= length) {
+                    this.interim[0] = byte1;
+                    this.interim[1] = byte2;
+                    return size;
+                }
+                byte3 = input[i++];
+                if ((byte3 & 0xC0) !== 0x80) {
+                    i--;
+                    continue;
+                }
+                codepoint = (byte1 & 0x0F) << 12 | (byte2 & 0x3F) << 6 | (byte3 & 0x3F);
+                if (codepoint < 0x0800 || (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
+                    continue;
+                }
+                target[size++] = codepoint;
+            }
+            else if ((byte1 & 0xF8) === 0xF0) {
+                if (i >= length) {
+                    this.interim[0] = byte1;
+                    return size;
+                }
+                byte2 = input[i++];
+                if ((byte2 & 0xC0) !== 0x80) {
+                    i--;
+                    continue;
+                }
+                if (i >= length) {
+                    this.interim[0] = byte1;
+                    this.interim[1] = byte2;
+                    return size;
+                }
+                byte3 = input[i++];
+                if ((byte3 & 0xC0) !== 0x80) {
+                    i--;
+                    continue;
+                }
+                if (i >= length) {
+                    this.interim[0] = byte1;
+                    this.interim[1] = byte2;
+                    this.interim[2] = byte3;
+                    return size;
+                }
+                byte4 = input[i++];
+                if ((byte4 & 0xC0) !== 0x80) {
+                    i--;
+                    continue;
+                }
+                codepoint = (byte1 & 0x07) << 18 | (byte2 & 0x3F) << 12 | (byte3 & 0x3F) << 6 | (byte4 & 0x3F);
+                if (codepoint < 0x010000 || codepoint > 0x10FFFF) {
+                    continue;
+                }
+                target[size++] = codepoint;
+            }
+            else {
+            }
+        }
+        return size;
+    };
+    return Utf8ToUtf32;
+}());
+exports.Utf8ToUtf32 = Utf8ToUtf32;
+
+},{}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var EscapeSequences_1 = require("../common/data/EscapeSequences");
@@ -5717,7 +7496,7 @@ var AltClickHandler = (function () {
         this._lines = this._terminal.buffer.lines;
         this._startCol = this._terminal.buffer.x;
         this._startRow = this._terminal.buffer.y;
-        var coordinates = this._terminal.mouseHelper.getCoords(this._mouseEvent, this._terminal.element, this._terminal.charMeasure, this._terminal.options.lineHeight, this._terminal.cols, this._terminal.rows, false);
+        var coordinates = this._terminal.mouseHelper.getCoords(this._mouseEvent, this._terminal.element, this._terminal.charMeasure, this._terminal.cols, this._terminal.rows, false);
         if (coordinates) {
             _a = coordinates.map(function (coordinate) {
                 return coordinate - 1;
@@ -5844,92 +7623,107 @@ function repeat(count, str) {
     return rpt;
 }
 
-},{"../common/data/EscapeSequences":19}],23:[function(require,module,exports){
+},{"../common/data/EscapeSequences":28}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-function prepareTextForTerminal(text) {
-    return text.replace(/\r?\n/g, '\r');
-}
-exports.prepareTextForTerminal = prepareTextForTerminal;
-function bracketTextForPaste(text, bracketedPasteMode) {
-    if (bracketedPasteMode) {
-        return '\x1b[200~' + text + '\x1b[201~';
+var AddonManager = (function () {
+    function AddonManager() {
+        this._addons = [];
     }
-    return text;
-}
-exports.bracketTextForPaste = bracketTextForPaste;
-function copyHandler(ev, term, selectionManager) {
-    if (term.browser.isMSIE) {
-        window.clipboardData.setData('Text', selectionManager.selectionText);
-    }
-    else {
-        ev.clipboardData.setData('text/plain', selectionManager.selectionText);
-    }
-    ev.preventDefault();
-}
-exports.copyHandler = copyHandler;
-function pasteHandler(ev, term) {
-    ev.stopPropagation();
-    var text;
-    var dispatchPaste = function (text) {
-        text = prepareTextForTerminal(text);
-        text = bracketTextForPaste(text, term.bracketedPasteMode);
-        term.handler(text);
-        term.textarea.value = '';
-        term.emit('paste', text);
-        term.cancel(ev);
+    AddonManager.prototype.dispose = function () {
+        for (var i = this._addons.length - 1; i >= 0; i--) {
+            this._addons[i].instance.dispose();
+        }
     };
-    if (term.browser.isMSIE) {
-        if (window.clipboardData) {
-            text = window.clipboardData.getData('Text');
-            dispatchPaste(text);
+    AddonManager.prototype.loadAddon = function (terminal, instance) {
+        var _this = this;
+        var loadedAddon = {
+            instance: instance,
+            dispose: instance.dispose,
+            isDisposed: false
+        };
+        this._addons.push(loadedAddon);
+        instance.dispose = function () { return _this._wrappedAddonDispose(loadedAddon); };
+        instance.activate(terminal);
+    };
+    AddonManager.prototype._wrappedAddonDispose = function (loadedAddon) {
+        if (loadedAddon.isDisposed) {
+            return;
         }
-    }
-    else {
-        if (ev.clipboardData) {
-            text = ev.clipboardData.getData('text/plain');
-            dispatchPaste(text);
+        var index = -1;
+        for (var i = 0; i < this._addons.length; i++) {
+            if (this._addons[i] === loadedAddon) {
+                index = i;
+                break;
+            }
         }
-    }
-}
-exports.pasteHandler = pasteHandler;
-function moveTextAreaUnderMouseCursor(ev, textarea) {
-    textarea.style.position = 'fixed';
-    textarea.style.width = '20px';
-    textarea.style.height = '20px';
-    textarea.style.left = (ev.clientX - 10) + 'px';
-    textarea.style.top = (ev.clientY - 10) + 'px';
-    textarea.style.zIndex = '1000';
-    textarea.focus();
-    setTimeout(function () {
-        textarea.style.position = null;
-        textarea.style.width = null;
-        textarea.style.height = null;
-        textarea.style.left = null;
-        textarea.style.top = null;
-        textarea.style.zIndex = null;
-    }, 200);
-}
-exports.moveTextAreaUnderMouseCursor = moveTextAreaUnderMouseCursor;
-function rightClickHandler(ev, textarea, selectionManager, shouldSelectWord) {
-    moveTextAreaUnderMouseCursor(ev, textarea);
-    if (shouldSelectWord && !selectionManager.isClickInSelection(ev)) {
-        selectionManager.selectWordAtCursor(ev);
-    }
-    textarea.value = selectionManager.selectionText;
-    textarea.select();
-}
-exports.rightClickHandler = rightClickHandler;
+        if (index === -1) {
+            throw new Error('Could not dispose an addon that has not been loaded');
+        }
+        loadedAddon.isDisposed = true;
+        loadedAddon.dispose.apply(loadedAddon.instance);
+        this._addons.splice(index, 1);
+    };
+    return AddonManager;
+}());
+exports.AddonManager = AddonManager;
 
-},{}],24:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Terminal_1 = require("../Terminal");
 var Strings = require("../Strings");
+var AddonManager_1 = require("./AddonManager");
 var Terminal = (function () {
     function Terminal(options) {
         this._core = new Terminal_1.Terminal(options);
+        this._addonManager = new AddonManager_1.AddonManager();
     }
+    Object.defineProperty(Terminal.prototype, "onCursorMove", {
+        get: function () { return this._core.onCursorMove; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onLineFeed", {
+        get: function () { return this._core.onLineFeed; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onSelectionChange", {
+        get: function () { return this._core.onSelectionChange; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onData", {
+        get: function () { return this._core.onData; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onTitleChange", {
+        get: function () { return this._core.onTitleChange; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onScroll", {
+        get: function () { return this._core.onScroll; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onKey", {
+        get: function () { return this._core.onKey; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onRender", {
+        get: function () { return this._core.onRender; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "onResize", {
+        get: function () { return this._core.onResize; },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Terminal.prototype, "element", {
         get: function () { return this._core.element; },
         enumerable: true,
@@ -5947,6 +7741,11 @@ var Terminal = (function () {
     });
     Object.defineProperty(Terminal.prototype, "cols", {
         get: function () { return this._core.cols; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Terminal.prototype, "buffer", {
+        get: function () { return new BufferApiView(this._core.buffer); },
         enumerable: true,
         configurable: true
     });
@@ -5985,6 +7784,12 @@ var Terminal = (function () {
     Terminal.prototype.attachCustomKeyEventHandler = function (customKeyEventHandler) {
         this._core.attachCustomKeyEventHandler(customKeyEventHandler);
     };
+    Terminal.prototype.addCsiHandler = function (flag, callback) {
+        return this._core.addCsiHandler(flag, callback);
+    };
+    Terminal.prototype.addOscHandler = function (ident, callback) {
+        return this._core.addOscHandler(ident, callback);
+    };
     Terminal.prototype.registerLinkMatcher = function (regex, handler, options) {
         return this._core.registerLinkMatcher(regex, handler, options);
     };
@@ -6003,8 +7808,14 @@ var Terminal = (function () {
     Terminal.prototype.hasSelection = function () {
         return this._core.hasSelection();
     };
+    Terminal.prototype.select = function (column, row, length) {
+        this._core.select(column, row, length);
+    };
     Terminal.prototype.getSelection = function () {
         return this._core.getSelection();
+    };
+    Terminal.prototype.getSelectionPosition = function () {
+        return this._core.getSelectionPosition();
     };
     Terminal.prototype.clearSelection = function () {
         this._core.clearSelection();
@@ -6016,6 +7827,7 @@ var Terminal = (function () {
         this._core.selectLines(start, end);
     };
     Terminal.prototype.dispose = function () {
+        this._addonManager.dispose();
         this._core.dispose();
     };
     Terminal.prototype.destroy = function () {
@@ -6042,6 +7854,9 @@ var Terminal = (function () {
     Terminal.prototype.write = function (data) {
         this._core.write(data);
     };
+    Terminal.prototype.writeUtf8 = function (data) {
+        this._core.writeUtf8(data);
+    };
     Terminal.prototype.getOption = function (key) {
         return this._core.getOption(key);
     };
@@ -6057,6 +7872,9 @@ var Terminal = (function () {
     Terminal.applyAddon = function (addon) {
         addon.apply(Terminal);
     };
+    Terminal.prototype.loadAddon = function (addon) {
+        return this._addonManager.loadAddon(this, addon);
+    };
     Object.defineProperty(Terminal, "strings", {
         get: function () {
             return Strings;
@@ -6067,13 +7885,89 @@ var Terminal = (function () {
     return Terminal;
 }());
 exports.Terminal = Terminal;
+var BufferApiView = (function () {
+    function BufferApiView(_buffer) {
+        this._buffer = _buffer;
+    }
+    Object.defineProperty(BufferApiView.prototype, "cursorY", {
+        get: function () { return this._buffer.y; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BufferApiView.prototype, "cursorX", {
+        get: function () { return this._buffer.x; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BufferApiView.prototype, "viewportY", {
+        get: function () { return this._buffer.ydisp; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BufferApiView.prototype, "baseY", {
+        get: function () { return this._buffer.ybase; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BufferApiView.prototype, "length", {
+        get: function () { return this._buffer.lines.length; },
+        enumerable: true,
+        configurable: true
+    });
+    BufferApiView.prototype.getLine = function (y) {
+        var line = this._buffer.lines.get(y);
+        if (!line) {
+            return undefined;
+        }
+        return new BufferLineApiView(line);
+    };
+    return BufferApiView;
+}());
+var BufferLineApiView = (function () {
+    function BufferLineApiView(_line) {
+        this._line = _line;
+    }
+    Object.defineProperty(BufferLineApiView.prototype, "isWrapped", {
+        get: function () { return this._line.isWrapped; },
+        enumerable: true,
+        configurable: true
+    });
+    BufferLineApiView.prototype.getCell = function (x) {
+        if (x < 0 || x >= this._line.length) {
+            return undefined;
+        }
+        return new BufferCellApiView(this._line, x);
+    };
+    BufferLineApiView.prototype.translateToString = function (trimRight, startColumn, endColumn) {
+        return this._line.translateToString(trimRight, startColumn, endColumn);
+    };
+    return BufferLineApiView;
+}());
+var BufferCellApiView = (function () {
+    function BufferCellApiView(_line, _x) {
+        this._line = _line;
+        this._x = _x;
+    }
+    Object.defineProperty(BufferCellApiView.prototype, "char", {
+        get: function () { return this._line.getString(this._x); },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(BufferCellApiView.prototype, "width", {
+        get: function () { return this._line.getWidth(this._x); },
+        enumerable: true,
+        configurable: true
+    });
+    return BufferCellApiView;
+}());
 
-},{"../Strings":13,"../Terminal":14}],25:[function(require,module,exports){
+},{"../Strings":16,"../Terminal":17,"./AddonManager":36}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Types_1 = require("./atlas/Types");
+var Types_1 = require("../common/Types");
+var Types_2 = require("./atlas/Types");
 var CharAtlasCache_1 = require("./atlas/CharAtlasCache");
-var Buffer_1 = require("../Buffer");
+var BufferLine_1 = require("../core/buffer/BufferLine");
 var BaseRenderLayer = (function () {
     function BaseRenderLayer(_container, id, zIndex, _alpha, _colors) {
         this._container = _container;
@@ -6120,7 +8014,7 @@ var BaseRenderLayer = (function () {
     BaseRenderLayer.prototype.onSelectionChanged = function (terminal, start, end, columnSelectMode) {
         if (columnSelectMode === void 0) { columnSelectMode = false; }
     };
-    BaseRenderLayer.prototype.onThemeChanged = function (terminal, colorSet) {
+    BaseRenderLayer.prototype.setColors = function (terminal, colorSet) {
         this._refreshCharAtlas(terminal, colorSet);
     };
     BaseRenderLayer.prototype.setTransparency = function (terminal, alpha) {
@@ -6190,45 +8084,76 @@ var BaseRenderLayer = (function () {
             this._ctx.fillRect(x * this._scaledCellWidth, y * this._scaledCellHeight, width * this._scaledCellWidth, height * this._scaledCellHeight);
         }
     };
-    BaseRenderLayer.prototype.fillCharTrueColor = function (terminal, charData, x, y) {
+    BaseRenderLayer.prototype.fillCharTrueColor = function (terminal, cell, x, y) {
         this._ctx.font = this._getFont(terminal, false, false);
-        this._ctx.textBaseline = 'top';
+        this._ctx.textBaseline = 'middle';
         this._clipRow(terminal, y);
-        this._ctx.fillText(charData[Buffer_1.CHAR_DATA_CHAR_INDEX], x * this._scaledCellWidth + this._scaledCharLeft, y * this._scaledCellHeight + this._scaledCharTop);
+        this._ctx.fillText(cell.getChars(), x * this._scaledCellWidth + this._scaledCharLeft, y * this._scaledCellHeight + this._scaledCharTop + this._scaledCharHeight / 2);
     };
-    BaseRenderLayer.prototype.drawChars = function (terminal, chars, code, width, x, y, fg, bg, bold, dim, italic) {
-        var drawInBrightColor = terminal.options.drawBoldTextInBrightColors && bold && fg < 8 && fg !== Types_1.INVERTED_DEFAULT_COLOR;
-        fg += drawInBrightColor ? 8 : 0;
-        this._currentGlyphIdentifier.chars = chars;
-        this._currentGlyphIdentifier.code = code;
-        this._currentGlyphIdentifier.bg = bg;
-        this._currentGlyphIdentifier.fg = fg;
-        this._currentGlyphIdentifier.bold = bold && terminal.options.enableBold;
-        this._currentGlyphIdentifier.dim = dim;
-        this._currentGlyphIdentifier.italic = italic;
-        var atlasDidDraw = this._charAtlas && this._charAtlas.draw(this._ctx, this._currentGlyphIdentifier, x * this._scaledCellWidth + this._scaledCharLeft, y * this._scaledCellHeight + this._scaledCharTop);
-        if (!atlasDidDraw) {
-            this._drawUncachedChars(terminal, chars, width, fg, x, y, bold && terminal.options.enableBold, dim, italic);
+    BaseRenderLayer.prototype.drawChars = function (terminal, cell, x, y) {
+        if (cell.isFgRGB() || cell.isBgRGB()) {
+            this._drawUncachedChars(terminal, cell, x, y);
+            return;
         }
-    };
-    BaseRenderLayer.prototype._drawUncachedChars = function (terminal, chars, width, fg, x, y, bold, dim, italic) {
-        this._ctx.save();
-        this._ctx.font = this._getFont(terminal, bold, italic);
-        this._ctx.textBaseline = 'top';
-        if (fg === Types_1.INVERTED_DEFAULT_COLOR) {
-            this._ctx.fillStyle = this._colors.background.css;
-        }
-        else if (fg < 256) {
-            this._ctx.fillStyle = this._colors.ansi[fg].css;
+        var fg;
+        var bg;
+        if (cell.isInverse()) {
+            fg = (cell.isBgDefault()) ? Types_2.INVERTED_DEFAULT_COLOR : cell.getBgColor();
+            bg = (cell.isFgDefault()) ? Types_2.INVERTED_DEFAULT_COLOR : cell.getFgColor();
         }
         else {
-            this._ctx.fillStyle = this._colors.foreground.css;
+            bg = (cell.isBgDefault()) ? Types_1.DEFAULT_COLOR : cell.getBgColor();
+            fg = (cell.isFgDefault()) ? Types_1.DEFAULT_COLOR : cell.getFgColor();
+        }
+        var drawInBrightColor = terminal.options.drawBoldTextInBrightColors && cell.isBold() && fg < 8 && fg !== Types_2.INVERTED_DEFAULT_COLOR;
+        fg += drawInBrightColor ? 8 : 0;
+        this._currentGlyphIdentifier.chars = cell.getChars() || BufferLine_1.WHITESPACE_CELL_CHAR;
+        this._currentGlyphIdentifier.code = cell.getCode() || BufferLine_1.WHITESPACE_CELL_CODE;
+        this._currentGlyphIdentifier.bg = bg;
+        this._currentGlyphIdentifier.fg = fg;
+        this._currentGlyphIdentifier.bold = cell.isBold() && terminal.options.enableBold;
+        this._currentGlyphIdentifier.dim = !!cell.isDim();
+        this._currentGlyphIdentifier.italic = !!cell.isItalic();
+        var atlasDidDraw = this._charAtlas && this._charAtlas.draw(this._ctx, this._currentGlyphIdentifier, x * this._scaledCellWidth + this._scaledCharLeft, y * this._scaledCellHeight + this._scaledCharTop);
+        if (!atlasDidDraw) {
+            this._drawUncachedChars(terminal, cell, x, y);
+        }
+    };
+    BaseRenderLayer.prototype._drawUncachedChars = function (terminal, cell, x, y) {
+        this._ctx.save();
+        this._ctx.font = this._getFont(terminal, cell.isBold() && terminal.options.enableBold, !!cell.isItalic());
+        this._ctx.textBaseline = 'middle';
+        if (cell.isInverse()) {
+            if (cell.isBgDefault()) {
+                this._ctx.fillStyle = this._colors.background.css;
+            }
+            else if (cell.isBgRGB()) {
+                this._ctx.fillStyle = "rgb(" + BufferLine_1.AttributeData.toColorRGB(cell.getBgColor()).join(',') + ")";
+            }
+            else {
+                this._ctx.fillStyle = this._colors.ansi[cell.getBgColor()].css;
+            }
+        }
+        else {
+            if (cell.isFgDefault()) {
+                this._ctx.fillStyle = this._colors.foreground.css;
+            }
+            else if (cell.isFgRGB()) {
+                this._ctx.fillStyle = "rgb(" + BufferLine_1.AttributeData.toColorRGB(cell.getFgColor()).join(',') + ")";
+            }
+            else {
+                var fg = cell.getFgColor();
+                if (terminal.options.drawBoldTextInBrightColors && cell.isBold() && fg < 8) {
+                    fg += 8;
+                }
+                this._ctx.fillStyle = this._colors.ansi[fg].css;
+            }
         }
         this._clipRow(terminal, y);
-        if (dim) {
-            this._ctx.globalAlpha = Types_1.DIM_OPACITY;
+        if (cell.isDim()) {
+            this._ctx.globalAlpha = Types_2.DIM_OPACITY;
         }
-        this._ctx.fillText(chars, x * this._scaledCellWidth + this._scaledCharLeft, y * this._scaledCellHeight + this._scaledCharTop);
+        this._ctx.fillText(cell.getChars(), x * this._scaledCellWidth + this._scaledCharLeft, y * this._scaledCellHeight + this._scaledCharTop + this._scaledCharHeight / 2);
         this._ctx.restore();
     };
     BaseRenderLayer.prototype._clipRow = function (terminal, y) {
@@ -6245,15 +8170,62 @@ var BaseRenderLayer = (function () {
 }());
 exports.BaseRenderLayer = BaseRenderLayer;
 
-},{"../Buffer":2,"./atlas/CharAtlasCache":35,"./atlas/Types":41}],26:[function(require,module,exports){
+},{"../common/Types":27,"../core/buffer/BufferLine":29,"./atlas/CharAtlasCache":48,"./atlas/Types":55}],39:[function(require,module,exports){
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-var Buffer_1 = require("../Buffer");
+var BufferLine_1 = require("../core/buffer/BufferLine");
+var JoinedCellData = (function (_super) {
+    __extends(JoinedCellData, _super);
+    function JoinedCellData(firstCell, chars, width) {
+        var _this = _super.call(this) || this;
+        _this.content = 0;
+        _this.combinedData = '';
+        _this.fg = firstCell.fg;
+        _this.bg = firstCell.bg;
+        _this.combinedData = chars;
+        _this._width = width;
+        return _this;
+    }
+    JoinedCellData.prototype.isCombined = function () {
+        return 2097152;
+    };
+    JoinedCellData.prototype.getWidth = function () {
+        return this._width;
+    };
+    JoinedCellData.prototype.getChars = function () {
+        return this.combinedData;
+    };
+    JoinedCellData.prototype.getCode = function () {
+        return 0x1FFFFF;
+    };
+    JoinedCellData.prototype.setFromCharData = function (value) {
+        throw new Error('not implemented');
+    };
+    JoinedCellData.prototype.getAsCharData = function () {
+        return [this.fg, this.getChars(), this.getWidth(), this.getCode()];
+    };
+    return JoinedCellData;
+}(BufferLine_1.AttributeData));
+exports.JoinedCellData = JoinedCellData;
 var CharacterJoinerRegistry = (function () {
     function CharacterJoinerRegistry(_terminal) {
         this._terminal = _terminal;
         this._characterJoiners = [];
         this._nextCharacterJoinerId = 0;
+        this._workCell = new BufferLine_1.CellData();
     }
     CharacterJoinerRegistry.prototype.registerCharacterJoiner = function (handler) {
         var joiner = {
@@ -6281,20 +8253,18 @@ var CharacterJoinerRegistry = (function () {
             return [];
         }
         var ranges = [];
-        var lineStr = this._terminal.buffer.translateBufferLineToString(row, true);
+        var lineStr = line.translateToString(true);
         var rangeStartColumn = 0;
         var currentStringIndex = 0;
         var rangeStartStringIndex = 0;
-        var rangeAttr = line.get(0)[Buffer_1.CHAR_DATA_ATTR_INDEX] >> 9;
-        for (var x = 0; x < this._terminal.cols; x++) {
-            var charData = line.get(x);
-            var chars = charData[Buffer_1.CHAR_DATA_CHAR_INDEX];
-            var width = charData[Buffer_1.CHAR_DATA_WIDTH_INDEX];
-            var attr = charData[Buffer_1.CHAR_DATA_ATTR_INDEX] >> 9;
-            if (width === 0) {
+        var rangeAttrFG = line.getFg(0);
+        var rangeAttrBG = line.getBg(0);
+        for (var x = 0; x < line.getTrimmedLength(); x++) {
+            line.loadCell(x, this._workCell);
+            if (this._workCell.getWidth() === 0) {
                 continue;
             }
-            if (attr !== rangeAttr) {
+            if (this._workCell.fg !== rangeAttrFG || this._workCell.bg !== rangeAttrBG) {
                 if (x - rangeStartColumn > 1) {
                     var joinedRanges = this._getJoinedRanges(lineStr, rangeStartStringIndex, currentStringIndex, line, rangeStartColumn);
                     for (var i = 0; i < joinedRanges.length; i++) {
@@ -6303,9 +8273,10 @@ var CharacterJoinerRegistry = (function () {
                 }
                 rangeStartColumn = x;
                 rangeStartStringIndex = currentStringIndex;
-                rangeAttr = attr;
+                rangeAttrFG = this._workCell.fg;
+                rangeAttrBG = this._workCell.bg;
             }
-            currentStringIndex += chars.length;
+            currentStringIndex += this._workCell.getChars().length || BufferLine_1.WHITESPACE_CELL_CHAR.length;
         }
         if (this._terminal.cols - rangeStartColumn > 1) {
             var joinedRanges = this._getJoinedRanges(lineStr, rangeStartStringIndex, currentStringIndex, line, rangeStartColumn);
@@ -6336,9 +8307,8 @@ var CharacterJoinerRegistry = (function () {
             return;
         }
         for (var x = startCol; x < this._terminal.cols; x++) {
-            var charData = line.get(x);
-            var width = charData[Buffer_1.CHAR_DATA_WIDTH_INDEX];
-            var length_1 = charData[Buffer_1.CHAR_DATA_CHAR_INDEX].length;
+            var width = line.getWidth(x);
+            var length_1 = line.getString(x).length || BufferLine_1.WHITESPACE_CELL_CHAR.length;
             if (width === 0) {
                 continue;
             }
@@ -6412,135 +8382,7 @@ var CharacterJoinerRegistry = (function () {
 }());
 exports.CharacterJoinerRegistry = CharacterJoinerRegistry;
 
-},{"../Buffer":2}],27:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var DEFAULT_FOREGROUND = fromHex('#ffffff');
-var DEFAULT_BACKGROUND = fromHex('#000000');
-var DEFAULT_CURSOR = fromHex('#ffffff');
-var DEFAULT_CURSOR_ACCENT = fromHex('#000000');
-var DEFAULT_SELECTION = {
-    css: 'rgba(255, 255, 255, 0.3)',
-    rgba: 0xFFFFFF77
-};
-exports.DEFAULT_ANSI_COLORS = (function () {
-    var colors = [
-        fromHex('#2e3436'),
-        fromHex('#cc0000'),
-        fromHex('#4e9a06'),
-        fromHex('#c4a000'),
-        fromHex('#3465a4'),
-        fromHex('#75507b'),
-        fromHex('#06989a'),
-        fromHex('#d3d7cf'),
-        fromHex('#555753'),
-        fromHex('#ef2929'),
-        fromHex('#8ae234'),
-        fromHex('#fce94f'),
-        fromHex('#729fcf'),
-        fromHex('#ad7fa8'),
-        fromHex('#34e2e2'),
-        fromHex('#eeeeec')
-    ];
-    var v = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
-    for (var i = 0; i < 216; i++) {
-        var r = v[(i / 36) % 6 | 0];
-        var g = v[(i / 6) % 6 | 0];
-        var b = v[i % 6];
-        colors.push({
-            css: "#" + toPaddedHex(r) + toPaddedHex(g) + toPaddedHex(b),
-            rgba: ((r << 24) | (g << 16) | (b << 8) | 0xFF) >>> 0
-        });
-    }
-    for (var i = 0; i < 24; i++) {
-        var c = 8 + i * 10;
-        var ch = toPaddedHex(c);
-        colors.push({
-            css: "#" + ch + ch + ch,
-            rgba: ((c << 24) | (c << 16) | (c << 8) | 0xFF) >>> 0
-        });
-    }
-    return colors;
-})();
-function fromHex(css) {
-    return {
-        css: css,
-        rgba: parseInt(css.slice(1), 16) << 8 | 0xFF
-    };
-}
-function toPaddedHex(c) {
-    var s = c.toString(16);
-    return s.length < 2 ? '0' + s : s;
-}
-var ColorManager = (function () {
-    function ColorManager(document, allowTransparency) {
-        this.allowTransparency = allowTransparency;
-        var canvas = document.createElement('canvas');
-        canvas.width = 1;
-        canvas.height = 1;
-        this._ctx = canvas.getContext('2d');
-        this._ctx.globalCompositeOperation = 'copy';
-        this._litmusColor = this._ctx.createLinearGradient(0, 0, 1, 1);
-        this.colors = {
-            foreground: DEFAULT_FOREGROUND,
-            background: DEFAULT_BACKGROUND,
-            cursor: DEFAULT_CURSOR,
-            cursorAccent: DEFAULT_CURSOR_ACCENT,
-            selection: DEFAULT_SELECTION,
-            ansi: exports.DEFAULT_ANSI_COLORS.slice()
-        };
-    }
-    ColorManager.prototype.setTheme = function (theme) {
-        this.colors.foreground = this._parseColor(theme.foreground, DEFAULT_FOREGROUND);
-        this.colors.background = this._parseColor(theme.background, DEFAULT_BACKGROUND);
-        this.colors.cursor = this._parseColor(theme.cursor, DEFAULT_CURSOR, true);
-        this.colors.cursorAccent = this._parseColor(theme.cursorAccent, DEFAULT_CURSOR_ACCENT, true);
-        this.colors.selection = this._parseColor(theme.selection, DEFAULT_SELECTION, true);
-        this.colors.ansi[0] = this._parseColor(theme.black, exports.DEFAULT_ANSI_COLORS[0]);
-        this.colors.ansi[1] = this._parseColor(theme.red, exports.DEFAULT_ANSI_COLORS[1]);
-        this.colors.ansi[2] = this._parseColor(theme.green, exports.DEFAULT_ANSI_COLORS[2]);
-        this.colors.ansi[3] = this._parseColor(theme.yellow, exports.DEFAULT_ANSI_COLORS[3]);
-        this.colors.ansi[4] = this._parseColor(theme.blue, exports.DEFAULT_ANSI_COLORS[4]);
-        this.colors.ansi[5] = this._parseColor(theme.magenta, exports.DEFAULT_ANSI_COLORS[5]);
-        this.colors.ansi[6] = this._parseColor(theme.cyan, exports.DEFAULT_ANSI_COLORS[6]);
-        this.colors.ansi[7] = this._parseColor(theme.white, exports.DEFAULT_ANSI_COLORS[7]);
-        this.colors.ansi[8] = this._parseColor(theme.brightBlack, exports.DEFAULT_ANSI_COLORS[8]);
-        this.colors.ansi[9] = this._parseColor(theme.brightRed, exports.DEFAULT_ANSI_COLORS[9]);
-        this.colors.ansi[10] = this._parseColor(theme.brightGreen, exports.DEFAULT_ANSI_COLORS[10]);
-        this.colors.ansi[11] = this._parseColor(theme.brightYellow, exports.DEFAULT_ANSI_COLORS[11]);
-        this.colors.ansi[12] = this._parseColor(theme.brightBlue, exports.DEFAULT_ANSI_COLORS[12]);
-        this.colors.ansi[13] = this._parseColor(theme.brightMagenta, exports.DEFAULT_ANSI_COLORS[13]);
-        this.colors.ansi[14] = this._parseColor(theme.brightCyan, exports.DEFAULT_ANSI_COLORS[14]);
-        this.colors.ansi[15] = this._parseColor(theme.brightWhite, exports.DEFAULT_ANSI_COLORS[15]);
-    };
-    ColorManager.prototype._parseColor = function (css, fallback, allowTransparency) {
-        if (allowTransparency === void 0) { allowTransparency = this.allowTransparency; }
-        if (!css) {
-            return fallback;
-        }
-        this._ctx.fillStyle = this._litmusColor;
-        this._ctx.fillStyle = css;
-        if (typeof this._ctx.fillStyle !== 'string') {
-            console.warn("Color: " + css + " is invalid using fallback " + fallback.css);
-            return fallback;
-        }
-        this._ctx.fillRect(0, 0, 1, 1);
-        var data = this._ctx.getImageData(0, 0, 1, 1).data;
-        if (!allowTransparency && data[3] !== 0xFF) {
-            console.warn("Color: " + css + " is using transparency, but allowTransparency is false. " +
-                ("Using fallback " + fallback.css + "."));
-            return fallback;
-        }
-        return {
-            css: css,
-            rgba: (data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3]) >>> 0
-        };
-    };
-    return ColorManager;
-}());
-exports.ColorManager = ColorManager;
-
-},{}],28:[function(require,module,exports){
+},{"../core/buffer/BufferLine":29}],40:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -6548,7 +8390,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -6556,13 +8398,14 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var Buffer_1 = require("../Buffer");
 var BaseRenderLayer_1 = require("./BaseRenderLayer");
+var BufferLine_1 = require("../core/buffer/BufferLine");
 var BLINK_INTERVAL = 600;
 var CursorRenderLayer = (function (_super) {
     __extends(CursorRenderLayer, _super);
     function CursorRenderLayer(container, zIndex, colors) {
         var _this = _super.call(this, container, 'cursor', zIndex, true, colors) || this;
+        _this._cell = new BufferLine_1.CellData();
         _this._state = {
             x: null,
             y: null,
@@ -6650,21 +8493,21 @@ var CursorRenderLayer = (function (_super) {
             this._clearCursor();
             return;
         }
-        var charData = terminal.buffer.lines.get(cursorY).get(terminal.buffer.x);
-        if (!charData) {
+        terminal.buffer.lines.get(cursorY).loadCell(terminal.buffer.x, this._cell);
+        if (this._cell.content === undefined) {
             return;
         }
         if (!terminal.isFocused) {
             this._clearCursor();
             this._ctx.save();
             this._ctx.fillStyle = this._colors.cursor.css;
-            this._renderBlurCursor(terminal, terminal.buffer.x, viewportRelativeCursorY, charData);
+            this._renderBlurCursor(terminal, terminal.buffer.x, viewportRelativeCursorY, this._cell);
             this._ctx.restore();
             this._state.x = terminal.buffer.x;
             this._state.y = viewportRelativeCursorY;
             this._state.isFocused = false;
             this._state.style = terminal.options.cursorStyle;
-            this._state.width = charData[Buffer_1.CHAR_DATA_WIDTH_INDEX];
+            this._state.width = this._cell.getWidth();
             return;
         }
         if (this._cursorBlinkStateManager && !this._cursorBlinkStateManager.isCursorVisible) {
@@ -6676,19 +8519,19 @@ var CursorRenderLayer = (function (_super) {
                 this._state.y === viewportRelativeCursorY &&
                 this._state.isFocused === terminal.isFocused &&
                 this._state.style === terminal.options.cursorStyle &&
-                this._state.width === charData[Buffer_1.CHAR_DATA_WIDTH_INDEX]) {
+                this._state.width === this._cell.getWidth()) {
                 return;
             }
             this._clearCursor();
         }
         this._ctx.save();
-        this._cursorRenderers[terminal.options.cursorStyle || 'block'](terminal, terminal.buffer.x, viewportRelativeCursorY, charData);
+        this._cursorRenderers[terminal.options.cursorStyle || 'block'](terminal, terminal.buffer.x, viewportRelativeCursorY, this._cell);
         this._ctx.restore();
         this._state.x = terminal.buffer.x;
         this._state.y = viewportRelativeCursorY;
         this._state.isFocused = false;
         this._state.style = terminal.options.cursorStyle;
-        this._state.width = charData[Buffer_1.CHAR_DATA_WIDTH_INDEX];
+        this._state.width = this._cell.getWidth();
     };
     CursorRenderLayer.prototype._clearCursor = function () {
         if (this._state) {
@@ -6702,30 +8545,30 @@ var CursorRenderLayer = (function (_super) {
             };
         }
     };
-    CursorRenderLayer.prototype._renderBarCursor = function (terminal, x, y, charData) {
+    CursorRenderLayer.prototype._renderBarCursor = function (terminal, x, y, cell) {
         this._ctx.save();
         this._ctx.fillStyle = this._colors.cursor.css;
         this.fillLeftLineAtCell(x, y);
         this._ctx.restore();
     };
-    CursorRenderLayer.prototype._renderBlockCursor = function (terminal, x, y, charData) {
+    CursorRenderLayer.prototype._renderBlockCursor = function (terminal, x, y, cell) {
         this._ctx.save();
         this._ctx.fillStyle = this._colors.cursor.css;
-        this.fillCells(x, y, charData[Buffer_1.CHAR_DATA_WIDTH_INDEX], 1);
+        this.fillCells(x, y, cell.getWidth(), 1);
         this._ctx.fillStyle = this._colors.cursorAccent.css;
-        this.fillCharTrueColor(terminal, charData, x, y);
+        this.fillCharTrueColor(terminal, cell, x, y);
         this._ctx.restore();
     };
-    CursorRenderLayer.prototype._renderUnderlineCursor = function (terminal, x, y, charData) {
+    CursorRenderLayer.prototype._renderUnderlineCursor = function (terminal, x, y, cell) {
         this._ctx.save();
         this._ctx.fillStyle = this._colors.cursor.css;
         this.fillBottomLineAtCells(x, y);
         this._ctx.restore();
     };
-    CursorRenderLayer.prototype._renderBlurCursor = function (terminal, x, y, charData) {
+    CursorRenderLayer.prototype._renderBlurCursor = function (terminal, x, y, cell) {
         this._ctx.save();
         this._ctx.strokeStyle = this._colors.cursor.css;
-        this.strokeRectAtCell(x, y, charData[Buffer_1.CHAR_DATA_WIDTH_INDEX], 1);
+        this.strokeRectAtCell(x, y, cell.getWidth(), 1);
         this._ctx.restore();
     };
     return CursorRenderLayer;
@@ -6830,7 +8673,7 @@ var CursorBlinkStateManager = (function () {
     return CursorBlinkStateManager;
 }());
 
-},{"../Buffer":2,"./BaseRenderLayer":25}],29:[function(require,module,exports){
+},{"../core/buffer/BufferLine":29,"./BaseRenderLayer":38}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var GridCache = (function () {
@@ -6860,7 +8703,7 @@ var GridCache = (function () {
 }());
 exports.GridCache = GridCache;
 
-},{}],30:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -6868,7 +8711,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -6878,13 +8721,14 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var BaseRenderLayer_1 = require("./BaseRenderLayer");
 var Types_1 = require("./atlas/Types");
+var CharAtlasUtils_1 = require("./atlas/CharAtlasUtils");
 var LinkRenderLayer = (function (_super) {
     __extends(LinkRenderLayer, _super);
     function LinkRenderLayer(container, zIndex, colors, terminal) {
         var _this = _super.call(this, container, 'link', zIndex, true, colors) || this;
         _this._state = null;
-        terminal.linkifier.on("linkhover", function (e) { return _this._onLinkHover(e); });
-        terminal.linkifier.on("linkleave", function (e) { return _this._onLinkLeave(e); });
+        terminal.linkifier.onLinkHover(function (e) { return _this._onLinkHover(e); });
+        terminal.linkifier.onLinkLeave(function (e) { return _this._onLinkLeave(e); });
         return _this;
     }
     LinkRenderLayer.prototype.resize = function (terminal, dim) {
@@ -6909,7 +8753,7 @@ var LinkRenderLayer = (function (_super) {
         if (e.fg === Types_1.INVERTED_DEFAULT_COLOR) {
             this._ctx.fillStyle = this._colors.background.css;
         }
-        else if (e.fg < 256) {
+        else if (CharAtlasUtils_1.is256Color(e.fg)) {
             this._ctx.fillStyle = this._colors.ansi[e.fg].css;
         }
         else {
@@ -6934,7 +8778,7 @@ var LinkRenderLayer = (function (_super) {
 }(BaseRenderLayer_1.BaseRenderLayer));
 exports.LinkRenderLayer = LinkRenderLayer;
 
-},{"./BaseRenderLayer":25,"./atlas/Types":41}],31:[function(require,module,exports){
+},{"./BaseRenderLayer":38,"./atlas/CharAtlasUtils":50,"./atlas/Types":55}],43:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -6942,7 +8786,160 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var RenderDebouncer_1 = require("../ui/RenderDebouncer");
+var EventEmitter2_1 = require("../common/EventEmitter2");
+var Lifecycle_1 = require("../common/Lifecycle");
+var ScreenDprMonitor_1 = require("../ui/ScreenDprMonitor");
+var Lifecycle_2 = require("../ui/Lifecycle");
+var RenderCoordinator = (function (_super) {
+    __extends(RenderCoordinator, _super);
+    function RenderCoordinator(_renderer, _rowCount, screenElement) {
+        var _this = _super.call(this) || this;
+        _this._renderer = _renderer;
+        _this._rowCount = _rowCount;
+        _this._isPaused = false;
+        _this._needsFullRefresh = false;
+        _this._canvasWidth = 0;
+        _this._canvasHeight = 0;
+        _this._onDimensionsChange = new EventEmitter2_1.EventEmitter2();
+        _this._onRender = new EventEmitter2_1.EventEmitter2();
+        _this._onRefreshRequest = new EventEmitter2_1.EventEmitter2();
+        _this._renderDebouncer = new RenderDebouncer_1.RenderDebouncer(function (start, end) { return _this._renderRows(start, end); });
+        _this.register(_this._renderDebouncer);
+        _this._screenDprMonitor = new ScreenDprMonitor_1.ScreenDprMonitor();
+        _this._screenDprMonitor.setListener(function () { return _this._renderer.onDevicePixelRatioChange(); });
+        _this.register(_this._screenDprMonitor);
+        _this.register(Lifecycle_2.addDisposableDomListener(window, 'resize', function () { return _this._renderer.onDevicePixelRatioChange(); }));
+        if ('IntersectionObserver' in window) {
+            var observer_1 = new IntersectionObserver(function (e) { return _this._onIntersectionChange(e[e.length - 1]); }, { threshold: 0 });
+            observer_1.observe(screenElement);
+            _this.register({ dispose: function () { return observer_1.disconnect(); } });
+        }
+        return _this;
     }
+    Object.defineProperty(RenderCoordinator.prototype, "onDimensionsChange", {
+        get: function () { return this._onDimensionsChange.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(RenderCoordinator.prototype, "onRender", {
+        get: function () { return this._onRender.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(RenderCoordinator.prototype, "onRefreshRequest", {
+        get: function () { return this._onRefreshRequest.event; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(RenderCoordinator.prototype, "dimensions", {
+        get: function () { return this._renderer.dimensions; },
+        enumerable: true,
+        configurable: true
+    });
+    RenderCoordinator.prototype._onIntersectionChange = function (entry) {
+        this._isPaused = entry.intersectionRatio === 0;
+        if (!this._isPaused && this._needsFullRefresh) {
+            this.refreshRows(0, this._rowCount - 1);
+            this._needsFullRefresh = false;
+        }
+    };
+    RenderCoordinator.prototype.refreshRows = function (start, end) {
+        if (this._isPaused) {
+            this._needsFullRefresh = true;
+            return;
+        }
+        this._renderDebouncer.refresh(start, end, this._rowCount);
+    };
+    RenderCoordinator.prototype._renderRows = function (start, end) {
+        this._renderer.renderRows(start, end);
+        this._onRender.fire({ start: start, end: end });
+    };
+    RenderCoordinator.prototype.resize = function (cols, rows) {
+        this._rowCount = rows;
+        this._fireOnCanvasResize();
+    };
+    RenderCoordinator.prototype.changeOptions = function () {
+        this._renderer.onOptionsChanged();
+        this._fireOnCanvasResize();
+    };
+    RenderCoordinator.prototype._fireOnCanvasResize = function () {
+        if (this._renderer.dimensions.canvasWidth === this._canvasWidth && this._renderer.dimensions.canvasHeight === this._canvasHeight) {
+            return;
+        }
+        this._onDimensionsChange.fire(this._renderer.dimensions);
+    };
+    RenderCoordinator.prototype.setRenderer = function (renderer) {
+        this._renderer.dispose();
+        this._renderer = renderer;
+    };
+    RenderCoordinator.prototype._fullRefresh = function () {
+        if (this._isPaused) {
+            this._needsFullRefresh = true;
+        }
+        else {
+            this.refreshRows(0, this._rowCount);
+        }
+    };
+    RenderCoordinator.prototype.setColors = function (colors) {
+        this._renderer.setColors(colors);
+        this._fullRefresh();
+    };
+    RenderCoordinator.prototype.onDevicePixelRatioChange = function () {
+        this._renderer.onDevicePixelRatioChange();
+    };
+    RenderCoordinator.prototype.onResize = function (cols, rows) {
+        this._renderer.onResize(cols, rows);
+        this._fullRefresh();
+    };
+    RenderCoordinator.prototype.onCharSizeChanged = function () {
+        this._renderer.onCharSizeChanged();
+    };
+    RenderCoordinator.prototype.onBlur = function () {
+        this._renderer.onBlur();
+    };
+    RenderCoordinator.prototype.onFocus = function () {
+        this._renderer.onFocus();
+    };
+    RenderCoordinator.prototype.onSelectionChanged = function (start, end, columnSelectMode) {
+        this._renderer.onSelectionChanged(start, end, columnSelectMode);
+    };
+    RenderCoordinator.prototype.onCursorMove = function () {
+        this._renderer.onCursorMove();
+    };
+    RenderCoordinator.prototype.onOptionsChanged = function () {
+        this._renderer.onOptionsChanged();
+    };
+    RenderCoordinator.prototype.clear = function () {
+        this._renderer.clear();
+    };
+    RenderCoordinator.prototype.registerCharacterJoiner = function (handler) {
+        return this._renderer.registerCharacterJoiner(handler);
+    };
+    RenderCoordinator.prototype.deregisterCharacterJoiner = function (joinerId) {
+        return this._renderer.deregisterCharacterJoiner(joinerId);
+    };
+    return RenderCoordinator;
+}(Lifecycle_1.Disposable));
+exports.RenderCoordinator = RenderCoordinator;
+
+},{"../common/EventEmitter2":23,"../common/Lifecycle":24,"../ui/Lifecycle":59,"../ui/RenderDebouncer":60,"../ui/ScreenDprMonitor":61}],44:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -6953,30 +8950,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var TextRenderLayer_1 = require("./TextRenderLayer");
 var SelectionRenderLayer_1 = require("./SelectionRenderLayer");
 var CursorRenderLayer_1 = require("./CursorRenderLayer");
-var ColorManager_1 = require("./ColorManager");
 var LinkRenderLayer_1 = require("./LinkRenderLayer");
-var EventEmitter_1 = require("../common/EventEmitter");
-var RenderDebouncer_1 = require("../ui/RenderDebouncer");
-var ScreenDprMonitor_1 = require("../ui/ScreenDprMonitor");
 var CharacterJoinerRegistry_1 = require("../renderer/CharacterJoinerRegistry");
+var Lifecycle_1 = require("../common/Lifecycle");
 var Renderer = (function (_super) {
     __extends(Renderer, _super);
-    function Renderer(_terminal, theme) {
+    function Renderer(_terminal, _colors) {
         var _this = _super.call(this) || this;
         _this._terminal = _terminal;
-        _this._isPaused = false;
-        _this._needsFullRefresh = false;
+        _this._colors = _colors;
         var allowTransparency = _this._terminal.options.allowTransparency;
-        _this.colorManager = new ColorManager_1.ColorManager(document, allowTransparency);
         _this._characterJoinerRegistry = new CharacterJoinerRegistry_1.CharacterJoinerRegistry(_terminal);
-        if (theme) {
-            _this.colorManager.setTheme(theme);
-        }
         _this._renderLayers = [
-            new TextRenderLayer_1.TextRenderLayer(_this._terminal.screenElement, 0, _this.colorManager.colors, _this._characterJoinerRegistry, allowTransparency),
-            new SelectionRenderLayer_1.SelectionRenderLayer(_this._terminal.screenElement, 1, _this.colorManager.colors),
-            new LinkRenderLayer_1.LinkRenderLayer(_this._terminal.screenElement, 2, _this.colorManager.colors, _this._terminal),
-            new CursorRenderLayer_1.CursorRenderLayer(_this._terminal.screenElement, 3, _this.colorManager.colors)
+            new TextRenderLayer_1.TextRenderLayer(_this._terminal.screenElement, 0, _this._colors, _this._characterJoinerRegistry, allowTransparency),
+            new SelectionRenderLayer_1.SelectionRenderLayer(_this._terminal.screenElement, 1, _this._colors),
+            new LinkRenderLayer_1.LinkRenderLayer(_this._terminal.screenElement, 2, _this._colors, _this._terminal),
+            new CursorRenderLayer_1.CursorRenderLayer(_this._terminal.screenElement, 3, _this._colors)
         ];
         _this.dimensions = {
             scaledCharWidth: null,
@@ -6995,64 +8984,32 @@ var Renderer = (function (_super) {
         _this._devicePixelRatio = window.devicePixelRatio;
         _this._updateDimensions();
         _this.onOptionsChanged();
-        _this._renderDebouncer = new RenderDebouncer_1.RenderDebouncer(_this._terminal, _this._renderRows.bind(_this));
-        _this._screenDprMonitor = new ScreenDprMonitor_1.ScreenDprMonitor();
-        _this._screenDprMonitor.setListener(function () { return _this.onWindowResize(window.devicePixelRatio); });
-        _this.register(_this._screenDprMonitor);
-        if ('IntersectionObserver' in window) {
-            var observer_1 = new IntersectionObserver(function (e) { return _this.onIntersectionChange(e[0]); }, { threshold: 0 });
-            observer_1.observe(_this._terminal.element);
-            _this.register({ dispose: function () { return observer_1.disconnect(); } });
-        }
         return _this;
     }
     Renderer.prototype.dispose = function () {
         _super.prototype.dispose.call(this);
         this._renderLayers.forEach(function (l) { return l.dispose(); });
     };
-    Renderer.prototype.onIntersectionChange = function (entry) {
-        this._isPaused = entry.intersectionRatio === 0;
-        if (!this._isPaused && this._needsFullRefresh) {
-            this._terminal.refresh(0, this._terminal.rows - 1);
-        }
-    };
-    Renderer.prototype.onWindowResize = function (devicePixelRatio) {
-        if (this._devicePixelRatio !== devicePixelRatio) {
-            this._devicePixelRatio = devicePixelRatio;
+    Renderer.prototype.onDevicePixelRatioChange = function () {
+        if (this._devicePixelRatio !== window.devicePixelRatio) {
+            this._devicePixelRatio = window.devicePixelRatio;
             this.onResize(this._terminal.cols, this._terminal.rows);
         }
     };
-    Renderer.prototype.setTheme = function (theme) {
+    Renderer.prototype.setColors = function (colors) {
         var _this = this;
-        this.colorManager.setTheme(theme);
+        this._colors = colors;
         this._renderLayers.forEach(function (l) {
-            l.onThemeChanged(_this._terminal, _this.colorManager.colors);
+            l.setColors(_this._terminal, _this._colors);
             l.reset(_this._terminal);
         });
-        if (this._isPaused) {
-            this._needsFullRefresh = true;
-        }
-        else {
-            this._terminal.refresh(0, this._terminal.rows - 1);
-        }
-        return this.colorManager.colors;
     };
     Renderer.prototype.onResize = function (cols, rows) {
         var _this = this;
         this._updateDimensions();
         this._renderLayers.forEach(function (l) { return l.resize(_this._terminal, _this.dimensions); });
-        if (this._isPaused) {
-            this._needsFullRefresh = true;
-        }
-        else {
-            this._terminal.refresh(0, this._terminal.rows - 1);
-        }
         this._terminal.screenElement.style.width = this.dimensions.canvasWidth + "px";
         this._terminal.screenElement.style.height = this.dimensions.canvasHeight + "px";
-        this.emit('resize', {
-            width: this.dimensions.canvasWidth,
-            height: this.dimensions.canvasHeight
-        });
     };
     Renderer.prototype.onCharSizeChanged = function () {
         this.onResize(this._terminal.cols, this._terminal.rows);
@@ -7076,7 +9033,6 @@ var Renderer = (function (_super) {
     };
     Renderer.prototype.onOptionsChanged = function () {
         var _this = this;
-        this.colorManager.allowTransparency = this._terminal.options.allowTransparency;
         this._runOperation(function (l) { return l.onOptionsChanged(_this._terminal); });
     };
     Renderer.prototype.clear = function () {
@@ -7084,24 +9040,11 @@ var Renderer = (function (_super) {
         this._runOperation(function (l) { return l.reset(_this._terminal); });
     };
     Renderer.prototype._runOperation = function (operation) {
-        if (this._isPaused) {
-            this._needsFullRefresh = true;
-        }
-        else {
-            this._renderLayers.forEach(function (l) { return operation(l); });
-        }
+        this._renderLayers.forEach(function (l) { return operation(l); });
     };
-    Renderer.prototype.refreshRows = function (start, end) {
-        if (this._isPaused) {
-            this._needsFullRefresh = true;
-            return;
-        }
-        this._renderDebouncer.refresh(start, end);
-    };
-    Renderer.prototype._renderRows = function (start, end) {
+    Renderer.prototype.renderRows = function (start, end) {
         var _this = this;
         this._renderLayers.forEach(function (l) { return l.onGridChanged(_this._terminal, start, end); });
-        this._terminal.emit('refresh', { start: start, end: end });
     };
     Renderer.prototype._updateDimensions = function () {
         if (!this._terminal.charMeasure.width || !this._terminal.charMeasure.height) {
@@ -7127,10 +9070,10 @@ var Renderer = (function (_super) {
         return this._characterJoinerRegistry.deregisterCharacterJoiner(joinerId);
     };
     return Renderer;
-}(EventEmitter_1.EventEmitter));
+}(Lifecycle_1.Disposable));
 exports.Renderer = Renderer;
 
-},{"../common/EventEmitter":17,"../renderer/CharacterJoinerRegistry":26,"../ui/RenderDebouncer":50,"../ui/ScreenDprMonitor":51,"./ColorManager":27,"./CursorRenderLayer":28,"./LinkRenderLayer":30,"./SelectionRenderLayer":32,"./TextRenderLayer":33}],32:[function(require,module,exports){
+},{"../common/Lifecycle":24,"../renderer/CharacterJoinerRegistry":39,"./CursorRenderLayer":40,"./LinkRenderLayer":42,"./SelectionRenderLayer":45,"./TextRenderLayer":46}],45:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -7138,7 +9081,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -7178,6 +9121,7 @@ var SelectionRenderLayer = (function (_super) {
         }
         this.clearAll();
         if (!start || !end) {
+            this._clearState();
             return;
         }
         var viewportStartRow = start[1] - terminal.buffer.ydisp;
@@ -7226,7 +9170,7 @@ var SelectionRenderLayer = (function (_super) {
 }(BaseRenderLayer_1.BaseRenderLayer));
 exports.SelectionRenderLayer = SelectionRenderLayer;
 
-},{"./BaseRenderLayer":25}],33:[function(require,module,exports){
+},{"./BaseRenderLayer":38}],46:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -7234,7 +9178,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -7242,15 +9186,16 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var Buffer_1 = require("../Buffer");
-var Types_1 = require("./atlas/Types");
 var GridCache_1 = require("./GridCache");
 var BaseRenderLayer_1 = require("./BaseRenderLayer");
+var BufferLine_1 = require("../core/buffer/BufferLine");
+var CharacterJoinerRegistry_1 = require("./CharacterJoinerRegistry");
 var TextRenderLayer = (function (_super) {
     __extends(TextRenderLayer, _super);
     function TextRenderLayer(container, zIndex, colors, characterJoinerRegistry, alpha) {
         var _this = _super.call(this, container, 'text', zIndex, alpha, colors) || this;
         _this._characterOverlapCache = {};
+        _this._workCell = new BufferLine_1.CellData();
         _this._state = new GridCache_1.GridCache();
         _this._characterJoinerRegistry = characterJoinerRegistry;
         return _this;
@@ -7276,44 +9221,26 @@ var TextRenderLayer = (function (_super) {
             var line = terminal.buffer.lines.get(row);
             var joinedRanges = joinerRegistry ? joinerRegistry.getJoinedCharacters(row) : [];
             for (var x = 0; x < terminal.cols; x++) {
-                var charData = line.get(x);
-                var code = charData[Buffer_1.CHAR_DATA_CODE_INDEX];
-                var chars = charData[Buffer_1.CHAR_DATA_CHAR_INDEX];
-                var attr = charData[Buffer_1.CHAR_DATA_ATTR_INDEX];
-                var width = charData[Buffer_1.CHAR_DATA_WIDTH_INDEX];
+                line.loadCell(x, this._workCell);
+                var cell = this._workCell;
                 var isJoined = false;
                 var lastCharX = x;
-                if (width === 0) {
+                if (cell.getWidth() === 0) {
                     continue;
                 }
                 if (joinedRanges.length > 0 && x === joinedRanges[0][0]) {
                     isJoined = true;
                     var range = joinedRanges.shift();
-                    chars = terminal.buffer.translateBufferLineToString(row, true, range[0], range[1]);
-                    width = range[1] - range[0];
-                    code = Infinity;
+                    cell = new CharacterJoinerRegistry_1.JoinedCellData(this._workCell, line.translateToString(true, range[0], range[1]), range[1] - range[0]);
                     lastCharX = range[1] - 1;
                 }
-                if (!isJoined && this._isOverlapping(charData)) {
-                    if (lastCharX < line.length - 1 && line.get(lastCharX + 1)[Buffer_1.CHAR_DATA_CODE_INDEX] === Buffer_1.NULL_CELL_CODE) {
-                        width = 2;
+                if (!isJoined && this._isOverlapping(cell)) {
+                    if (lastCharX < line.length - 1 && line.getCodePoint(lastCharX + 1) === BufferLine_1.NULL_CELL_CODE) {
+                        cell.content &= ~12582912;
+                        cell.content |= 2 << 22;
                     }
                 }
-                var flags = attr >> 18;
-                var bg = attr & 0x1ff;
-                var fg = (attr >> 9) & 0x1ff;
-                if (flags & 8) {
-                    var temp = bg;
-                    bg = fg;
-                    fg = temp;
-                    if (fg === 256) {
-                        fg = Types_1.INVERTED_DEFAULT_COLOR;
-                    }
-                    if (bg === 257) {
-                        bg = Types_1.INVERTED_DEFAULT_COLOR;
-                    }
-                }
-                callback(code, chars, width, x, y, fg, bg, flags);
+                callback(cell, x, y);
                 x = lastCharX;
             }
         }
@@ -7326,13 +9253,24 @@ var TextRenderLayer = (function (_super) {
         var startY = 0;
         var prevFillStyle = null;
         ctx.save();
-        this._forEachCell(terminal, firstRow, lastRow, null, function (code, chars, width, x, y, fg, bg, flags) {
+        this._forEachCell(terminal, firstRow, lastRow, null, function (cell, x, y) {
             var nextFillStyle = null;
-            if (bg === Types_1.INVERTED_DEFAULT_COLOR) {
-                nextFillStyle = _this._colors.foreground.css;
+            if (cell.isInverse()) {
+                if (cell.isFgDefault()) {
+                    nextFillStyle = _this._colors.foreground.css;
+                }
+                else if (cell.isFgRGB()) {
+                    nextFillStyle = "rgb(" + BufferLine_1.AttributeData.toColorRGB(cell.getFgColor()).join(',') + ")";
+                }
+                else {
+                    nextFillStyle = _this._colors.ansi[cell.getFgColor()].css;
+                }
             }
-            else if (bg < 256) {
-                nextFillStyle = _this._colors.ansi[bg].css;
+            else if (cell.isBgRGB()) {
+                nextFillStyle = "rgb(" + BufferLine_1.AttributeData.toColorRGB(cell.getBgColor()).join(',') + ")";
+            }
+            else if (cell.isBgPalette()) {
+                nextFillStyle = _this._colors.ansi[cell.getBgColor()].css;
             }
             if (prevFillStyle === null) {
                 startX = x;
@@ -7360,25 +9298,42 @@ var TextRenderLayer = (function (_super) {
     };
     TextRenderLayer.prototype._drawForeground = function (terminal, firstRow, lastRow) {
         var _this = this;
-        this._forEachCell(terminal, firstRow, lastRow, this._characterJoinerRegistry, function (code, chars, width, x, y, fg, bg, flags) {
-            if (flags & 16) {
+        this._forEachCell(terminal, firstRow, lastRow, this._characterJoinerRegistry, function (cell, x, y) {
+            if (cell.isInvisible()) {
                 return;
             }
-            if (flags & 2) {
+            _this.drawChars(terminal, cell, x, y);
+            if (cell.isUnderline()) {
                 _this._ctx.save();
-                if (fg === Types_1.INVERTED_DEFAULT_COLOR) {
-                    _this._ctx.fillStyle = _this._colors.background.css;
-                }
-                else if (fg < 256) {
-                    _this._ctx.fillStyle = _this._colors.ansi[fg].css;
+                if (cell.isInverse()) {
+                    if (cell.isBgDefault()) {
+                        _this._ctx.fillStyle = _this._colors.background.css;
+                    }
+                    else if (cell.isBgRGB()) {
+                        _this._ctx.fillStyle = "rgb(" + BufferLine_1.AttributeData.toColorRGB(cell.getBgColor()).join(',') + ")";
+                    }
+                    else {
+                        _this._ctx.fillStyle = _this._colors.ansi[cell.getBgColor()].css;
+                    }
                 }
                 else {
-                    _this._ctx.fillStyle = _this._colors.foreground.css;
+                    if (cell.isFgDefault()) {
+                        _this._ctx.fillStyle = _this._colors.foreground.css;
+                    }
+                    else if (cell.isFgRGB()) {
+                        _this._ctx.fillStyle = "rgb(" + BufferLine_1.AttributeData.toColorRGB(cell.getFgColor()).join(',') + ")";
+                    }
+                    else {
+                        var fg = cell.getFgColor();
+                        if (terminal.options.drawBoldTextInBrightColors && cell.isBold() && fg < 8) {
+                            fg += 8;
+                        }
+                        _this._ctx.fillStyle = _this._colors.ansi[fg].css;
+                    }
                 }
-                _this.fillBottomLineAtCells(x, y, width);
+                _this.fillBottomLineAtCells(x, y, cell.getWidth());
                 _this._ctx.restore();
             }
-            _this.drawChars(terminal, chars, code, width, x, y, fg, bg, !!(flags & 1), !!(flags & 32), !!(flags & 64));
         });
     };
     TextRenderLayer.prototype.onGridChanged = function (terminal, firstRow, lastRow) {
@@ -7395,30 +9350,29 @@ var TextRenderLayer = (function (_super) {
     TextRenderLayer.prototype.onOptionsChanged = function (terminal) {
         this.setTransparency(terminal, terminal.options.allowTransparency);
     };
-    TextRenderLayer.prototype._isOverlapping = function (charData) {
-        if (charData[Buffer_1.CHAR_DATA_WIDTH_INDEX] !== 1) {
+    TextRenderLayer.prototype._isOverlapping = function (cell) {
+        if (cell.getWidth() !== 1) {
             return false;
         }
-        var code = charData[Buffer_1.CHAR_DATA_CODE_INDEX];
-        if (code < 256) {
+        if (cell.getCode() < 256) {
             return false;
         }
-        var char = charData[Buffer_1.CHAR_DATA_CHAR_INDEX];
-        if (this._characterOverlapCache.hasOwnProperty(char)) {
-            return this._characterOverlapCache[char];
+        var chars = cell.getChars();
+        if (this._characterOverlapCache.hasOwnProperty(chars)) {
+            return this._characterOverlapCache[chars];
         }
         this._ctx.save();
         this._ctx.font = this._characterFont;
-        var overlaps = Math.floor(this._ctx.measureText(char).width) > this._characterWidth;
+        var overlaps = Math.floor(this._ctx.measureText(chars).width) > this._characterWidth;
         this._ctx.restore();
-        this._characterOverlapCache[char] = overlaps;
+        this._characterOverlapCache[chars] = overlaps;
         return overlaps;
     };
     return TextRenderLayer;
 }(BaseRenderLayer_1.BaseRenderLayer));
 exports.TextRenderLayer = TextRenderLayer;
 
-},{"../Buffer":2,"./BaseRenderLayer":25,"./GridCache":29,"./atlas/Types":41}],34:[function(require,module,exports){
+},{"../core/buffer/BufferLine":29,"./BaseRenderLayer":38,"./CharacterJoinerRegistry":39,"./GridCache":41}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var BaseCharAtlas = (function () {
@@ -7438,7 +9392,7 @@ var BaseCharAtlas = (function () {
 }());
 exports.default = BaseCharAtlas;
 
-},{}],35:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var CharAtlasUtils_1 = require("./CharAtlasUtils");
@@ -7461,6 +9415,7 @@ function acquireCharAtlas(terminal, colors, scaledCharWidth, scaledCharHeight) {
                 return entry.atlas;
             }
             if (entry.ownedBy.length === 1) {
+                entry.atlas.dispose();
                 charAtlasCache.splice(i, 1);
             }
             else {
@@ -7490,6 +9445,7 @@ function removeTerminalFromCache(terminal) {
         var index = charAtlasCache[i].ownedBy.indexOf(terminal);
         if (index !== -1) {
             if (charAtlasCache[i].ownedBy.length === 1) {
+                charAtlasCache[i].atlas.dispose();
                 charAtlasCache.splice(i, 1);
             }
             else {
@@ -7501,9 +9457,102 @@ function removeTerminalFromCache(terminal) {
 }
 exports.removeTerminalFromCache = removeTerminalFromCache;
 
-},{"./CharAtlasUtils":36,"./DynamicCharAtlas":37,"./NoneCharAtlas":39,"./StaticCharAtlas":40}],36:[function(require,module,exports){
+},{"./CharAtlasUtils":50,"./DynamicCharAtlas":51,"./NoneCharAtlas":53,"./StaticCharAtlas":54}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var Platform_1 = require("../../common/Platform");
+var Types_1 = require("./Types");
+function generateStaticCharAtlasTexture(context, canvasFactory, config) {
+    var cellWidth = config.scaledCharWidth + Types_1.CHAR_ATLAS_CELL_SPACING;
+    var cellHeight = config.scaledCharHeight + Types_1.CHAR_ATLAS_CELL_SPACING;
+    var canvas = canvasFactory(255 * cellWidth, (2 + 16 + 16) * cellHeight);
+    var ctx = canvas.getContext('2d', { alpha: config.allowTransparency });
+    ctx.fillStyle = config.colors.background.css;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.fillStyle = config.colors.foreground.css;
+    ctx.font = getFont(config.fontWeight, config);
+    ctx.textBaseline = 'middle';
+    for (var i = 0; i < 256; i++) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(i * cellWidth, 0, cellWidth, cellHeight);
+        ctx.clip();
+        ctx.fillText(String.fromCharCode(i), i * cellWidth, cellHeight / 2);
+        ctx.restore();
+    }
+    ctx.save();
+    ctx.font = getFont(config.fontWeightBold, config);
+    for (var i = 0; i < 256; i++) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(i * cellWidth, cellHeight, cellWidth, cellHeight);
+        ctx.clip();
+        ctx.fillText(String.fromCharCode(i), i * cellWidth, cellHeight * 1.5);
+        ctx.restore();
+    }
+    ctx.restore();
+    ctx.font = getFont(config.fontWeight, config);
+    for (var colorIndex = 0; colorIndex < 16; colorIndex++) {
+        var y = (colorIndex + 2) * cellHeight;
+        for (var i = 0; i < 256; i++) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(i * cellWidth, y, cellWidth, cellHeight);
+            ctx.clip();
+            ctx.fillStyle = config.colors.ansi[colorIndex].css;
+            ctx.fillText(String.fromCharCode(i), i * cellWidth, y + cellHeight / 2);
+            ctx.restore();
+        }
+    }
+    ctx.font = getFont(config.fontWeightBold, config);
+    for (var colorIndex = 0; colorIndex < 16; colorIndex++) {
+        var y = (colorIndex + 2 + 16) * cellHeight;
+        for (var i = 0; i < 256; i++) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(i * cellWidth, y, cellWidth, cellHeight);
+            ctx.clip();
+            ctx.fillStyle = config.colors.ansi[colorIndex].css;
+            ctx.fillText(String.fromCharCode(i), i * cellWidth, y + cellHeight / 2);
+            ctx.restore();
+        }
+    }
+    ctx.restore();
+    if (!('createImageBitmap' in context) || Platform_1.isFirefox || Platform_1.isSafari) {
+        return canvas;
+    }
+    var charAtlasImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    clearColor(charAtlasImageData, config.colors.background);
+    return context.createImageBitmap(charAtlasImageData);
+}
+exports.generateStaticCharAtlasTexture = generateStaticCharAtlasTexture;
+function clearColor(imageData, color) {
+    var isEmpty = true;
+    var r = color.rgba >>> 24;
+    var g = color.rgba >>> 16 & 0xFF;
+    var b = color.rgba >>> 8 & 0xFF;
+    for (var offset = 0; offset < imageData.data.length; offset += 4) {
+        if (imageData.data[offset] === r &&
+            imageData.data[offset + 1] === g &&
+            imageData.data[offset + 2] === b) {
+            imageData.data[offset + 3] = 0;
+        }
+        else {
+            isEmpty = false;
+        }
+    }
+    return isEmpty;
+}
+exports.clearColor = clearColor;
+function getFont(fontWeight, config) {
+    return fontWeight + " " + config.fontSize * config.devicePixelRatio + "px " + config.fontFamily;
+}
+
+},{"../../common/Platform":25,"./Types":55}],50:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Types_1 = require("../../common/Types");
 function generateConfig(scaledCharWidth, scaledCharHeight, terminal, colors) {
     var clonedColors = {
         foreground: colors.foreground,
@@ -7546,8 +9595,12 @@ function configEquals(a, b) {
         a.colors.background === b.colors.background;
 }
 exports.configEquals = configEquals;
+function is256Color(colorCode) {
+    return colorCode < Types_1.DEFAULT_COLOR;
+}
+exports.is256Color = is256Color;
 
-},{}],37:[function(require,module,exports){
+},{"../../common/Types":27}],51:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -7555,7 +9608,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -7565,10 +9618,10 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var Types_1 = require("./Types");
 var BaseCharAtlas_1 = require("./BaseCharAtlas");
-var ColorManager_1 = require("../ColorManager");
-var CharAtlasGenerator_1 = require("../../shared/atlas/CharAtlasGenerator");
+var ColorManager_1 = require("../../ui/ColorManager");
+var CharAtlasGenerator_1 = require("./CharAtlasGenerator");
 var LRUMap_1 = require("./LRUMap");
-var Browser_1 = require("../../shared/utils/Browser");
+var Platform_1 = require("../../common/Platform");
 var TEXTURE_WIDTH = 1024;
 var TEXTURE_HEIGHT = 1024;
 var TRANSPARENT_COLOR = {
@@ -7580,6 +9633,7 @@ var GLYPH_BITMAP_COMMIT_DELAY = 100;
 function getGlyphCacheKey(glyph) {
     return glyph.code << 21 | glyph.bg << 12 | glyph.fg << 3 | (glyph.bold ? 0 : 4) + (glyph.dim ? 0 : 2) + (glyph.italic ? 0 : 1);
 }
+exports.getGlyphCacheKey = getGlyphCacheKey;
 var DynamicCharAtlas = (function (_super) {
     __extends(DynamicCharAtlas, _super);
     function DynamicCharAtlas(document, _config) {
@@ -7617,13 +9671,16 @@ var DynamicCharAtlas = (function (_super) {
         if (glyph.code === 32) {
             return true;
         }
+        if (!this._canCache(glyph)) {
+            return false;
+        }
         var glyphKey = getGlyphCacheKey(glyph);
         var cacheValue = this._cacheMap.get(glyphKey);
         if (cacheValue !== null && cacheValue !== undefined) {
             this._drawFromCache(ctx, cacheValue, x, y);
             return true;
         }
-        else if (this._canCache(glyph) && this._drawToCacheCount < FRAME_CACHE_DRAW_LIMIT) {
+        else if (this._drawToCacheCount < FRAME_CACHE_DRAW_LIMIT) {
             var index = void 0;
             if (this._cacheMap.size < this._cacheMap.capacity) {
                 index = this._cacheMap.size;
@@ -7694,12 +9751,12 @@ var DynamicCharAtlas = (function (_super) {
         var fontStyle = glyph.italic ? 'italic' : '';
         this._tmpCtx.font =
             fontStyle + " " + fontWeight + " " + this._config.fontSize * this._config.devicePixelRatio + "px " + this._config.fontFamily;
-        this._tmpCtx.textBaseline = 'top';
+        this._tmpCtx.textBaseline = 'middle';
         this._tmpCtx.fillStyle = this._getForegroundColor(glyph).css;
         if (glyph.dim) {
             this._tmpCtx.globalAlpha = Types_1.DIM_OPACITY;
         }
-        this._tmpCtx.fillText(glyph.chars, 0, 0);
+        this._tmpCtx.fillText(glyph.chars, 0, this._config.scaledCharHeight / 2);
         this._tmpCtx.restore();
         var imageData = this._tmpCtx.getImageData(0, 0, this._config.scaledCharWidth, this._config.scaledCharHeight);
         var isEmpty = false;
@@ -7719,7 +9776,7 @@ var DynamicCharAtlas = (function (_super) {
     };
     DynamicCharAtlas.prototype._addGlyphToBitmap = function (cacheValue) {
         var _this = this;
-        if (!('createImageBitmap' in window) || Browser_1.isFirefox || Browser_1.isSafari) {
+        if (!('createImageBitmap' in window) || Platform_1.isFirefox || Platform_1.isSafari) {
             return;
         }
         this._glyphsWaitingOnBitmap.push(cacheValue);
@@ -7745,7 +9802,7 @@ var DynamicCharAtlas = (function (_super) {
 }(BaseCharAtlas_1.default));
 exports.default = DynamicCharAtlas;
 
-},{"../../shared/atlas/CharAtlasGenerator":44,"../../shared/utils/Browser":46,"../ColorManager":27,"./BaseCharAtlas":34,"./LRUMap":38,"./Types":41}],38:[function(require,module,exports){
+},{"../../common/Platform":25,"../../ui/ColorManager":58,"./BaseCharAtlas":47,"./CharAtlasGenerator":49,"./LRUMap":52,"./Types":55}],52:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var LRUMap = (function () {
@@ -7855,7 +9912,7 @@ var LRUMap = (function () {
 }());
 exports.default = LRUMap;
 
-},{}],39:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -7863,7 +9920,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -7884,7 +9941,7 @@ var NoneCharAtlas = (function (_super) {
 }(BaseCharAtlas_1.default));
 exports.default = NoneCharAtlas;
 
-},{"./BaseCharAtlas":34}],40:[function(require,module,exports){
+},{"./BaseCharAtlas":47}],54:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -7892,7 +9949,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -7901,9 +9958,10 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Types_1 = require("./Types");
-var Types_2 = require("../../shared/atlas/Types");
-var CharAtlasGenerator_1 = require("../../shared/atlas/CharAtlasGenerator");
+var CharAtlasGenerator_1 = require("./CharAtlasGenerator");
 var BaseCharAtlas_1 = require("./BaseCharAtlas");
+var CharAtlasUtils_1 = require("./CharAtlasUtils");
+var Types_2 = require("../../common/Types");
 var StaticCharAtlas = (function (_super) {
     __extends(StaticCharAtlas, _super);
     function StaticCharAtlas(_document, _config) {
@@ -7933,8 +9991,8 @@ var StaticCharAtlas = (function (_super) {
     StaticCharAtlas.prototype._isCached = function (glyph, colorIndex) {
         var isAscii = glyph.code < 256;
         var isBasicColor = glyph.fg < 16;
-        var isDefaultColor = glyph.fg >= 256;
-        var isDefaultBackground = glyph.bg >= 256;
+        var isDefaultColor = glyph.fg === Types_2.DEFAULT_COLOR;
+        var isDefaultBackground = glyph.bg === Types_2.DEFAULT_COLOR;
         return isAscii && (isBasicColor || isDefaultColor) && isDefaultBackground && !glyph.italic;
     };
     StaticCharAtlas.prototype.draw = function (ctx, glyph, x, y) {
@@ -7942,10 +10000,10 @@ var StaticCharAtlas = (function (_super) {
             return false;
         }
         var colorIndex = 0;
-        if (glyph.fg < 256) {
+        if (CharAtlasUtils_1.is256Color(glyph.fg)) {
             colorIndex = 2 + glyph.fg + (glyph.bold ? 16 : 0);
         }
-        else {
+        else if (glyph.fg === Types_2.DEFAULT_COLOR) {
             if (glyph.bold) {
                 colorIndex = 1;
             }
@@ -7954,8 +10012,8 @@ var StaticCharAtlas = (function (_super) {
             return false;
         }
         ctx.save();
-        var charAtlasCellWidth = this._config.scaledCharWidth + Types_2.CHAR_ATLAS_CELL_SPACING;
-        var charAtlasCellHeight = this._config.scaledCharHeight + Types_2.CHAR_ATLAS_CELL_SPACING;
+        var charAtlasCellWidth = this._config.scaledCharWidth + Types_1.CHAR_ATLAS_CELL_SPACING;
+        var charAtlasCellHeight = this._config.scaledCharHeight + Types_1.CHAR_ATLAS_CELL_SPACING;
         if (glyph.dim) {
             ctx.globalAlpha = Types_1.DIM_OPACITY;
         }
@@ -7967,13 +10025,14 @@ var StaticCharAtlas = (function (_super) {
 }(BaseCharAtlas_1.default));
 exports.default = StaticCharAtlas;
 
-},{"../../shared/atlas/CharAtlasGenerator":44,"../../shared/atlas/Types":45,"./BaseCharAtlas":34,"./Types":41}],41:[function(require,module,exports){
+},{"../../common/Types":27,"./BaseCharAtlas":47,"./CharAtlasGenerator":49,"./CharAtlasUtils":50,"./Types":55}],55:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.INVERTED_DEFAULT_COLOR = -1;
+exports.INVERTED_DEFAULT_COLOR = 257;
 exports.DIM_OPACITY = 0.5;
+exports.CHAR_ATLAS_CELL_SPACING = 1;
 
-},{}],42:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -7981,7 +10040,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -7989,10 +10048,9 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var EventEmitter_1 = require("../../common/EventEmitter");
-var ColorManager_1 = require("../ColorManager");
-var RenderDebouncer_1 = require("../../ui/RenderDebouncer");
 var DomRendererRowFactory_1 = require("./DomRendererRowFactory");
+var Types_1 = require("../atlas/Types");
+var Lifecycle_1 = require("../../common/Lifecycle");
 var TERMINAL_CLASS_PREFIX = 'xterm-dom-renderer-owner-';
 var ROW_CONTAINER_CLASS = 'xterm-rows';
 var FG_CLASS_PREFIX = 'xterm-fg-';
@@ -8002,14 +10060,12 @@ var SELECTION_CLASS = 'xterm-selection';
 var nextTerminalId = 1;
 var DomRenderer = (function (_super) {
     __extends(DomRenderer, _super);
-    function DomRenderer(_terminal, theme) {
+    function DomRenderer(_terminal, _colors) {
         var _this = _super.call(this) || this;
         _this._terminal = _terminal;
+        _this._colors = _colors;
         _this._terminalClass = nextTerminalId++;
         _this._rowElements = [];
-        var allowTransparency = _this._terminal.options.allowTransparency;
-        _this.colorManager = new ColorManager_1.ColorManager(document, allowTransparency);
-        _this.setTheme(theme);
         _this._rowContainer = document.createElement('div');
         _this._rowContainer.classList.add(ROW_CONTAINER_CLASS);
         _this._rowContainer.style.lineHeight = 'normal';
@@ -8033,13 +10089,13 @@ var DomRenderer = (function (_super) {
             actualCellHeight: null
         };
         _this._updateDimensions();
-        _this._renderDebouncer = new RenderDebouncer_1.RenderDebouncer(_this._terminal, _this._renderRows.bind(_this));
-        _this._rowFactory = new DomRendererRowFactory_1.DomRendererRowFactory(document);
+        _this._injectCss();
+        _this._rowFactory = new DomRendererRowFactory_1.DomRendererRowFactory(_terminal.options, document);
         _this._terminal.element.classList.add(TERMINAL_CLASS_PREFIX + _this._terminalClass);
         _this._terminal.screenElement.appendChild(_this._rowContainer);
         _this._terminal.screenElement.appendChild(_this._selectionContainer);
-        _this._terminal.linkifier.on("linkhover", function (e) { return _this._onLinkHover(e); });
-        _this._terminal.linkifier.on("linkleave", function (e) { return _this._onLinkLeave(e); });
+        _this._terminal.linkifier.onLinkHover(function (e) { return _this._onLinkHover(e); });
+        _this._terminal.linkifier.onLinkLeave(function (e) { return _this._onLinkLeave(e); });
         return _this;
     }
     DomRenderer.prototype.dispose = function () {
@@ -8053,20 +10109,22 @@ var DomRenderer = (function (_super) {
     DomRenderer.prototype._updateDimensions = function () {
         var _this = this;
         this.dimensions.scaledCharWidth = this._terminal.charMeasure.width * window.devicePixelRatio;
-        this.dimensions.scaledCharHeight = this._terminal.charMeasure.height * window.devicePixelRatio;
-        this.dimensions.scaledCellWidth = this.dimensions.scaledCharWidth;
-        this.dimensions.scaledCellHeight = this.dimensions.scaledCharHeight;
+        this.dimensions.scaledCharHeight = Math.ceil(this._terminal.charMeasure.height * window.devicePixelRatio);
+        this.dimensions.scaledCellWidth = this.dimensions.scaledCharWidth + Math.round(this._terminal.options.letterSpacing);
+        this.dimensions.scaledCellHeight = Math.floor(this.dimensions.scaledCharHeight * this._terminal.options.lineHeight);
         this.dimensions.scaledCharLeft = 0;
         this.dimensions.scaledCharTop = 0;
         this.dimensions.scaledCanvasWidth = this.dimensions.scaledCellWidth * this._terminal.cols;
         this.dimensions.scaledCanvasHeight = this.dimensions.scaledCellHeight * this._terminal.rows;
-        this.dimensions.canvasWidth = this._terminal.charMeasure.width * this._terminal.cols;
-        this.dimensions.canvasHeight = this._terminal.charMeasure.height * this._terminal.rows;
-        this.dimensions.actualCellWidth = this._terminal.charMeasure.width;
-        this.dimensions.actualCellHeight = this._terminal.charMeasure.height;
+        this.dimensions.canvasWidth = Math.round(this.dimensions.scaledCanvasWidth / window.devicePixelRatio);
+        this.dimensions.canvasHeight = Math.round(this.dimensions.scaledCanvasHeight / window.devicePixelRatio);
+        this.dimensions.actualCellWidth = this.dimensions.canvasWidth / this._terminal.cols;
+        this.dimensions.actualCellHeight = this.dimensions.canvasHeight / this._terminal.rows;
         this._rowElements.forEach(function (element) {
             element.style.width = _this.dimensions.canvasWidth + "px";
-            element.style.height = _this._terminal.charMeasure.height + "px";
+            element.style.height = _this.dimensions.actualCellHeight + "px";
+            element.style.lineHeight = _this.dimensions.actualCellHeight + "px";
+            element.style.overflow = 'hidden';
         });
         if (!this._dimensionsStyleElement) {
             this._dimensionsStyleElement = document.createElement('style');
@@ -8076,27 +10134,28 @@ var DomRenderer = (function (_super) {
             " display: inline-block;" +
             " height: 100%;" +
             " vertical-align: top;" +
-            (" width: " + this._terminal.charMeasure.width + "px") +
+            (" width: " + this.dimensions.actualCellWidth + "px") +
             "}";
         this._dimensionsStyleElement.innerHTML = styles;
         this._selectionContainer.style.height = this._terminal._viewportElement.style.height;
-        this._rowContainer.style.width = this.dimensions.canvasWidth + "px";
-        this._rowContainer.style.height = this.dimensions.canvasHeight + "px";
+        this._terminal.screenElement.style.width = this.dimensions.canvasWidth + "px";
+        this._terminal.screenElement.style.height = this.dimensions.canvasHeight + "px";
     };
-    DomRenderer.prototype.setTheme = function (theme) {
+    DomRenderer.prototype.setColors = function (colors) {
+        this._colors = colors;
+        this._injectCss();
+    };
+    DomRenderer.prototype._injectCss = function () {
         var _this = this;
-        if (theme) {
-            this.colorManager.setTheme(theme);
-        }
         if (!this._themeStyleElement) {
             this._themeStyleElement = document.createElement('style');
             this._terminal.screenElement.appendChild(this._themeStyleElement);
         }
         var styles = this._terminalSelector + " ." + ROW_CONTAINER_CLASS + " {" +
-            (" color: " + this.colorManager.colors.foreground.css + ";") +
-            (" background-color: " + this.colorManager.colors.background.css + ";") +
-            (" font-family: " + this._terminal.getOption('fontFamily') + ";") +
-            (" font-size: " + this._terminal.getOption('fontSize') + "px;") +
+            (" color: " + this._colors.foreground.css + ";") +
+            (" background-color: " + this._colors.background.css + ";") +
+            (" font-family: " + this._terminal.options.fontFamily + ";") +
+            (" font-size: " + this._terminal.options.fontSize + "px;") +
             "}";
         styles +=
             this._terminalSelector + " span:not(." + DomRendererRowFactory_1.BOLD_CLASS + ") {" +
@@ -8109,19 +10168,28 @@ var DomRenderer = (function (_super) {
                 " font-style: italic;" +
                 "}";
         styles +=
+            "@keyframes blink {" +
+                " 0% { opacity: 1.0; }" +
+                " 50% { opacity: 0.0; }" +
+                " 100% { opacity: 1.0; }" +
+                "}";
+        styles +=
             this._terminalSelector + " ." + ROW_CONTAINER_CLASS + ":not(." + FOCUS_CLASS + ") ." + DomRendererRowFactory_1.CURSOR_CLASS + " {" +
-                (" outline: 1px solid " + this.colorManager.colors.cursor.css + ";") +
+                (" outline: 1px solid " + this._colors.cursor.css + ";") +
                 " outline-offset: -1px;" +
                 "}" +
+                (this._terminalSelector + " ." + ROW_CONTAINER_CLASS + "." + FOCUS_CLASS + " ." + DomRendererRowFactory_1.CURSOR_CLASS + "." + DomRendererRowFactory_1.CURSOR_BLINK_CLASS + " {") +
+                " animation: blink 1s step-end infinite;" +
+                "}" +
                 (this._terminalSelector + " ." + ROW_CONTAINER_CLASS + "." + FOCUS_CLASS + " ." + DomRendererRowFactory_1.CURSOR_CLASS + "." + DomRendererRowFactory_1.CURSOR_STYLE_BLOCK_CLASS + " {") +
-                (" background-color: " + this.colorManager.colors.cursor.css + ";") +
-                (" color: " + this.colorManager.colors.cursorAccent.css + ";") +
+                (" background-color: " + this._colors.cursor.css + ";") +
+                (" color: " + this._colors.cursorAccent.css + ";") +
                 "}" +
                 (this._terminalSelector + " ." + ROW_CONTAINER_CLASS + "." + FOCUS_CLASS + " ." + DomRendererRowFactory_1.CURSOR_CLASS + "." + DomRendererRowFactory_1.CURSOR_STYLE_BAR_CLASS + " {") +
-                (" box-shadow: 1px 0 0 " + this.colorManager.colors.cursor.css + " inset;") +
+                (" box-shadow: 1px 0 0 " + this._colors.cursor.css + " inset;") +
                 "}" +
                 (this._terminalSelector + " ." + ROW_CONTAINER_CLASS + "." + FOCUS_CLASS + " ." + DomRendererRowFactory_1.CURSOR_CLASS + "." + DomRendererRowFactory_1.CURSOR_STYLE_UNDERLINE_CLASS + " {") +
-                (" box-shadow: 0 -1px 0 " + this.colorManager.colors.cursor.css + " inset;") +
+                (" box-shadow: 0 -1px 0 " + this._colors.cursor.css + " inset;") +
                 "}";
         styles +=
             this._terminalSelector + " ." + SELECTION_CLASS + " {" +
@@ -8133,17 +10201,19 @@ var DomRenderer = (function (_super) {
                 "}" +
                 (this._terminalSelector + " ." + SELECTION_CLASS + " div {") +
                 " position: absolute;" +
-                (" background-color: " + this.colorManager.colors.selection.css + ";") +
+                (" background-color: " + this._colors.selection.css + ";") +
                 "}";
-        this.colorManager.colors.ansi.forEach(function (c, i) {
+        this._colors.ansi.forEach(function (c, i) {
             styles +=
                 _this._terminalSelector + " ." + FG_CLASS_PREFIX + i + " { color: " + c.css + "; }" +
                     (_this._terminalSelector + " ." + BG_CLASS_PREFIX + i + " { background-color: " + c.css + "; }");
         });
+        styles +=
+            this._terminalSelector + " ." + FG_CLASS_PREFIX + Types_1.INVERTED_DEFAULT_COLOR + " { color: " + this._colors.background.css + "; }" +
+                (this._terminalSelector + " ." + BG_CLASS_PREFIX + Types_1.INVERTED_DEFAULT_COLOR + " { background-color: " + this._colors.foreground.css + "; }");
         this._themeStyleElement.innerHTML = styles;
-        return this.colorManager.colors;
     };
-    DomRenderer.prototype.onWindowResize = function (devicePixelRatio) {
+    DomRenderer.prototype.onDevicePixelRatioChange = function () {
         this._updateDimensions();
     };
     DomRenderer.prototype._refreshRowElements = function (cols, rows) {
@@ -8203,38 +10273,35 @@ var DomRenderer = (function (_super) {
     DomRenderer.prototype._createSelectionElement = function (row, colStart, colEnd, rowCount) {
         if (rowCount === void 0) { rowCount = 1; }
         var element = document.createElement('div');
-        element.style.height = rowCount * this._terminal.charMeasure.height + "px";
-        element.style.top = row * this._terminal.charMeasure.height + "px";
-        element.style.left = colStart * this._terminal.charMeasure.width + "px";
-        element.style.width = this._terminal.charMeasure.width * (colEnd - colStart) + "px";
+        element.style.height = rowCount * this.dimensions.actualCellHeight + "px";
+        element.style.top = row * this.dimensions.actualCellHeight + "px";
+        element.style.left = colStart * this.dimensions.actualCellWidth + "px";
+        element.style.width = this.dimensions.actualCellWidth * (colEnd - colStart) + "px";
         return element;
     };
     DomRenderer.prototype.onCursorMove = function () {
     };
     DomRenderer.prototype.onOptionsChanged = function () {
         this._updateDimensions();
-        this.setTheme(undefined);
+        this._injectCss();
         this._terminal.refresh(0, this._terminal.rows - 1);
     };
     DomRenderer.prototype.clear = function () {
         this._rowElements.forEach(function (e) { return e.innerHTML = ''; });
     };
-    DomRenderer.prototype.refreshRows = function (start, end) {
-        this._renderDebouncer.refresh(start, end);
-    };
-    DomRenderer.prototype._renderRows = function (start, end) {
+    DomRenderer.prototype.renderRows = function (start, end) {
         var terminal = this._terminal;
         var cursorAbsoluteY = terminal.buffer.ybase + terminal.buffer.y;
         var cursorX = this._terminal.buffer.x;
+        var cursorBlink = this._terminal.options.cursorBlink;
         for (var y = start; y <= end; y++) {
             var rowElement = this._rowElements[y];
             rowElement.innerHTML = '';
             var row = y + terminal.buffer.ydisp;
             var lineData = terminal.buffer.lines.get(row);
             var cursorStyle = terminal.options.cursorStyle;
-            rowElement.appendChild(this._rowFactory.createRow(lineData, row === cursorAbsoluteY, cursorStyle, cursorX, terminal.charMeasure.width, terminal.cols));
+            rowElement.appendChild(this._rowFactory.createRow(lineData, row === cursorAbsoluteY, cursorStyle, cursorX, cursorBlink, this.dimensions.actualCellWidth, terminal.cols));
         }
-        this._terminal.emit('refresh', { start: start, end: end });
     };
     Object.defineProperty(DomRenderer.prototype, "_terminalSelector", {
         get: function () {
@@ -8253,43 +10320,56 @@ var DomRenderer = (function (_super) {
     };
     DomRenderer.prototype._setCellUnderline = function (x, x2, y, y2, cols, enabled) {
         while (x !== x2 || y !== y2) {
-            var span = this._rowElements[y].children[x];
-            span.style.textDecoration = enabled ? 'underline' : 'none';
-            x = (x + 1) % cols;
-            if (x === 0) {
+            var row = this._rowElements[y];
+            if (!row) {
+                return;
+            }
+            var span = row.children[x];
+            if (span) {
+                span.style.textDecoration = enabled ? 'underline' : 'none';
+            }
+            if (++x >= cols) {
+                x = 0;
                 y++;
             }
         }
     };
     return DomRenderer;
-}(EventEmitter_1.EventEmitter));
+}(Lifecycle_1.Disposable));
 exports.DomRenderer = DomRenderer;
 
-},{"../../common/EventEmitter":17,"../../ui/RenderDebouncer":50,"../ColorManager":27,"./DomRendererRowFactory":43}],43:[function(require,module,exports){
+},{"../../common/Lifecycle":24,"../atlas/Types":55,"./DomRendererRowFactory":57}],57:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Buffer_1 = require("../../Buffer");
+var Types_1 = require("../atlas/Types");
+var BufferLine_1 = require("../../core/buffer/BufferLine");
 exports.BOLD_CLASS = 'xterm-bold';
+exports.DIM_CLASS = 'xterm-dim';
 exports.ITALIC_CLASS = 'xterm-italic';
+exports.UNDERLINE_CLASS = 'xterm-underline';
 exports.CURSOR_CLASS = 'xterm-cursor';
+exports.CURSOR_BLINK_CLASS = 'xterm-cursor-blink';
 exports.CURSOR_STYLE_BLOCK_CLASS = 'xterm-cursor-block';
 exports.CURSOR_STYLE_BAR_CLASS = 'xterm-cursor-bar';
 exports.CURSOR_STYLE_UNDERLINE_CLASS = 'xterm-cursor-underline';
 var DomRendererRowFactory = (function () {
-    function DomRendererRowFactory(_document) {
+    function DomRendererRowFactory(_terminalOptions, _document) {
+        this._terminalOptions = _terminalOptions;
         this._document = _document;
+        this._workCell = new BufferLine_1.CellData();
     }
-    DomRendererRowFactory.prototype.createRow = function (lineData, isCursorRow, cursorStyle, cursorX, cellWidth, cols) {
+    DomRendererRowFactory.prototype.createRow = function (lineData, isCursorRow, cursorStyle, cursorX, cursorBlink, cellWidth, cols) {
         var fragment = this._document.createDocumentFragment();
-        var colCount = 0;
-        for (var x = 0; x < lineData.length; x++) {
-            if (colCount >= cols) {
-                continue;
+        var lineLength = 0;
+        for (var x = Math.min(lineData.length, cols) - 1; x >= 0; x--) {
+            if (lineData.loadCell(x, this._workCell).getCode() !== BufferLine_1.NULL_CELL_CODE || (isCursorRow && x === cursorX)) {
+                lineLength = x + 1;
+                break;
             }
-            var charData = lineData.get(x);
-            var char = charData[Buffer_1.CHAR_DATA_CHAR_INDEX];
-            var attr = charData[Buffer_1.CHAR_DATA_ATTR_INDEX];
-            var width = charData[Buffer_1.CHAR_DATA_WIDTH_INDEX];
+        }
+        for (var x = 0; x < lineLength; x++) {
+            lineData.loadCell(x, this._workCell);
+            var width = this._workCell.getWidth();
             if (width === 0) {
                 continue;
             }
@@ -8297,11 +10377,11 @@ var DomRendererRowFactory = (function () {
             if (width > 1) {
                 charElement.style.width = cellWidth * width + "px";
             }
-            var flags = attr >> 18;
-            var bg = attr & 0x1ff;
-            var fg = (attr >> 9) & 0x1ff;
             if (isCursorRow && x === cursorX) {
                 charElement.classList.add(exports.CURSOR_CLASS);
+                if (cursorBlink) {
+                    charElement.classList.add(exports.CURSOR_BLINK_CLASS);
+                }
                 switch (cursorStyle) {
                     case 'bar':
                         charElement.classList.add(exports.CURSOR_STYLE_BAR_CLASS);
@@ -8314,35 +10394,48 @@ var DomRendererRowFactory = (function () {
                         break;
                 }
             }
-            if (flags & 8) {
-                var temp = bg;
-                bg = fg;
-                fg = temp;
-                if (fg === 256) {
-                    fg = 0;
-                }
-                if (bg === 257) {
-                    bg = 15;
-                }
-            }
-            if (flags & 1) {
-                if (fg < 8) {
-                    fg += 8;
-                }
+            if (this._workCell.isBold() && this._terminalOptions.enableBold) {
                 charElement.classList.add(exports.BOLD_CLASS);
             }
-            if (flags & 64) {
+            if (this._workCell.isItalic()) {
                 charElement.classList.add(exports.ITALIC_CLASS);
             }
-            charElement.textContent = char;
-            if (fg !== 257) {
-                charElement.classList.add("xterm-fg-" + fg);
+            if (this._workCell.isDim()) {
+                charElement.classList.add(exports.DIM_CLASS);
             }
-            if (bg !== 256) {
-                charElement.classList.add("xterm-bg-" + bg);
+            if (this._workCell.isUnderline()) {
+                charElement.classList.add(exports.UNDERLINE_CLASS);
+            }
+            charElement.textContent = this._workCell.getChars() || BufferLine_1.WHITESPACE_CELL_CHAR;
+            var swapColor = this._workCell.isInverse();
+            if (this._workCell.isFgRGB()) {
+                var style = charElement.getAttribute('style') || '';
+                style += (swapColor ? 'background-' : '') + "color:rgb(" + (BufferLine_1.AttributeData.toColorRGB(this._workCell.getFgColor())).join(',') + ");";
+                charElement.setAttribute('style', style);
+            }
+            else if (this._workCell.isFgPalette()) {
+                var fg = this._workCell.getFgColor();
+                if (this._workCell.isBold() && fg < 8 && !swapColor &&
+                    this._terminalOptions.enableBold && this._terminalOptions.drawBoldTextInBrightColors) {
+                    fg += 8;
+                }
+                charElement.classList.add("xterm-" + (swapColor ? 'b' : 'f') + "g-" + fg);
+            }
+            else if (swapColor) {
+                charElement.classList.add("xterm-bg-" + Types_1.INVERTED_DEFAULT_COLOR);
+            }
+            if (this._workCell.isBgRGB()) {
+                var style = charElement.getAttribute('style') || '';
+                style += (swapColor ? '' : 'background-') + "color:rgb(" + (BufferLine_1.AttributeData.toColorRGB(this._workCell.getBgColor())).join(',') + ");";
+                charElement.setAttribute('style', style);
+            }
+            else if (this._workCell.isBgPalette()) {
+                charElement.classList.add("xterm-" + (swapColor ? 'f' : 'b') + "g-" + this._workCell.getBgColor());
+            }
+            else if (swapColor) {
+                charElement.classList.add("xterm-fg-" + Types_1.INVERTED_DEFAULT_COLOR);
             }
             fragment.appendChild(charElement);
-            colCount += width;
         }
         return fragment;
     };
@@ -8350,186 +10443,140 @@ var DomRendererRowFactory = (function () {
 }());
 exports.DomRendererRowFactory = DomRendererRowFactory;
 
-},{"../../Buffer":2}],44:[function(require,module,exports){
+},{"../../core/buffer/BufferLine":29,"../atlas/Types":55}],58:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Types_1 = require("./Types");
-var Browser_1 = require("../utils/Browser");
-function generateStaticCharAtlasTexture(context, canvasFactory, config) {
-    var cellWidth = config.scaledCharWidth + Types_1.CHAR_ATLAS_CELL_SPACING;
-    var cellHeight = config.scaledCharHeight + Types_1.CHAR_ATLAS_CELL_SPACING;
-    var canvas = canvasFactory(255 * cellWidth, (2 + 16 + 16) * cellHeight);
-    var ctx = canvas.getContext('2d', { alpha: config.allowTransparency });
-    ctx.fillStyle = config.colors.background.css;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.fillStyle = config.colors.foreground.css;
-    ctx.font = getFont(config.fontWeight, config);
-    ctx.textBaseline = 'top';
-    for (var i = 0; i < 256; i++) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(i * cellWidth, 0, cellWidth, cellHeight);
-        ctx.clip();
-        ctx.fillText(String.fromCharCode(i), i * cellWidth, 0);
-        ctx.restore();
+var DEFAULT_FOREGROUND = fromHex('#ffffff');
+var DEFAULT_BACKGROUND = fromHex('#000000');
+var DEFAULT_CURSOR = fromHex('#ffffff');
+var DEFAULT_CURSOR_ACCENT = fromHex('#000000');
+var DEFAULT_SELECTION = {
+    css: 'rgba(255, 255, 255, 0.3)',
+    rgba: 0xFFFFFF77
+};
+exports.DEFAULT_ANSI_COLORS = (function () {
+    var colors = [
+        fromHex('#2e3436'),
+        fromHex('#cc0000'),
+        fromHex('#4e9a06'),
+        fromHex('#c4a000'),
+        fromHex('#3465a4'),
+        fromHex('#75507b'),
+        fromHex('#06989a'),
+        fromHex('#d3d7cf'),
+        fromHex('#555753'),
+        fromHex('#ef2929'),
+        fromHex('#8ae234'),
+        fromHex('#fce94f'),
+        fromHex('#729fcf'),
+        fromHex('#ad7fa8'),
+        fromHex('#34e2e2'),
+        fromHex('#eeeeec')
+    ];
+    var v = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
+    for (var i = 0; i < 216; i++) {
+        var r = v[(i / 36) % 6 | 0];
+        var g = v[(i / 6) % 6 | 0];
+        var b = v[i % 6];
+        colors.push({
+            css: "#" + toPaddedHex(r) + toPaddedHex(g) + toPaddedHex(b),
+            rgba: ((r << 24) | (g << 16) | (b << 8) | 0xFF) >>> 0
+        });
     }
-    ctx.save();
-    ctx.font = getFont(config.fontWeightBold, config);
-    for (var i = 0; i < 256; i++) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(i * cellWidth, cellHeight, cellWidth, cellHeight);
-        ctx.clip();
-        ctx.fillText(String.fromCharCode(i), i * cellWidth, cellHeight);
-        ctx.restore();
+    for (var i = 0; i < 24; i++) {
+        var c = 8 + i * 10;
+        var ch = toPaddedHex(c);
+        colors.push({
+            css: "#" + ch + ch + ch,
+            rgba: ((c << 24) | (c << 16) | (c << 8) | 0xFF) >>> 0
+        });
     }
-    ctx.restore();
-    ctx.font = getFont(config.fontWeight, config);
-    for (var colorIndex = 0; colorIndex < 16; colorIndex++) {
-        var y = (colorIndex + 2) * cellHeight;
-        for (var i = 0; i < 256; i++) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(i * cellWidth, y, cellWidth, cellHeight);
-            ctx.clip();
-            ctx.fillStyle = config.colors.ansi[colorIndex].css;
-            ctx.fillText(String.fromCharCode(i), i * cellWidth, y);
-            ctx.restore();
-        }
-    }
-    ctx.font = getFont(config.fontWeightBold, config);
-    for (var colorIndex = 0; colorIndex < 16; colorIndex++) {
-        var y = (colorIndex + 2 + 16) * cellHeight;
-        for (var i = 0; i < 256; i++) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(i * cellWidth, y, cellWidth, cellHeight);
-            ctx.clip();
-            ctx.fillStyle = config.colors.ansi[colorIndex].css;
-            ctx.fillText(String.fromCharCode(i), i * cellWidth, y);
-            ctx.restore();
-        }
-    }
-    ctx.restore();
-    if (!('createImageBitmap' in context) || Browser_1.isFirefox || Browser_1.isSafari) {
-        if (canvas instanceof HTMLCanvasElement) {
-            return canvas;
-        }
-        return new Promise(function (r) { return r(canvas.transferToImageBitmap()); });
-    }
-    var charAtlasImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    clearColor(charAtlasImageData, config.colors.background);
-    return context.createImageBitmap(charAtlasImageData);
-}
-exports.generateStaticCharAtlasTexture = generateStaticCharAtlasTexture;
-function clearColor(imageData, color) {
-    var isEmpty = true;
-    var r = color.rgba >>> 24;
-    var g = color.rgba >>> 16 & 0xFF;
-    var b = color.rgba >>> 8 & 0xFF;
-    for (var offset = 0; offset < imageData.data.length; offset += 4) {
-        if (imageData.data[offset] === r &&
-            imageData.data[offset + 1] === g &&
-            imageData.data[offset + 2] === b) {
-            imageData.data[offset + 3] = 0;
-        }
-        else {
-            isEmpty = false;
-        }
-    }
-    return isEmpty;
-}
-exports.clearColor = clearColor;
-function getFont(fontWeight, config) {
-    return fontWeight + " " + config.fontSize * config.devicePixelRatio + "px " + config.fontFamily;
-}
-
-},{"../utils/Browser":46,"./Types":45}],45:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CHAR_ATLAS_CELL_SPACING = 1;
-
-},{}],46:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var isNode = (typeof navigator === 'undefined') ? true : false;
-var userAgent = (isNode) ? 'node' : navigator.userAgent;
-var platform = (isNode) ? 'node' : navigator.platform;
-exports.isFirefox = !!~userAgent.indexOf('Firefox');
-exports.isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
-exports.isMSIE = !!~userAgent.indexOf('MSIE') || !!~userAgent.indexOf('Trident');
-exports.isMac = contains(['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'], platform);
-exports.isIpad = platform === 'iPad';
-exports.isIphone = platform === 'iPhone';
-exports.isMSWindows = contains(['Windows', 'Win16', 'Win32', 'WinCE'], platform);
-exports.isLinux = platform.indexOf('Linux') >= 0;
-function contains(arr, el) {
-    return arr.indexOf(el) >= 0;
-}
-
-},{}],47:[function(require,module,exports){
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
+    return colors;
 })();
-Object.defineProperty(exports, "__esModule", { value: true });
-var EventEmitter_1 = require("../common/EventEmitter");
-var CharMeasure = (function (_super) {
-    __extends(CharMeasure, _super);
-    function CharMeasure(document, parentElement) {
-        var _this = _super.call(this) || this;
-        _this._document = document;
-        _this._parentElement = parentElement;
-        _this._measureElement = _this._document.createElement('span');
-        _this._measureElement.classList.add('xterm-char-measure-element');
-        _this._measureElement.textContent = 'W';
-        _this._measureElement.setAttribute('aria-hidden', 'true');
-        _this._parentElement.appendChild(_this._measureElement);
-        return _this;
-    }
-    Object.defineProperty(CharMeasure.prototype, "width", {
-        get: function () {
-            return this._width;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(CharMeasure.prototype, "height", {
-        get: function () {
-            return this._height;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    CharMeasure.prototype.measure = function (options) {
-        this._measureElement.style.fontFamily = options.fontFamily;
-        this._measureElement.style.fontSize = options.fontSize + "px";
-        var geometry = this._measureElement.getBoundingClientRect();
-        if (geometry.width === 0 || geometry.height === 0) {
-            return;
-        }
-        if (this._width !== geometry.width || this._height !== geometry.height) {
-            this._width = geometry.width;
-            this._height = Math.ceil(geometry.height);
-            this.emit('charsizechanged');
-        }
+function fromHex(css) {
+    return {
+        css: css,
+        rgba: parseInt(css.slice(1), 16) << 8 | 0xFF
     };
-    return CharMeasure;
-}(EventEmitter_1.EventEmitter));
-exports.CharMeasure = CharMeasure;
+}
+function toPaddedHex(c) {
+    var s = c.toString(16);
+    return s.length < 2 ? '0' + s : s;
+}
+var ColorManager = (function () {
+    function ColorManager(document, allowTransparency) {
+        this.allowTransparency = allowTransparency;
+        var canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 1;
+        var ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Could not get rendering context');
+        }
+        this._ctx = ctx;
+        this._ctx.globalCompositeOperation = 'copy';
+        this._litmusColor = this._ctx.createLinearGradient(0, 0, 1, 1);
+        this.colors = {
+            foreground: DEFAULT_FOREGROUND,
+            background: DEFAULT_BACKGROUND,
+            cursor: DEFAULT_CURSOR,
+            cursorAccent: DEFAULT_CURSOR_ACCENT,
+            selection: DEFAULT_SELECTION,
+            ansi: exports.DEFAULT_ANSI_COLORS.slice()
+        };
+    }
+    ColorManager.prototype.setTheme = function (theme) {
+        if (theme === void 0) { theme = {}; }
+        this.colors.foreground = this._parseColor(theme.foreground, DEFAULT_FOREGROUND);
+        this.colors.background = this._parseColor(theme.background, DEFAULT_BACKGROUND);
+        this.colors.cursor = this._parseColor(theme.cursor, DEFAULT_CURSOR, true);
+        this.colors.cursorAccent = this._parseColor(theme.cursorAccent, DEFAULT_CURSOR_ACCENT, true);
+        this.colors.selection = this._parseColor(theme.selection, DEFAULT_SELECTION, true);
+        this.colors.ansi[0] = this._parseColor(theme.black, exports.DEFAULT_ANSI_COLORS[0]);
+        this.colors.ansi[1] = this._parseColor(theme.red, exports.DEFAULT_ANSI_COLORS[1]);
+        this.colors.ansi[2] = this._parseColor(theme.green, exports.DEFAULT_ANSI_COLORS[2]);
+        this.colors.ansi[3] = this._parseColor(theme.yellow, exports.DEFAULT_ANSI_COLORS[3]);
+        this.colors.ansi[4] = this._parseColor(theme.blue, exports.DEFAULT_ANSI_COLORS[4]);
+        this.colors.ansi[5] = this._parseColor(theme.magenta, exports.DEFAULT_ANSI_COLORS[5]);
+        this.colors.ansi[6] = this._parseColor(theme.cyan, exports.DEFAULT_ANSI_COLORS[6]);
+        this.colors.ansi[7] = this._parseColor(theme.white, exports.DEFAULT_ANSI_COLORS[7]);
+        this.colors.ansi[8] = this._parseColor(theme.brightBlack, exports.DEFAULT_ANSI_COLORS[8]);
+        this.colors.ansi[9] = this._parseColor(theme.brightRed, exports.DEFAULT_ANSI_COLORS[9]);
+        this.colors.ansi[10] = this._parseColor(theme.brightGreen, exports.DEFAULT_ANSI_COLORS[10]);
+        this.colors.ansi[11] = this._parseColor(theme.brightYellow, exports.DEFAULT_ANSI_COLORS[11]);
+        this.colors.ansi[12] = this._parseColor(theme.brightBlue, exports.DEFAULT_ANSI_COLORS[12]);
+        this.colors.ansi[13] = this._parseColor(theme.brightMagenta, exports.DEFAULT_ANSI_COLORS[13]);
+        this.colors.ansi[14] = this._parseColor(theme.brightCyan, exports.DEFAULT_ANSI_COLORS[14]);
+        this.colors.ansi[15] = this._parseColor(theme.brightWhite, exports.DEFAULT_ANSI_COLORS[15]);
+    };
+    ColorManager.prototype._parseColor = function (css, fallback, allowTransparency) {
+        if (allowTransparency === void 0) { allowTransparency = this.allowTransparency; }
+        if (css === undefined) {
+            return fallback;
+        }
+        this._ctx.fillStyle = this._litmusColor;
+        this._ctx.fillStyle = css;
+        if (typeof this._ctx.fillStyle !== 'string') {
+            console.warn("Color: " + css + " is invalid using fallback " + fallback.css);
+            return fallback;
+        }
+        this._ctx.fillRect(0, 0, 1, 1);
+        var data = this._ctx.getImageData(0, 0, 1, 1).data;
+        if (!allowTransparency && data[3] !== 0xFF) {
+            console.warn("Color: " + css + " is using transparency, but allowTransparency is false. " +
+                ("Using fallback " + fallback.css + "."));
+            return fallback;
+        }
+        return {
+            css: css,
+            rgba: (data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3]) >>> 0
+        };
+    };
+    return ColorManager;
+}());
+exports.ColorManager = ColorManager;
 
-},{"../common/EventEmitter":17}],48:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function addDisposableDomListener(node, type, handler, useCapture) {
@@ -8540,234 +10587,52 @@ function addDisposableDomListener(node, type, handler, useCapture) {
                 return;
             }
             node.removeEventListener(type, handler, useCapture);
-            node = null;
-            handler = null;
         }
     };
 }
 exports.addDisposableDomListener = addDisposableDomListener;
 
-},{}],49:[function(require,module,exports){
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var Lifecycle_1 = require("../common/Lifecycle");
-var Lifecycle_2 = require("./Lifecycle");
-var HOVER_DURATION = 500;
-var MouseZoneManager = (function (_super) {
-    __extends(MouseZoneManager, _super);
-    function MouseZoneManager(_terminal) {
-        var _this = _super.call(this) || this;
-        _this._terminal = _terminal;
-        _this._zones = [];
-        _this._areZonesActive = false;
-        _this._tooltipTimeout = null;
-        _this._currentZone = null;
-        _this._lastHoverCoords = [null, null];
-        _this.register(Lifecycle_2.addDisposableDomListener(_this._terminal.element, 'mousedown', function (e) { return _this._onMouseDown(e); }));
-        _this._mouseMoveListener = function (e) { return _this._onMouseMove(e); };
-        _this._clickListener = function (e) { return _this._onClick(e); };
-        return _this;
-    }
-    MouseZoneManager.prototype.dispose = function () {
-        _super.prototype.dispose.call(this);
-        this._deactivate();
-    };
-    MouseZoneManager.prototype.add = function (zone) {
-        this._zones.push(zone);
-        if (this._zones.length === 1) {
-            this._activate();
-        }
-    };
-    MouseZoneManager.prototype.clearAll = function (start, end) {
-        if (this._zones.length === 0) {
-            return;
-        }
-        if (!end) {
-            start = 0;
-            end = this._terminal.rows - 1;
-        }
-        for (var i = 0; i < this._zones.length; i++) {
-            var zone = this._zones[i];
-            if ((zone.y1 > start && zone.y1 <= end + 1) ||
-                (zone.y2 > start && zone.y2 <= end + 1) ||
-                (zone.y1 < start && zone.y2 > end + 1)) {
-                if (this._currentZone && this._currentZone === zone) {
-                    this._currentZone.leaveCallback();
-                    this._currentZone = null;
-                }
-                this._zones.splice(i--, 1);
-            }
-        }
-        if (this._zones.length === 0) {
-            this._deactivate();
-        }
-    };
-    MouseZoneManager.prototype._activate = function () {
-        if (!this._areZonesActive) {
-            this._areZonesActive = true;
-            this._terminal.element.addEventListener('mousemove', this._mouseMoveListener);
-            this._terminal.element.addEventListener('click', this._clickListener);
-        }
-    };
-    MouseZoneManager.prototype._deactivate = function () {
-        if (this._areZonesActive) {
-            this._areZonesActive = false;
-            this._terminal.element.removeEventListener('mousemove', this._mouseMoveListener);
-            this._terminal.element.removeEventListener('click', this._clickListener);
-        }
-    };
-    MouseZoneManager.prototype._onMouseMove = function (e) {
-        if (this._lastHoverCoords[0] !== e.pageX || this._lastHoverCoords[1] !== e.pageY) {
-            this._onHover(e);
-            this._lastHoverCoords = [e.pageX, e.pageY];
-        }
-    };
-    MouseZoneManager.prototype._onHover = function (e) {
-        var _this = this;
-        var zone = this._findZoneEventAt(e);
-        if (zone === this._currentZone) {
-            return;
-        }
-        if (this._currentZone) {
-            this._currentZone.leaveCallback();
-            this._currentZone = null;
-            if (this._tooltipTimeout) {
-                clearTimeout(this._tooltipTimeout);
-            }
-        }
-        if (!zone) {
-            return;
-        }
-        this._currentZone = zone;
-        if (zone.hoverCallback) {
-            zone.hoverCallback(e);
-        }
-        this._tooltipTimeout = setTimeout(function () { return _this._onTooltip(e); }, HOVER_DURATION);
-    };
-    MouseZoneManager.prototype._onTooltip = function (e) {
-        this._tooltipTimeout = null;
-        var zone = this._findZoneEventAt(e);
-        if (zone && zone.tooltipCallback) {
-            zone.tooltipCallback(e);
-        }
-    };
-    MouseZoneManager.prototype._onMouseDown = function (e) {
-        if (!this._areZonesActive) {
-            return;
-        }
-        var zone = this._findZoneEventAt(e);
-        if (zone) {
-            if (zone.willLinkActivate(e)) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-            }
-        }
-    };
-    MouseZoneManager.prototype._onClick = function (e) {
-        var zone = this._findZoneEventAt(e);
-        if (zone) {
-            zone.clickCallback(e);
-            e.preventDefault();
-            e.stopImmediatePropagation();
-        }
-    };
-    MouseZoneManager.prototype._findZoneEventAt = function (e) {
-        var coords = this._terminal.mouseHelper.getCoords(e, this._terminal.screenElement, this._terminal.charMeasure, this._terminal.options.lineHeight, this._terminal.cols, this._terminal.rows);
-        if (!coords) {
-            return null;
-        }
-        var x = coords[0];
-        var y = coords[1];
-        for (var i = 0; i < this._zones.length; i++) {
-            var zone = this._zones[i];
-            if (zone.y1 === zone.y2) {
-                if (y === zone.y1 && x >= zone.x1 && x < zone.x2) {
-                    return zone;
-                }
-            }
-            else {
-                if ((y === zone.y1 && x >= zone.x1) ||
-                    (y === zone.y2 && x < zone.x2) ||
-                    (y > zone.y1 && y < zone.y2)) {
-                    return zone;
-                }
-            }
-        }
-        return null;
-    };
-    return MouseZoneManager;
-}(Lifecycle_1.Disposable));
-exports.MouseZoneManager = MouseZoneManager;
-var MouseZone = (function () {
-    function MouseZone(x1, y1, x2, y2, clickCallback, hoverCallback, tooltipCallback, leaveCallback, willLinkActivate) {
-        this.x1 = x1;
-        this.y1 = y1;
-        this.x2 = x2;
-        this.y2 = y2;
-        this.clickCallback = clickCallback;
-        this.hoverCallback = hoverCallback;
-        this.tooltipCallback = tooltipCallback;
-        this.leaveCallback = leaveCallback;
-        this.willLinkActivate = willLinkActivate;
-    }
-    return MouseZone;
-}());
-exports.MouseZone = MouseZone;
-
-},{"../common/Lifecycle":18,"./Lifecycle":48}],50:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var RenderDebouncer = (function () {
-    function RenderDebouncer(_terminal, _callback) {
-        this._terminal = _terminal;
-        this._callback = _callback;
-        this._animationFrame = null;
+    function RenderDebouncer(_renderCallback) {
+        this._renderCallback = _renderCallback;
     }
     RenderDebouncer.prototype.dispose = function () {
         if (this._animationFrame) {
             window.cancelAnimationFrame(this._animationFrame);
-            this._animationFrame = null;
+            this._animationFrame = undefined;
         }
     };
-    RenderDebouncer.prototype.refresh = function (rowStart, rowEnd) {
+    RenderDebouncer.prototype.refresh = function (rowStart, rowEnd, rowCount) {
         var _this = this;
-        rowStart = rowStart !== null && rowStart !== undefined ? rowStart : 0;
-        rowEnd = rowEnd !== null && rowEnd !== undefined ? rowEnd : this._terminal.rows - 1;
-        var isRowStartSet = this._rowStart !== undefined && this._rowStart !== null;
-        var isRowEndSet = this._rowEnd !== undefined && this._rowEnd !== null;
-        this._rowStart = isRowStartSet ? Math.min(this._rowStart, rowStart) : rowStart;
-        this._rowEnd = isRowEndSet ? Math.max(this._rowEnd, rowEnd) : rowEnd;
+        this._rowCount = rowCount;
+        rowStart = rowStart !== undefined ? rowStart : 0;
+        rowEnd = rowEnd !== undefined ? rowEnd : this._rowCount - 1;
+        this._rowStart = this._rowStart !== undefined ? Math.min(this._rowStart, rowStart) : rowStart;
+        this._rowEnd = this._rowEnd !== undefined ? Math.max(this._rowEnd, rowEnd) : rowEnd;
         if (this._animationFrame) {
             return;
         }
         this._animationFrame = window.requestAnimationFrame(function () { return _this._innerRefresh(); });
     };
     RenderDebouncer.prototype._innerRefresh = function () {
+        if (this._rowStart === undefined || this._rowEnd === undefined || this._rowCount === undefined) {
+            return;
+        }
         this._rowStart = Math.max(this._rowStart, 0);
-        this._rowEnd = Math.min(this._rowEnd, this._terminal.rows - 1);
-        this._callback(this._rowStart, this._rowEnd);
-        this._rowStart = null;
-        this._rowEnd = null;
-        this._animationFrame = null;
+        this._rowEnd = Math.min(this._rowEnd, this._rowCount - 1);
+        this._renderCallback(this._rowStart, this._rowEnd);
+        this._rowStart = undefined;
+        this._rowEnd = undefined;
+        this._animationFrame = undefined;
     };
     return RenderDebouncer;
 }());
 exports.RenderDebouncer = RenderDebouncer;
 
-},{}],51:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -8775,7 +10640,7 @@ var __extends = (this && this.__extends) || (function () {
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
             function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
         return extendStatics(d, b);
-    }
+    };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -8787,7 +10652,9 @@ var Lifecycle_1 = require("../common/Lifecycle");
 var ScreenDprMonitor = (function (_super) {
     __extends(ScreenDprMonitor, _super);
     function ScreenDprMonitor() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this._currentDevicePixelRatio = window.devicePixelRatio;
+        return _this;
     }
     ScreenDprMonitor.prototype.setListener = function (listener) {
         var _this = this;
@@ -8796,6 +10663,9 @@ var ScreenDprMonitor = (function (_super) {
         }
         this._listener = listener;
         this._outerListener = function () {
+            if (!_this._listener) {
+                return;
+            }
             _this._listener(window.devicePixelRatio, _this._currentDevicePixelRatio);
             _this._updateDpr();
         };
@@ -8806,102 +10676,33 @@ var ScreenDprMonitor = (function (_super) {
         this.clearListener();
     };
     ScreenDprMonitor.prototype._updateDpr = function () {
-        if (this._resolutionMediaMatchList) {
-            this._resolutionMediaMatchList.removeListener(this._outerListener);
+        if (!this._resolutionMediaMatchList || !this._outerListener) {
+            return;
         }
+        this._resolutionMediaMatchList.removeListener(this._outerListener);
         this._currentDevicePixelRatio = window.devicePixelRatio;
         this._resolutionMediaMatchList = window.matchMedia("screen and (resolution: " + window.devicePixelRatio + "dppx)");
         this._resolutionMediaMatchList.addListener(this._outerListener);
     };
     ScreenDprMonitor.prototype.clearListener = function () {
-        if (!this._listener) {
+        if (!this._resolutionMediaMatchList || !this._listener || !this._outerListener) {
             return;
         }
         this._resolutionMediaMatchList.removeListener(this._outerListener);
-        this._listener = null;
-        this._outerListener = null;
+        this._resolutionMediaMatchList = undefined;
+        this._listener = undefined;
+        this._outerListener = undefined;
     };
     return ScreenDprMonitor;
 }(Lifecycle_1.Disposable));
 exports.ScreenDprMonitor = ScreenDprMonitor;
 
-},{"../common/Lifecycle":18}],52:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.clone = function (val, depth) {
-    if (depth === void 0) { depth = 5; }
-    if (typeof val !== 'object') {
-        return val;
-    }
-    if (val === null) {
-        return null;
-    }
-    var clonedObject = Array.isArray(val) ? [] : {};
-    for (var key in val) {
-        clonedObject[key] = depth <= 1 ? val[key] : exports.clone(val[key], depth - 1);
-    }
-    return clonedObject;
-};
-
-},{}],53:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var MouseHelper = (function () {
-    function MouseHelper(_renderer) {
-        this._renderer = _renderer;
-    }
-    MouseHelper.getCoordsRelativeToElement = function (event, element) {
-        if (event.pageX === null || event.pageX === undefined) {
-            return null;
-        }
-        var originalElement = element;
-        var x = event.pageX;
-        var y = event.pageY;
-        while (element) {
-            x -= element.offsetLeft;
-            y -= element.offsetTop;
-            element = element.offsetParent;
-        }
-        element = originalElement;
-        while (element && element !== element.ownerDocument.body) {
-            x += element.scrollLeft;
-            y += element.scrollTop;
-            element = element.parentElement;
-        }
-        return [x, y];
-    };
-    MouseHelper.prototype.getCoords = function (event, element, charMeasure, lineHeight, colCount, rowCount, isSelection) {
-        if (!charMeasure.width || !charMeasure.height) {
-            return null;
-        }
-        var coords = MouseHelper.getCoordsRelativeToElement(event, element);
-        if (!coords) {
-            return null;
-        }
-        coords[0] = Math.ceil((coords[0] + (isSelection ? this._renderer.dimensions.actualCellWidth / 2 : 0)) / this._renderer.dimensions.actualCellWidth);
-        coords[1] = Math.ceil(coords[1] / this._renderer.dimensions.actualCellHeight);
-        coords[0] = Math.min(Math.max(coords[0], 1), colCount + (isSelection ? 1 : 0));
-        coords[1] = Math.min(Math.max(coords[1], 1), rowCount);
-        return coords;
-    };
-    MouseHelper.prototype.getRawByteCoords = function (event, element, charMeasure, lineHeight, colCount, rowCount) {
-        var coords = this.getCoords(event, element, charMeasure, lineHeight, colCount, rowCount);
-        var x = coords[0];
-        var y = coords[1];
-        x += 32;
-        y += 32;
-        return { x: x, y: y };
-    };
-    return MouseHelper;
-}());
-exports.MouseHelper = MouseHelper;
-
-},{}],54:[function(require,module,exports){
+},{"../common/Lifecycle":24}],62:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Terminal_1 = require("./public/Terminal");
 module.exports = Terminal_1.Terminal;
 
-},{"./public/Terminal":24}]},{},[54])(54)
+},{"./public/Terminal":37}]},{},[62])(62)
 });
 //# sourceMappingURL=xterm.js.map
