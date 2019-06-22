@@ -198,7 +198,7 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	cookieData := CookieID{Id: user.Id, UserName: user.Name, UserAvatar: user.Avatar}
+	cookieData := CookieID{Id: user.Id, UserName: user.Name, UserAvatar: user.Avatar, ProviderId: user.ProviderUserId}
 
 	host := "localhost"
 	if req.Host != "" {
