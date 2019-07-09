@@ -16,7 +16,7 @@ function deploy_ucp {
 
     docker run --rm -i  --name ucp \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        docker/ucp:3.1.3 install --debug --force-insecure-tcp --skip-cloud-provider-check \
+        docker/ucp:3.1.8 install --debug --force-insecure-tcp --skip-cloud-provider-check \
         --san *.direct.${PWD_HOST_FQDN} \
         --license $(cat $HOME/workshop_beta.lic) \
         --swarm-port 2375 \
@@ -55,7 +55,7 @@ function deploy_dtr {
     local dtr_url=$(get_direct_url_from_ip $dtr_ip)
     local ucp_url=$(get_direct_url_from_ip $ucp_ip)
 
-    docker run -i --rm docker/dtr:2.6.2 install \
+    docker run -i --rm docker/dtr:2.6.7 install \
       --dtr-external-url $dtr_url \
       --ucp-node $1 \
       --ucp-username admin \
