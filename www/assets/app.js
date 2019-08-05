@@ -67,7 +67,7 @@
         if (!$scope.resizeHandler) {
             $scope.resizeHandler = setTimeout(function() {
                 $scope.resizeHandler = null
-                $scope.resize($scope.selectedInstance.term.proposeGeometry());
+                $scope.selectedInstance.term.fit();
             }, 1000);
         }
       }
