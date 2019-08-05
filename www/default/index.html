@@ -139,7 +139,7 @@
                            </div>
                       </div>
                       <div ng-show="instance.status=='reconnect'" class="uploadStatus">Connection has been lost. Sometimes this happens when a windows instance is joining a swarm. Trying to reconnect terminal...</div>
-                      <id class="terminal-container">
+                      <id class="terminal-container container-{{instance.name}}">
                           <div class="terminal-instance" id="terminal-{{instance.name}}"></div>
                       </id>
                   </md-card>

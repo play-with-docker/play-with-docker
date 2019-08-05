@@ -19,13 +19,13 @@
     }
   }
 
-  app.controller('PlayController', ['$scope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', 'SessionService', 'Upload', function($scope, $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService, SessionService, Upload) {
+  app.controller('PlayController', ['$scope', '$rootScope', '$log', '$http', '$location', '$timeout', '$mdDialog', '$window', 'TerminalService', 'KeyboardShortcutService', 'InstanceService', 'SessionService', 'Upload', function($scope, $rootScope,  $log, $http, $location, $timeout, $mdDialog, $window, TerminalService, KeyboardShortcutService, InstanceService, SessionService, Upload) {
     $scope.sessionId = SessionService.getCurrentSessionId();
-    $scope.instances = [];
+    $rootScope.instances = [];
     $scope.idx = {};
     $scope.host = window.location.host;
     $scope.idxByHostname = {};
-    $scope.selectedInstance = null;
+    $rootScope.selectedInstance = null;
     $scope.isAlive = true;
     $scope.ttl = '--:--:--';
     $scope.connected = false;
@@ -46,7 +46,7 @@
             return
           }
           $scope.uploadMessage = "Uploading file(s) " + (total - files.length) + "/"+ total + " : " + file.name;
-          let upload = Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $scope.selectedInstance.name + '/uploads', data: {file: file}, method: 'POST'})
+          let upload = Upload.upload({url: '/sessions/' + $scope.sessionId + '/instances/' + $rootScope.selectedInstance.name + '/uploads', data: {file: file}, method: 'POST'})
             .then(function(){}, function(){}, function(evt) {
               $scope.uploadProgress = parseInt(100.0 * evt.loaded / evt.total);
             });
@@ -63,11 +63,11 @@
     $scope.resizeHandler = null;
 
     angular.element($window).bind('resize', function() {
-      if ($scope.selectedInstance) {
+      if ($rootScope.selectedInstance) {
         if (!$scope.resizeHandler) {
             $scope.resizeHandler = setTimeout(function() {
                 $scope.resizeHandler = null
-                $scope.selectedInstance.term.fit();
+                $rootScope.selectedInstance.term.fit();
             }, 1000);
         }
       }
@@ -108,7 +108,7 @@
     $scope.upsertInstance = function(info) {
       var i = info;
       if (!$scope.idx[i.name]) {
-        $scope.instances.push(i);
+        $rootScope.instances.push(i);
         i.buffer = '';
         $scope.idx[i.name] = i;
         $scope.idxByHostname[i.hostname] = i;
@@ -181,7 +181,7 @@
         var i = response.data;
         for (var k in i.instances) {
           var instance = i.instances[k];
-          $scope.instances.push(instance);
+          $rootScope.instances.push(instance);
           $scope.idx[instance.name] = instance;
           $scope.idxByHostname[instance.hostname] = instance;
         }
@@ -218,8 +218,8 @@
 
 	socket.addEventListener('open', function (event) {
           $scope.connected = true;
-	  for (var i in $scope.instances) {
-		  var instance = $scope.instances[i];
+	  for (var i in $rootScope.instances) {
+		  var instance = $rootScope.instances[i];
 		  if (instance.term) {
 			  instance.term.setOption('disableStdin', false);
 		  }
@@ -227,8 +227,8 @@
 	});
 	socket.addEventListener('close', function (event) {
           $scope.connected = false;
-	  for (var i in $scope.instances) {
-		  var instance = $scope.instances[i];
+	  for (var i in $rootScope.instances) {
+		  var instance = $rootScope.instances[i];
 		  if (instance.term) {
 			  instance.term.setOption('disableStdin', true);
 		  }
@@ -304,7 +304,7 @@
                 return
             }
           // viewport has changed, we need to resize all terminals
-          $scope.instances.forEach(function(instance) {
+          $rootScope.instances.forEach(function(instance) {
               if (instance.term) {
                 instance.term.resize(cols, rows);
                 if (instance.buffer) {
@@ -377,9 +377,9 @@
         let inst = $scope.idx[$location.hash()];
         if (inst) {
             $scope.showInstance(inst);
-        } else if($scope.instances.length > 0) {
+        } else if($rootScope.instances.length > 0) {
             // if no instance has been passed, select the first.
-            $scope.showInstance($scope.instances[0]);
+            $scope.showInstance($rootScope.instances[0]);
         }
       }, function(response) {
         if (response.status == 404) {
@@ -396,7 +396,7 @@
     }
 
     $scope.showInstance = function(instance) {
-      $scope.selectedInstance = instance;
+      $rootScope.selectedInstance = instance;
       $location.hash(instance.name);
       if (!instance.term) {
           $timeout(function() {
@@ -418,11 +418,11 @@
         }
       if ($scope.idx[name]) {
         delete $scope.idx[name];
-        $scope.instances = $scope.instances.filter(function(i) {
+        $rootScope.instances = $rootScope.instances.filter(function(i) {
           return i.name != name;
         });
-        if ($scope.instances.length) {
-          $scope.showInstance($scope.instances[0]);
+        if ($rootScope.instances.length) {
+          $scope.showInstance($rootScope.instances[0]);
         }
       }
     }
@@ -470,6 +470,8 @@
       var term = new Terminal({
         cursorBlink: false
       });
+      
+      term.open(terminalContainer);
 
       term.attachCustomKeyEventHandler(function(e) {
         // Ctrl + Alt + C
@@ -490,7 +492,15 @@
         .forEach(function(preset) { preset.action({ terminal : term })});
       });
 
-      term.open(terminalContainer);
+      term.attachCustomKeyEventHandler((e) => {
+        if (e.metaKey && (e.key == "-")) {
+          TerminalService.decreaseFontSize()
+          e.preventDefault()
+        }else if(e.metaKey && (e.key == "+")){
+          TerminalService.increaseFontSize()
+          e.preventDefault()
+        }
+      });
 
       // Set geometry during the next tick, to avoid race conditions.
 
@@ -793,7 +803,7 @@
       return "None";
     }
   }])
-  .service('TerminalService', ['$window', function($window) {
+  .service('TerminalService', ['$window', '$rootScope', function($window, $rootScope) {
     var fullscreen;
     var fontSize = getFontSize();
     return {
@@ -812,17 +822,19 @@
       return terminalFontSizes;
     };
     function getFontSize() {
-      if (!fontSize) {
-        return $('.terminal').css('font-size');
+      if($rootScope.selectedInstance){
+        return $rootScope.selectedInstance.term.getOption("fontSize") + "px"
+      }else{ 
+        return $(".terminal").css("font-size")
       }
-      return fontSize;
     }
     function setFontSize(value) {
+      const { term }= $rootScope.selectedInstance;
       fontSize = value;
       var size = parseInt(value);
-      $('.terminal').css('font-size', value).css('line-height', (size + 2)+'px');
-      //.css('line-height', value).css('height', value);
-      angular.element($window).trigger('resize');
+      term.setOption("fontSize", size)
+      term.resize(1,1)
+      term.fit()
     }
     function increaseFontSize() {
       var sizes = getFontSizes();
@@ -849,11 +861,9 @@
       setFontSize(sizes[i-1]);
     }
     function toggleFullScreen(terminal, resize) {
-      var $terminalContainer = $(".terminal-container");
-
       if(fullscreen) {
         terminal.toggleFullScreen();
-        $terminalContainer.append(terminal.element)
+        terminal.containerElement.append(terminal.element)
         setTimeout(()=>{
           terminal.resize(1,1);
           terminal.fit();
@@ -861,6 +871,8 @@
         },100)
         fullscreen = null;
       } else {
+        // save the current parent
+        terminal.containerElement = $(terminal.element).parent()
         $("body").append(terminal.element)
         fullscreen = terminal.proposeGeometry();
         terminal.toggleFullScreen();
