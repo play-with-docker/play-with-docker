@@ -755,13 +755,13 @@
     function getAvailablePresets() {
       return [
         { name : "None", presets : [
-          { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullscreen(context.terminal, resizeFunc); }}
+          { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullScreen(context.terminal, resizeFunc); }}
         ] },
         {
           name : "Mac OSX",
           presets : [
             { description : "Clear terminal", command : "Cmd+K", metaKey : true, keyCode : 75, action : function(context) { context.terminal.clear(); }},
-            { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullscreen(context.terminal, resizeFunc); }}
+            { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullScreen(context.terminal, resizeFunc); }}
           ]
         }
       ]
@@ -802,7 +802,7 @@
       getFontSize : getFontSize,
       increaseFontSize : increaseFontSize,
       decreaseFontSize : decreaseFontSize,
-      toggleFullscreen : toggleFullscreen
+      toggleFullScreen : toggleFullScreen
     };
     function getFontSizes() {
       var terminalFontSizes = [];
@@ -848,15 +848,24 @@
       }
       setFontSize(sizes[i-1]);
     }
-    function toggleFullscreen(terminal, resize) {
+    function toggleFullScreen(terminal, resize) {
+      var $terminalContainer = $(".terminal-container");
+
       if(fullscreen) {
-        terminal.toggleFullscreen();
-        resize(fullscreen);
+        terminal.toggleFullScreen();
+        $terminalContainer.append(terminal.element)
+        setTimeout(()=>{
+          terminal.resize(1,1);
+          terminal.fit();
+          terminal.focus();
+        },100)
         fullscreen = null;
       } else {
+        $("body").append(terminal.element)
         fullscreen = terminal.proposeGeometry();
-        terminal.toggleFullscreen();
-        angular.element($window).trigger('resize');
+        terminal.toggleFullScreen();
+        terminal.fit();
+        terminal.focus();
       }
     }
   }]);
