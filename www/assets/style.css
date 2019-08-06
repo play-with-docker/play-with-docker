@@ -4,9 +4,17 @@
     background-color: rgba(158,158,158,0.2);
 }
 
-md-card-content.terminal-container {
+.terminal-container {
     background-color: #000;
     padding: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    flex: 1;
+}
+
+.terminal-instance{
+    width: 100%;
 }
 
 .clock {
