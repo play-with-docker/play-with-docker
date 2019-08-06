@@ -756,9 +756,34 @@
 
     function getAvailablePresets() {
       return [
-        { name : "None", presets : [
-          { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullScreen(context.terminal, resizeFunc); }}
-        ] },
+        { 
+          name : "None", 
+          presets : [
+            { 
+              description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullScreen(context.terminal, resizeFunc); }
+            },
+            {
+              description: "Increase Font Size",
+              command: "Ctrl++",
+              ctrlKey : true,
+              keyCode: 187,
+              action: function(context) {
+                TerminalService.increaseFontSize();
+                context.e.preventDefault()
+              }
+            },
+            {
+              description: "Decrease Font Size",
+              command: "Ctrl+-",
+              ctrlKey: true,
+              keyCode: 189,
+              action: function(context) {
+                context.e.preventDefault()
+                TerminalService.decreaseFontSize();
+              }
+            }
+          ] 
+        },
         {
           name : "Mac OSX",
           presets : [
@@ -775,29 +800,9 @@
               }
             },
             {
-              description: "Increase Font Size",
-              command: "Ctrl++",
-              ctrlKey : true,
-              keyCode: 187,
-              action: function(context) {
-                TerminalService.increaseFontSize();
-                context.e.preventDefault()
-              }
-            },
-            {
               description: "Decrease Font Size",
               command: "Cmd+-",
               metaKey: true,
-              keyCode: 189,
-              action: function(context) {
-                context.e.preventDefault()
-                TerminalService.decreaseFontSize();
-              }
-            },
-            {
-              description: "Decrease Font Size",
-              command: "Ctrl+-",
-              ctrlKey: true,
               keyCode: 189,
               action: function(context) {
                 context.e.preventDefault()
