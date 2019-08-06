@@ -472,34 +472,26 @@
       });
       
       term.open(terminalContainer);
+      
 
-      term.attachCustomKeyEventHandler(function(e) {
+      const handleCopy = (e) => {
         // Ctrl + Alt + C
         if (e.ctrlKey && e.altKey && (e.keyCode == 67)) {
           document.execCommand('copy');
           return false;
         }
-      });
+      };
 
       term.attachCustomKeyEventHandler(function(e) {
-        if (selectedKeyboardShortcuts == null)
-          return;
+        // handleCopy(e);
+        if (selectedKeyboardShortcuts == null) return;
+
         var presets = selectedKeyboardShortcuts.presets
         .filter(function(preset) { return preset.keyCode == e.keyCode })
         .filter(function(preset) { return (preset.metaKey == undefined && !e.metaKey) || preset.metaKey == e.metaKey })
         .filter(function(preset) { return (preset.ctrlKey == undefined && !e.ctrlKey) || preset.ctrlKey == e.ctrlKey })
         .filter(function(preset) { return (preset.altKey == undefined && !e.altKey) || preset.altKey == e.altKey })
-        .forEach(function(preset) { preset.action({ terminal : term })});
-      });
-
-      term.attachCustomKeyEventHandler((e) => {
-        if (e.metaKey && (e.key == "-")) {
-          TerminalService.decreaseFontSize()
-          e.preventDefault()
-        }else if(e.metaKey && (e.key == "+")){
-          TerminalService.increaseFontSize()
-          e.preventDefault()
-        }
+        .forEach(function(preset) { preset.action({ terminal : term, e })});
       });
 
       // Set geometry during the next tick, to avoid race conditions.
@@ -771,7 +763,47 @@
           name : "Mac OSX",
           presets : [
             { description : "Clear terminal", command : "Cmd+K", metaKey : true, keyCode : 75, action : function(context) { context.terminal.clear(); }},
-            { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullScreen(context.terminal, resizeFunc); }}
+            { description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullScreen(context.terminal, resizeFunc); }},
+            {
+              description: "Increase Font Size",
+              command: "Cmd++",
+              metaKey : true,
+              keyCode: 187,
+              action: function(context) {
+                TerminalService.increaseFontSize();
+                context.e.preventDefault()
+              }
+            },
+            {
+              description: "Increase Font Size",
+              command: "Ctrl++",
+              ctrlKey : true,
+              keyCode: 187,
+              action: function(context) {
+                TerminalService.increaseFontSize();
+                context.e.preventDefault()
+              }
+            },
+            {
+              description: "Decrease Font Size",
+              command: "Cmd+-",
+              metaKey: true,
+              keyCode: 189,
+              action: function(context) {
+                context.e.preventDefault()
+                TerminalService.decreaseFontSize();
+              }
+            },
+            {
+              description: "Decrease Font Size",
+              command: "Ctrl+-",
+              ctrlKey: true,
+              keyCode: 189,
+              action: function(context) {
+                context.e.preventDefault()
+                TerminalService.decreaseFontSize();
+              }
+            }
           ]
         }
       ]
