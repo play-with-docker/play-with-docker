@@ -63,7 +63,6 @@
     $scope.resizeHandler = null;
 
     angular.element($window).bind('resize', function() {
-      console.log('windows resize');
       if ($rootScope.selectedInstance) {
         if (!$scope.resizeHandler) {
             $scope.resizeHandler = setTimeout(function() {
@@ -497,11 +496,9 @@
 
       // Set geometry during the next tick, to avoid race conditions.
 
-        /*
       setTimeout(function() {
         $scope.resize(term.proposeGeometry());
-      }, 4);
-      */
+      }, 0);
 
       instance.terminalBuffer = '';
       instance.terminalBufferInterval = setInterval(function() {
