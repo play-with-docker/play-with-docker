@@ -63,11 +63,12 @@
     $scope.resizeHandler = null;
 
     angular.element($window).bind('resize', function() {
+      console.log('windows resize');
       if ($rootScope.selectedInstance) {
         if (!$scope.resizeHandler) {
             $scope.resizeHandler = setTimeout(function() {
                 $scope.resizeHandler = null
-                $rootScope.selectedInstance.term.fit();
+                $scope.resize($scope.selectedInstance.term.proposeGeometry());
             }, 1000);
         }
       }
@@ -470,9 +471,9 @@
       var term = new Terminal({
         cursorBlink: false
       });
-      
+
       term.open(terminalContainer);
-      
+
 
       const handleCopy = (e) => {
         // Ctrl + Alt + C
@@ -756,10 +757,10 @@
 
     function getAvailablePresets() {
       return [
-        { 
-          name : "None", 
+        {
+          name : "None",
           presets : [
-            { 
+            {
               description : "Toggle terminal fullscreen", command : "Alt+enter", altKey : true, keyCode : 13, action : function(context) { TerminalService.toggleFullScreen(context.terminal, resizeFunc); }
             },
             {
@@ -782,7 +783,7 @@
                 TerminalService.decreaseFontSize();
               }
             }
-          ] 
+          ]
         },
         {
           name : "Mac OSX",
@@ -861,7 +862,7 @@
     function getFontSize() {
       if($rootScope.selectedInstance){
         return $rootScope.selectedInstance.term.getOption("fontSize") + "px"
-      }else{ 
+      }else{
         return $(".terminal").css("font-size")
       }
     }
