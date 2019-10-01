@@ -48,10 +48,6 @@ address=/localhost/127.0.0.1
 
 Don't forget to change your computer default DNS to use the dnsmasq server to resolve.
 
-### Building the dind image myself.
-
-If you want to make changes to the `dind` image being used, make your changes to the `Dockerfile.dind` file and then build it using this command: `docker build --build-arg docker_storage_driver=vfs -f Dockerfile.dind -t franela/dind .` 
-
 ## FAQ
 
 ### How can I connect to a published port from the outside world?
