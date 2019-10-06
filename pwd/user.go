@@ -26,20 +26,18 @@ func (p *pwd) UserLogin(loginRequest *types.LoginRequest, user *types.User) (*ty
 		return nil, err
 	}
 	u, err := p.storage.UserFindByProvider(user.Provider, user.ProviderUserId)
+
 	if err != nil {
 		if storage.NotFound(err) {
 			user.Id = p.generator.NewId()
-		} else {
-			return nil, err
+			if err := p.storage.UserPut(user); err != nil {
+				return nil, err
+			}
+			return user, nil
 		}
-	} else {
-		user.Id = u.Id
-	}
-	if err := p.storage.UserPut(user); err != nil {
 		return nil, err
 	}
-
-	return user, nil
+	return u, nil
 }
 func (p *pwd) UserGet(id string) (*types.User, error) {
 	if user, err := p.storage.UserGet(id); err != nil {
