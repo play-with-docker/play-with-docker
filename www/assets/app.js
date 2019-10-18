@@ -389,6 +389,14 @@
       });
     }
 
+    $scope.openPort = function(instance) {
+      var port = prompt('What port would you like to open?');
+      if (!port) return;
+      
+      var url = $scope.getProxyUrl(instance, port);
+      window.open(url, '_blank');
+    }
+
     $scope.getProxyUrl = function(instance, port) {
       var url = 'http://' + instance.proxy_host + '-' + port + '.direct.' + $scope.host;
 
