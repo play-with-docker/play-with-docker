@@ -93,8 +93,11 @@
                                <label>IP</label>
                                <input ng-model="instance.ip" type="text" readonly="readonly">
                              </md-input-container>
+                             <md-button class="md-raised" ng-click="openPort(instance)">
+                                Open Port
+                             </md-button>
                              <md-chips ng-model="instance.ports" name="port" readonly="true" md-removable="false">
-                               <md-chip-template>
+                               <md-chip-template> 
                                <strong><a href="{{getProxyUrl(instance, $chip)}}" title="{{getProxyUrl(instance, $chip)}}" target="_blank">{{$chip}}</a></strong>
                                </md-chip-template>
                              </md-chips>
