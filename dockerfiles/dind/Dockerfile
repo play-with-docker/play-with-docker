@@ -15,7 +15,7 @@ RUN mkdir -p /opt && cd /opt && \
     ./configure && make install LDFLAGS=-lintl && \
     rm -rf httping-2.5
 
-
+ENV DOCKER_CLI_EXPERIMENTAL=enabled
 ENV DOCKERAPP_VERSION=v0.6.0
 ENV COMPOSE_VERSION=1.23.2
 # Install Compose and Machine
