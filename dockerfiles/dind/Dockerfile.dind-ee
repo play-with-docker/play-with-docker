@@ -1,6 +1,5 @@
-ARG VERSION=franela/docker:18.09.2-ee-dind
-#ARG VERSION=franela/docker:17.06.2-dind-ubuntu
-#ARG VERSION=franela/docker:18.01-dind-ubuntu
+ARG VERSION=franela/docker:ubuntu-19.03ee
+#ARG VERSION=franela/docker:18.09.2-ee-dind
 
 FROM ${VERSION}
 
