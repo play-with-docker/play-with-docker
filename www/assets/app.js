@@ -193,9 +193,17 @@
 		base = 'wss://';
 	}
 	base += window.location.host;
-	if (window.location.port) {
+
+	// if PWD server use non-default 80 port, the new port could be set here to create the correct base link.
+	// otherwise, leave the variable empty.
+	// var port_overwrite = '5010';
+	var port_overwrite = '';
+	if (port_overwrite) {
+		base += ':' + port_overwrite;
+	} else if (window.location.port) {
 		base += ':' + window.location.port;
 	}
+
 
 	var socket = new ReconnectingWebSocket(base + '/sessions/' + sessionId + '/ws/', null, {reconnectInterval: 1000});
 	socket.listeners = {};
