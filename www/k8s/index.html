@@ -4,8 +4,8 @@
         <title>Docker Playground</title>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic|Material+Icons" />
         <link rel="stylesheet" href="https://unpkg.com/angular-material@1.1.10/angular-material.min.css">
-        <link rel="stylesheet" href="/assets/xterm.css" />
-        <link rel="stylesheet" href="/assets/xterm-addons/fullscreen.css" />
+        <link rel="stylesheet" href="/assets/xterm/xterm.css" />
+         <link rel="stylesheet" href="/assets/xterm/addons/fullscreen/fullscreen.css" />
         <link rel="stylesheet" href="/assets/style.css" />
         <script>
             (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -134,8 +134,9 @@
                            </div>
                       </div>
                       <div ng-show="instance.status=='reconnect'" class="uploadStatus">Connection has been lost. Sometimes this happens when a windows instance is joining a swarm. Trying to reconnect terminal...</div>
-                      <md-card-content flex id="terminal-{{instance.name}}" class="terminal-container">
-                      </md-card-content>
+                      <id class="terminal-container container-{{instance.name}}">
+                          <div class="terminal-instance" id="terminal-{{instance.name}}"></div>
+                      </id>
                   </md-card>
               </md-content>
             </section>
@@ -234,12 +235,13 @@
 
         <script src="https://unpkg.com/ng-file-upload@12.2.13/dist/ng-file-upload-all.min.js" integrity="sha384-NbBOS/QuqJqwWOtYg/L3ZDhgl/6GFyvkRMypJQLgoisMPtJiHj5uQ+3bj8V8Muwm" crossorigin="anonymous"></script>
 
-        <script src="/assets/app.js"></script>
-        <script src="/assets/xterm.js"></script>
-        <script src="/assets/xterm-addons/fit.js"></script>
-        <script src="/assets/xterm-addons/fullscreen.js"></script>
+        <script src="/assets/xterm/xterm.js"></script>
+        <script src="/assets/xterm/addons/fit/fit.js"></script>
+        <script src="/assets/xterm/addons/fullscreen/fullscreen.js"></script>
+        <script src="/assets/setup-xterm.js"></script>
         <script src="/assets/attach.js"></script>
         <script src="https://unpkg.com/moment@2.16.0/min/moment.min.js"></script>
+        <script src="/assets/app.js"></script>
 
 
 
