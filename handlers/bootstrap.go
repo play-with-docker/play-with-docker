@@ -62,7 +62,7 @@ func Register(extend HandlerExtender) {
 			strings.HasSuffix(origin, "play-with-docker.com") ||
 			strings.HasSuffix(origin, "play-with-kubernetes.com") ||
 			strings.HasSuffix(origin, "docker.com") ||
-			strings.HasSuffix(origin, "play-with-moby.com") {
+			strings.HasSuffix(origin, "play-with-golang.now.sh") {
 			return true
 		}
 		return false
@@ -72,6 +72,7 @@ func Register(extend HandlerExtender) {
 	r.HandleFunc("/ping", Ping).Methods("GET")
 	corsRouter.HandleFunc("/instances/images", GetInstanceImages).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}", GetSession).Methods("GET")
+	corsRouter.HandleFunc("/sessions/{sessionId}/close", CloseSession).Methods("GET")
 	corsRouter.HandleFunc("/sessions/{sessionId}", CloseSession).Methods("DELETE")
 	corsRouter.HandleFunc("/sessions/{sessionId}/setup", SessionSetup).Methods("POST")
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances", NewInstance).Methods("POST")
