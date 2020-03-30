@@ -20,6 +20,7 @@ func (c *CookieID) SetCookie(rw http.ResponseWriter, host string) error {
 			Value:    encoded,
 			Domain:   host,
 			Path:     "/",
+			SameSite: http.SameSiteNoneMode,
 			Secure:   config.UseLetsEncrypt,
 			HttpOnly: true,
 		}
