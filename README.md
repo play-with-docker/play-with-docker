@@ -24,7 +24,7 @@ docker run hello-world
 
 # Load the IPVS kernel module. Because swarms are created in dind,
 # the daemon won't load it automatically
-sudo modprobe xt_ipv
+sudo modprobe xt_ipvs
 
 # Ensure Docker daemon is running in swarm mode
 docker swarm init
