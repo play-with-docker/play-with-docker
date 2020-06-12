@@ -12,10 +12,10 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/gorilla/mux"
-	fb "github.com/huandu/facebook"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	uuid "github.com/satori/go.uuid"
+	"google.golang.org/api/people/v1"
 )
 
 func LoggedInUser(rw http.ResponseWriter, req *http.Request) {
@@ -141,27 +141,31 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		user.Name = u.GetName()
 		user.Avatar = u.GetAvatarURL()
 		user.Email = u.GetEmail()
-	} else if providerName == "facebook" {
+	} else if providerName == "google" {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: tok.AccessToken},
 		)
 		tc := oauth2.NewClient(ctx, ts)
-		session := &fb.Session{
-			Version:    "v2.10",
-			HttpClient: tc,
-		}
-		p := fb.Params{}
-		p["fields"] = "email,name,picture"
-		res, err := session.Get("/me", p)
+
+		p, err := people.New(tc)
 		if err != nil {
-			log.Printf("Could not get user from facebook. Got: %v\n", err)
+			log.Printf("Could not initialize people service . Got: %v\n", err)
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		user.ProviderUserId = res.Get("id").(string)
-		user.Name = res.Get("name").(string)
-		user.Avatar = res.Get("picture.data.url").(string)
-		user.Email = res.Get("email").(string)
+
+		person, err := p.People.Get("people/me").PersonFields("emailAddresses,names").Do()
+
+		if err != nil {
+			log.Printf("Could not initialize people service . Got: %v\n", err)
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		user.Email = person.EmailAddresses[0].Value
+		user.Name = person.Names[0].GivenName
+		user.ProviderUserId = person.ResourceName
+
 	} else if providerName == "docker" {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: tok.AccessToken},

@@ -25,8 +25,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
-	oauth2FB "golang.org/x/oauth2/facebook"
 	oauth2Github "golang.org/x/oauth2/github"
+	oauth2Google "golang.org/x/oauth2/google"
+	"google.golang.org/api/people/v1"
 )
 
 var core pwd.PWDApi
@@ -230,15 +231,15 @@ func initOauthProviders(p *types.Playground) {
 
 		config.Providers[p.Id]["github"] = conf
 	}
-	if p.FacebookClientID != "" && p.FacebookClientSecret != "" {
+	if p.GoogleClientID != "" && p.GoogleClientSecret != "" {
 		conf := &oauth2.Config{
-			ClientID:     p.FacebookClientID,
-			ClientSecret: p.FacebookClientSecret,
-			Scopes:       []string{"email", "public_profile"},
-			Endpoint:     oauth2FB.Endpoint,
+			ClientID:     p.GoogleClientID,
+			ClientSecret: p.GoogleClientSecret,
+			Scopes:       []string{people.UserinfoEmailScope, people.UserinfoProfileScope},
+			Endpoint:     oauth2Google.Endpoint,
 		}
 
-		config.Providers[p.Id]["facebook"] = conf
+		config.Providers[p.Id]["google"] = conf
 	}
 	if p.DockerClientID != "" && p.DockerClientSecret != "" {
 

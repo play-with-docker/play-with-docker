@@ -84,8 +84,8 @@ type Playground struct {
 	Tasks                       []string         `json:"tasks" bson:"tasks"`
 	GithubClientID              string           `json:"github_client_id" bson:"github_client_id"`
 	GithubClientSecret          string           `json:"github_client_secret" bson:"github_client_secret"`
-	FacebookClientID            string           `json:"facebook_client_id" bson:"facebook_client_id"`
-	FacebookClientSecret        string           `json:"facebook_client_secret" bson:"facebook_client_secret"`
+	GoogleClientID              string           `json:"google_client_id" bson:"google_client_id"`
+	GoogleClientSecret          string           `json:"google_client_secert" bson:"google_client_secret"`
 	DockerClientID              string           `json:"docker_client_id" bson:"docker_client_id"`
 	DockerClientSecret          string           `json:"docker_client_secret" bson:"docker_client_secret"`
 	DockerHost                  string           `json:"docker_host" bson:"docker_host"`
