@@ -34,7 +34,7 @@ apiserver_etcd2_backend='.spec.containers[0].command|=map(select(startswith("--s
 # Update kube-proxy CIDR, enable --masquerade-all and disable conntrack (see dind::frob-proxy below)
 function dind::proxy-cidr-and-no-conntrack {
   cluster_cidr="$(ip addr show docker0 | grep -w inet | awk '{ print $2; }')"
-  echo ".items[0].spec.template.spec.containers[0].command |= .+ [\"--cluster-cidr=${cluster_cidr}\", \"--masquerade-all\", \"--conntrack-max=0\", \"--conntrack-max-per-core=0\"]"
+  echo ".items[0].spec.template.spec.containers[0].command |= .+ [\"--cluster-cidr=${cluster_cidr}\", \"--masquerade-all\", \"--conntrack-max-per-core=0\"]"
 }
 
 
