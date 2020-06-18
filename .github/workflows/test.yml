@@ -1,5 +1,3 @@
-name: CI
-
 on:
   push:
     branches:
@@ -8,11 +6,21 @@ on:
     branches:
       - '**'
 
+name: Go
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        go_version: ["1.13.9", "1.14.1"]
+    runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout code
       uses: actions/checkout@722adc63f1aa60a57ec37892e133b1d319cae598
-    - name: Run a one-line script
-      run: echo Hello, world!
+    - name: Install Go
+      uses: actions/setup-go@9fbc767707c286e568c92927bbf57d76b73e0892
+      with:
+        go-version: ${{ matrix.go_version }}
+    - name: Test
+      run: go test ./...
