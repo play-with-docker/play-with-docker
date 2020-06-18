@@ -8,7 +8,7 @@ COPY ./kubernetes.repo /etc/yum.repos.d/
 RUN yum install -y kubectl-1.18.4 kubeadm-1.18.4 kubelet-1.18.4 \
     #&& mv -f /etc/systemd/system/kubelet.service.d/10-kubeadm.conf /etc/systemd/system/kubelet.service \
     && yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo \
-    && yum install -y docker-ce git \
+    && yum install -y docker-ce git bash-completion \
     && sed -i -e '4d;5d;8d' /lib/systemd/system/docker.service \
     && yum clean all
 
@@ -30,6 +30,9 @@ COPY motd /etc/motd
 
 RUN echo $'cat /etc/motd \n\
 export PS1="[\h \W]$ "' >> /root/.bash_profile
+
+RUN echo 'source <(kubectl completion bash)' >>~/.bashrc \
+    && kubectl completion bash >> /etc/bash_completion.d/kubectl
 
 RUN mkdir -p /root/.kube && ln -s /etc/kubernetes/admin.conf /root/.kube/config \
     && rm -f /etc/machine-id
