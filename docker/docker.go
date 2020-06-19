@@ -262,6 +262,7 @@ type CreateContainerOpts struct {
 	Labels         map[string]string
 	Networks       []string
 	DindVolumeSize string
+	Envs           []string
 }
 
 func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
@@ -269,7 +270,7 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 	containerDir := "/opt/pwd"
 	containerCertDir := fmt.Sprintf("%s/certs", containerDir)
 
-	env := []string{fmt.Sprintf("SESSION_ID=%s", opts.SessionId)}
+	env := append([]string{}, fmt.Sprintf("SESSION_ID=%s", opts.SessionId))
 
 	// Write certs to container cert dir
 	if len(opts.ServerCert) > 0 {

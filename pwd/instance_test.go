@@ -171,6 +171,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		ServerKey:     nil,
 		CACert:        nil,
 		Privileged:    true,
+		Envs:          []string{"HELLO=WORLD"},
 		Networks:      []string{session.Id},
 	}
 	_d.On("ContainerCreate", expectedContainerOpts).Return(nil)
@@ -178,7 +179,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
-	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis"})
+	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis", Envs: []string{"HELLO=WORLD"}})
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedInstance, *instance)

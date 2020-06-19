@@ -78,6 +78,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		Privileged:     true,
 		Networks:       []string{session.Id},
 		DindVolumeSize: conf.DindVolumeSize,
+		Envs:           conf.Envs,
 	}
 
 	dockerClient, err := d.factory.GetForSession(session)
