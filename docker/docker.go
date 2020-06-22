@@ -270,7 +270,7 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 	containerDir := "/opt/pwd"
 	containerCertDir := fmt.Sprintf("%s/certs", containerDir)
 
-	env := append([]string{}, fmt.Sprintf("SESSION_ID=%s", opts.SessionId))
+	env := append(opts.Envs, fmt.Sprintf("SESSION_ID=%s", opts.SessionId))
 
 	// Write certs to container cert dir
 	if len(opts.ServerCert) > 0 {
