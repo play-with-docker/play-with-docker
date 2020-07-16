@@ -152,6 +152,15 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 
 	assert.Nil(t, err)
 
+	// Switch to unsafe mode in order to test custom networks below
+	//
+	// TODO: move config away from being a global in order that we don't
+	// have to hack setting the context in this way.
+	config.Unsafe = true
+	defer func() {
+		config.Unsafe = false
+	}()
+
 	expectedInstance := types.Instance{
 		Name:        fmt.Sprintf("%s_aaaabbbbcccc", session.Id[:8]),
 		Hostname:    "node1",
@@ -172,14 +181,14 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		CACert:        nil,
 		Privileged:    true,
 		Envs:          []string{"HELLO=WORLD"},
-		Networks:      []string{session.Id},
+		Networks:      []string{session.Id, "arpanet"},
 	}
 	_d.On("ContainerCreate", expectedContainerOpts).Return(nil)
 	_d.On("ContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
 	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
-	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis", Envs: []string{"HELLO=WORLD"}})
+	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis", Envs: []string{"HELLO=WORLD"}, Networks: []string{"arpanet"}})
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedInstance, *instance)

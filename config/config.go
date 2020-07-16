@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"os"
 	"regexp"
 
 	"github.com/gorilla/securecookie"
@@ -29,6 +30,11 @@ var MaxLoadAvg float64
 var ForceTLS bool
 var SecureCookie *securecookie.SecureCookie
 var AdminToken string
+
+// Unsafe enables a number of unsafe features when set. It is principally
+// intended to be used in development. For example, it allows the caller to
+// specify the Docker networks to join.
+var Unsafe bool
 
 var PlaygroundDomain string
 
@@ -59,6 +65,8 @@ func ParseFlags() {
 	flag.StringVar(&AdminToken, "admin-token", "", "Token to validate admin user for admin endpoints")
 
 	flag.StringVar(&SegmentId, "segment-id", "", "Segment id to post metrics")
+
+	flag.BoolVar(&Unsafe, "unsafe", os.Getenv("PWD_UNSAFE") == "true", "Operate in unsafe mode")
 
 	flag.Parse()
 
