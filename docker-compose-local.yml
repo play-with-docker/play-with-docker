@@ -1,0 +1,10 @@
+version: "3.2"
+services:
+  haproxy:
+    container_name: haproxy
+    image: haproxy
+    ports:
+    - "80:8080"
+    volumes:
+    - ./haproxy:/usr/local/etc/haproxy
+

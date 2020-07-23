@@ -20,16 +20,9 @@ services:
     - $PWD:/go/src
     - networks:/pwd
     ports:
-    - 8022:22
-    - 8053:53
-    - 443:443
-  haproxy:
-    container_name: haproxy
-    image: haproxy
-    volumes:
-    - ./haproxy:/usr/local/etc/haproxy
-    ports:
-    - 80:8080
+    - "8022:22"
+    - "8053:53"
+    - "443:443"
 volumes:
   sessions: null
   networks: null

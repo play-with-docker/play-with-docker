@@ -4,12 +4,12 @@ go 1.14
 
 require (
 	cloud.google.com/go v0.58.0 // indirect
+	cuelang.org/go v0.2.2
 	docker.io/go-docker v1.0.0
 	github.com/Microsoft/go-winio v0.4.5 // indirect
 	github.com/PuerkitoBio/purell v1.1.0 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/aws/aws-sdk-go v1.12.15
-	github.com/beorn7/perks v0.0.0-20160804104726-4c0e84591b9a // indirect
 	github.com/containerd/containerd v1.0.0-beta.2
 	github.com/docker/distribution v2.6.0-rc.1.0.20170726174610-edc3ab29cdff+incompatible // indirect
 	github.com/docker/docker v1.4.2-0.20200309214505-aa6a9891b09c // indirect
@@ -17,13 +17,11 @@ require (
 	github.com/docker/go-units v0.3.2
 	github.com/emicklei/go-restful v2.4.0+incompatible // indirect
 	github.com/emicklei/go-restful-swagger12 v0.0.0-20170208215640-dcef7f557305 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-ini/ini v1.30.0 // indirect
 	github.com/go-openapi/jsonpointer v0.0.0-20170102174223-779f45308c19 // indirect
 	github.com/go-openapi/jsonreference v0.0.0-20161105162150-36d33bfe519e // indirect
 	github.com/go-openapi/spec v0.0.0-20171105074921-a4fa9574c7aa // indirect
 	github.com/go-openapi/swag v0.0.0-20171111214437-cf0bdb963811 // indirect
-	github.com/gogo/protobuf v0.0.0-20170307180453-100ba4e88506 // indirect
 	github.com/google/go-github v13.0.1-0.20171014143926-a021c14a5f19+incompatible
 	github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135 // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
@@ -32,30 +30,24 @@ require (
 	github.com/gorilla/handlers v1.3.0
 	github.com/gorilla/mux v1.5.0
 	github.com/gorilla/securecookie v0.0.0-20160422134519-667fe4e3466a
-	github.com/gorilla/websocket v1.2.0
+	github.com/gorilla/websocket v1.4.0
 	github.com/gregjones/httpcache v0.0.0-20171119193500-2bcd89a1743f // indirect
 	github.com/hashicorp/golang-lru v0.5.1
-	github.com/huandu/facebook v2.1.0+incompatible // indirect
 	github.com/inconshreveable/go-vhost v0.0.0-20160627193104-06d84117953b
 	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8 // indirect
 	github.com/json-iterator/go v0.0.0-20171115153421-f7279a603ede // indirect
 	github.com/juju/ratelimit v1.0.1 // indirect
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.0 // indirect
 	github.com/miekg/dns v0.0.0-20171019064225-822ae18e7187
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
-	github.com/pkg/errors v0.8.0 // indirect
-	github.com/prometheus/client_golang v0.8.0
-	github.com/prometheus/common v0.0.0-20171006141418-1bab55dd05db // indirect
-	github.com/prometheus/procfs v0.0.0-20171017214025-a6e9df898b13 // indirect
+	github.com/prometheus/client_golang v0.9.3
 	github.com/rs/xid v0.0.0-20170604230408-02dd45c33376
 	github.com/satori/go.uuid v1.1.1-0.20170321230731-5bf94b69c6b6
 	github.com/shirou/gopsutil v2.16.13-0.20170924065440-6e221c482653+incompatible
 	github.com/smartystreets/goconvey v1.6.4 // indirect
-	github.com/spf13/pflag v1.0.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/negroni v0.2.0
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550

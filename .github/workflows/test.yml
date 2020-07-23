@@ -24,3 +24,7 @@ jobs:
         go-version: ${{ matrix.go_version }}
     - name: Test
       run: go test ./...
+    - name: Re-generate docker-compose.yml
+      run: go run cuelang.org/go/cmd/cue eval --out yaml docker-compose-base.yml docker-compose-local.yml > docker-compose.yml
+    - name: Check that commit is clean
+      run: test -z "$(git status --porcelain)" || (git status; git diff; false)
