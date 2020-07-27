@@ -25,6 +25,9 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 	}
 	i := core.InstanceGet(s, instanceName)
 
+	// Path to upload the file to
+	path := req.URL.Query().Get("path")
+
 	// allow up to 32 MB which is the default
 
 	// has a url query parameter, ignore body
@@ -32,7 +35,7 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 
 		_, fileName := filepath.Split(url)
 
-		err := core.InstanceUploadFromUrl(i, fileName, "", req.URL.Query().Get("url"))
+		err := core.InstanceUploadFromUrl(i, fileName, path, req.URL.Query().Get("url"))
 		if err != nil {
 			log.Println(err)
 			rw.WriteHeader(http.StatusInternalServerError)
@@ -47,7 +50,6 @@ func FileUpload(rw http.ResponseWriter, req *http.Request) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		path := req.URL.Query().Get("path")
 
 		for {
 			p, err := red.NextPart()
