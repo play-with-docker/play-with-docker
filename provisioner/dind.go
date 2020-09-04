@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/id"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
@@ -65,6 +66,12 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		}
 		conf.Hostname = nodeName
 	}
+
+	networks := []string{session.Id}
+	if config.Unsafe {
+		networks = append(networks, conf.Networks...)
+	}
+
 	containerName := fmt.Sprintf("%s_%s", session.Id[:8], d.generator.NewId())
 	opts := docker.CreateContainerOpts{
 		Image:          conf.ImageName,
@@ -76,7 +83,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		CACert:         conf.CACert,
 		HostFQDN:       conf.PlaygroundFQDN,
 		Privileged:     true,
-		Networks:       []string{session.Id},
+		Networks:       networks,
 		DindVolumeSize: conf.DindVolumeSize,
 		Envs:           conf.Envs,
 	}

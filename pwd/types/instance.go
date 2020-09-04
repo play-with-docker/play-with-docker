@@ -40,4 +40,5 @@ type InstanceConfig struct {
 	Type           string
 	DindVolumeSize string
 	Envs           []string
+	Networks       []string
 }
