@@ -14,7 +14,7 @@ services:
         # use the latest golang image
         image: golang
         # go to the right place and starts the app
-        command: /bin/sh -c 'ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null; cd /go/src/; go run api.go -save /pwd/sessions -name l2'
+        command: /bin/sh -c 'ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null; cd /go/src/; if [ -e /runbin/pwd ]; then /runbin/pwd  -save /pwd/sessions -name l2; else go run api.go -save /pwd/sessions -name l2; fi'
         volumes:
             # since this app creates networks and launches containers, we need to talk to docker daemon
             - /var/run/docker.sock:/var/run/docker.sock
@@ -26,7 +26,7 @@ services:
         # use the latest golang image
         image: golang
         # go to the right place and starts the app
-        command: /bin/sh -c 'ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null; cd /go/src/router/l2; go run l2.go -ssh_key_path /etc/ssh/ssh_host_rsa_key -name l2 -save /pwd/networks'
+        command: /bin/sh -c 'ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null; cd /go/src/router/l2; if [ -e /runbin/l2 ]; then /runbin/l2 -ssh_key_path /etc/ssh/ssh_host_rsa_key -name l2 -save /pwd/networks; else go run l2.go -ssh_key_path /etc/ssh/ssh_host_rsa_key -name l2 -save /pwd/networks; fi'
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - $PWD:/go/src
