@@ -22,5 +22,9 @@ jobs:
       uses: actions/setup-go@9fbc767707c286e568c92927bbf57d76b73e0892
       with:
         go-version: ${{ matrix.go_version }}
+    - name: Generate
+      run: go generate ./...
     - name: Test
       run: go test ./...
+    - name: Verify clean commit
+      run: test -z "$(git status --porcelain)" || (git status; git diff; false)

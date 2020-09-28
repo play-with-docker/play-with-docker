@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -203,8 +204,15 @@ func initAssets(p *types.Playground) {
 		p.AssetsDir = "default"
 	}
 
+	lpath := path.Join(p.AssetsDir, "landing.html")
+	landing, err := config.Asset(lpath)
+	if err != nil {
+		log.Fatalf("Error loading %v: %v", lpath, err)
+	}
+
 	var b bytes.Buffer
-	t, err := template.New("landing.html").Delims("[[", "]]").ParseFiles(fmt.Sprintf("./www/%s/landing.html", p.AssetsDir))
+	t := template.New("landing.html").Delims("[[", "]]")
+	t, err = t.Parse(string(landing))
 	if err != nil {
 		log.Fatalf("Error parsing template %v", err)
 	}
