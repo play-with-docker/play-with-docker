@@ -2,6 +2,7 @@ package pwd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -18,6 +19,18 @@ import (
 )
 
 var preparedSessions = map[string]bool{}
+
+type AccessDeniedError struct {
+	Err error
+}
+
+func (u *AccessDeniedError) Error() string {
+	return fmt.Sprintf("Acess denied error: %s", u.Err.Error())
+}
+
+func (u *AccessDeniedError) Unwrap() error {
+	return u.Err
+}
 
 type sessionBuilderWriter struct {
 	sessionId string
@@ -48,8 +61,10 @@ type SessionSetupInstanceConf struct {
 func (p *pwd) SessionNew(ctx context.Context, config types.SessionConfig) (*types.Session, error) {
 	defer observeAction("SessionNew", time.Now())
 
-	if u, err := p.storage.UserGet(config.UserId); err == nil && u.IsBanned {
-		return nil, fmt.Errorf("User %s is banned\n", config.UserId)
+	if _, err := p.UserGet(config.UserId); errors.Is(err, userBannedError) {
+		return nil, &AccessDeniedError{err}
+	} else if err != nil {
+		return nil, err
 	}
 
 	s := &types.Session{}

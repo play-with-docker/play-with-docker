@@ -2,6 +2,7 @@ package pwd
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -100,6 +101,7 @@ func TestSessionFailWhenUserIsBanned(t *testing.T) {
 	s, e := p.SessionNew(context.Background(), sConfig)
 	assert.NotNil(t, e)
 	assert.Nil(t, s)
+	assert.True(t, errors.Is(e, userBannedError))
 	assert.Contains(t, e.Error(), "banned")
 
 	_d.AssertExpectations(t)
