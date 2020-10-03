@@ -64,7 +64,6 @@ func (p *pwd) SessionNew(ctx context.Context, config types.SessionConfig) (*type
 	// Annonymous users should be also allowed to login
 	if config.UserId != "" {
 		if _, err := p.UserGet(config.UserId); errors.Is(err, userBannedError) {
-
 			return nil, &AccessDeniedError{err}
 		} else if err != nil {
 			return nil, err
