@@ -97,7 +97,7 @@ func TestSessionFailWhenUserIsBanned(t *testing.T) {
 	p.generator = _g
 
 	playground := &types.Playground{Id: "foobar"}
-	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	sConfig := types.SessionConfig{Playground: playground, UserId: "some_user", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
 	s, e := p.SessionNew(context.Background(), sConfig)
 	assert.NotNil(t, e)
 	assert.Nil(t, s)
