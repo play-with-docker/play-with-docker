@@ -34,6 +34,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/inconshreveable/go-vhost v0.0.0-20160627193104-06d84117953b
 	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8 // indirect
+	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	github.com/juju/ratelimit v1.0.1 // indirect
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
 	github.com/miekg/dns v0.0.0-20171019064225-822ae18e7187
