@@ -229,7 +229,7 @@ func (d *docker) CopyToContainer(containerName, destination, fileName string, co
 	if err := t.Close(); err != nil {
 		return err
 	}
-	return d.c.CopyToContainer(context.Background(), containerName, destination, &buf, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+	return d.c.CopyToContainer(context.Background(), containerName, destination, &buf, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true, CopyUIDGID: true})
 }
 
 func (d *docker) CopyFromContainer(containerName, filePath string) (io.Reader, error) {
