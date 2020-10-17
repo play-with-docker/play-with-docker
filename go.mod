@@ -17,6 +17,7 @@ require (
 	github.com/emicklei/go-restful v2.4.0+incompatible // indirect
 	github.com/emicklei/go-restful-swagger12 v0.0.0-20170208215640-dcef7f557305 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-ini/ini v1.30.0 // indirect
 	github.com/go-openapi/jsonpointer v0.0.0-20170102174223-779f45308c19 // indirect
 	github.com/go-openapi/jsonreference v0.0.0-20161105162150-36d33bfe519e // indirect
@@ -34,7 +35,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/inconshreveable/go-vhost v0.0.0-20160627193104-06d84117953b
 	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8 // indirect
-	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	github.com/juju/ratelimit v1.0.1 // indirect
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
 	github.com/miekg/dns v0.0.0-20171019064225-822ae18e7187

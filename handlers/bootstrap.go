@@ -31,6 +31,9 @@ import (
 	"google.golang.org/api/people/v1"
 )
 
+//go:generate go run github.com/go-bindata/go-bindata/go-bindata -fs -pkg handlers -o gen_bindata.go -prefix ../www/ ../www/...
+//go:generate gofmt -w -s gen_bindata.go
+
 var core pwd.PWDApi
 var e event.EventApi
 var landings = map[string][]byte{}
@@ -95,7 +98,7 @@ func Register(extend HandlerExtender) {
 		http.ServeFile(rw, r, "./www/503.html")
 	}).Methods("GET")
 	r.HandleFunc("/p/{sessionId}", Home).Methods("GET")
-	r.PathPrefix("/assets").Handler(http.FileServer(http.Dir("./www")))
+	r.PathPrefix("/assets").Handler(http.FileServer(AssetFile()))
 	r.HandleFunc("/robots.txt", func(rw http.ResponseWriter, r *http.Request) {
 		http.ServeFile(rw, r, "www/robots.txt")
 	})
@@ -205,7 +208,7 @@ func initAssets(p *types.Playground) {
 	}
 
 	lpath := path.Join(p.AssetsDir, "landing.html")
-	landing, err := config.Asset(lpath)
+	landing, err := Asset(lpath)
 	if err != nil {
 		log.Fatalf("Error loading %v: %v", lpath, err)
 	}
