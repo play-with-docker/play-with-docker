@@ -88,19 +88,19 @@ func Register(extend HandlerExtender) {
 	corsRouter.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/file", file).Methods("GET")
 
 	r.HandleFunc("/sessions/{sessionId}/instances/{instanceName}/editor", func(rw http.ResponseWriter, r *http.Request) {
-		http.ServeFile(rw, r, "www/editor.html")
+		serveAsset(rw, "editor.html")
 	})
 
 	r.HandleFunc("/ooc", func(rw http.ResponseWriter, r *http.Request) {
-		http.ServeFile(rw, r, "./www/ooc.html")
+		serveAsset(rw, "occ.html")
 	}).Methods("GET")
 	r.HandleFunc("/503", func(rw http.ResponseWriter, r *http.Request) {
-		http.ServeFile(rw, r, "./www/503.html")
+		serveAsset(rw, "503.html")
 	}).Methods("GET")
 	r.HandleFunc("/p/{sessionId}", Home).Methods("GET")
 	r.PathPrefix("/assets").Handler(http.FileServer(AssetFile()))
 	r.HandleFunc("/robots.txt", func(rw http.ResponseWriter, r *http.Request) {
-		http.ServeFile(rw, r, "www/robots.txt")
+		serveAsset(rw, "robots.txt")
 	})
 
 	corsRouter.HandleFunc("/sessions/{sessionId}/ws/", WSH)
@@ -188,6 +188,15 @@ func Register(extend HandlerExtender) {
 		log.Println("Listening on port " + config.PortNumber)
 		log.Fatal(httpServer.ListenAndServe())
 	}
+}
+
+func serveAsset(w http.ResponseWriter, name string) {
+	a, err := Asset(name)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	w.Write(a)
 }
 
 func initPlaygrounds() {
