@@ -87,7 +87,7 @@ type Playground struct {
 	GoogleClientID              string           `json:"google_client_id" bson:"google_client_id"`
 	GoogleClientSecret          string           `json:"google_client_secert" bson:"google_client_secret"`
 	DockerClientID              string           `json:"docker_client_id" bson:"docker_client_id"`
-	DockerClientSecret          string           `json:"docker_client_secret" bson:"docker_client_secret"`
+	DockerClientSecret          string           `json:"google_client_secret" bson:"docker_client_secret"`
 	DockerHost                  string           `json:"docker_host" bson:"docker_host"`
 	MaxInstances                int              `json:"max_instances" bson:"max_instances"`
 }
