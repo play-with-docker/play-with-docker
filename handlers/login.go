@@ -43,7 +43,7 @@ func ListProviders(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	providers := []string{}
-	for name, _ := range config.Providers[playground.Id] {
+	for name := range config.Providers[playground.Id] {
 		providers = append(providers, name)
 	}
 	json.NewEncoder(rw).Encode(providers)
