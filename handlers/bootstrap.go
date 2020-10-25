@@ -67,7 +67,7 @@ func Register(extend HandlerExtender) {
 			strings.HasSuffix(origin, "play-with-docker.com") ||
 			strings.HasSuffix(origin, "play-with-kubernetes.com") ||
 			strings.HasSuffix(origin, "docker.com") ||
-			strings.HasSuffix(origin, "play-with-golang.now.sh") {
+			strings.HasSuffix(origin, "play-with-go.dev") {
 			return true
 		}
 		return false
