@@ -55,6 +55,12 @@ func NewInstance(rw http.ResponseWriter, req *http.Request) {
 		body.DindVolumeSize = playground.DindVolumeSize
 	}
 
+	// TODO I don't like how this is implemented here. NewInstance
+	// should be a function that's in the Playground struct.
+	if playground.Privileged {
+		body.Privileged = true
+	}
+
 	i, err := core.InstanceNew(s, body)
 	if err != nil {
 		if provisioner.OutOfCapacity(err) {

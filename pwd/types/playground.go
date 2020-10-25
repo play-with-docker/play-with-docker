@@ -90,4 +90,5 @@ type Playground struct {
 	DockerClientSecret          string           `json:"docker_client_secret" bson:"docker_client_secret"`
 	DockerHost                  string           `json:"docker_host" bson:"docker_host"`
 	MaxInstances                int              `json:"max_instances" bson:"max_instances"`
+	Privileged                  bool             `json:"privileged" bson:"privileged"`
 }

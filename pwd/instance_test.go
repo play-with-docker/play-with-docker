@@ -97,7 +97,7 @@ func TestInstanceNew(t *testing.T) {
 		ServerCert:    nil,
 		ServerKey:     nil,
 		CACert:        nil,
-		Privileged:    true,
+		Privileged:    false,
 		HostFQDN:      "something.play-with-docker.com",
 		Networks:      []string{session.Id},
 	}
@@ -107,6 +107,86 @@ func TestInstanceNew(t *testing.T) {
 	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
 
 	instance, err := p.InstanceNew(session, types.InstanceConfig{PlaygroundFQDN: "something.play-with-docker.com"})
+	assert.Nil(t, err)
+
+	assert.Equal(t, expectedInstance, *instance)
+
+	_d.AssertExpectations(t)
+	_f.AssertExpectations(t)
+	_s.AssertExpectations(t)
+	_g.AssertExpectations(t)
+	_e.M.AssertExpectations(t)
+}
+
+func TestInstanceNew_Privileged(t *testing.T) {
+	_d := &docker.Mock{}
+	_f := &docker.FactoryMock{}
+	_s := &storage.Mock{}
+	_g := &id.MockGenerator{}
+	_e := &event.Mock{}
+	ipf := provisioner.NewInstanceProvisionerFactory(provisioner.NewWindowsASG(_f, _s), provisioner.NewDinD(_g, _f, _s))
+	sp := provisioner.NewOverlaySessionProvisioner(_f)
+
+	_g.On("NewId").Return("aaaabbbbcccc")
+	_f.On("GetForSession", mock.AnythingOfType("*types.Session")).Return(_d, nil)
+	_d.On("NetworkCreate", "aaaabbbbcccc", dtypes.NetworkCreate{Attachable: true, Driver: "overlay"}).Return(nil)
+	_d.On("DaemonHost").Return("localhost")
+	_d.On("NetworkConnect", config.L2ContainerName, "aaaabbbbcccc", "").Return("10.0.0.1", nil)
+	_s.On("SessionPut", mock.AnythingOfType("*types.Session")).Return(nil)
+	_s.On("SessionCount").Return(1, nil)
+	_s.On("ClientCount").Return(0, nil)
+	_s.On("InstanceCount").Return(0, nil)
+	_s.On("InstanceFindBySessionId", "aaaabbbbcccc").Return([]*types.Instance{}, nil)
+
+	var nilArgs []interface{}
+	_e.M.On("Emit", event.SESSION_NEW, "aaaabbbbcccc", nilArgs).Return()
+
+	p := NewPWD(_f, _e, _s, sp, ipf)
+	p.generator = _g
+
+	playground := &types.Playground{Id: "foobar"}
+	sConfig := types.SessionConfig{Playground: playground, UserId: "", Duration: time.Hour, Stack: "", StackName: "", ImageName: ""}
+	session, err := p.SessionNew(context.Background(), sConfig)
+
+	assert.Nil(t, err)
+
+	// Switch to unsafe mode in order to test custom networks below
+	//
+	// TODO: move config away from being a global in order that we don't
+	// have to hack setting the context in this way.
+	config.Unsafe = true
+	defer func() {
+		config.Unsafe = false
+	}()
+
+	expectedInstance := types.Instance{
+		Name:        fmt.Sprintf("%s_aaaabbbbcccc", session.Id[:8]),
+		Hostname:    "node1",
+		IP:          "10.0.0.1",
+		RoutableIP:  "10.0.0.1",
+		Image:       "redis",
+		SessionId:   session.Id,
+		SessionHost: session.Host,
+		ProxyHost:   router.EncodeHost(session.Id, "10.0.0.1", router.HostOpts{}),
+	}
+	expectedContainerOpts := docker.CreateContainerOpts{
+		Image:         expectedInstance.Image,
+		SessionId:     session.Id,
+		ContainerName: expectedInstance.Name,
+		Hostname:      expectedInstance.Hostname,
+		ServerCert:    nil,
+		ServerKey:     nil,
+		CACert:        nil,
+		Privileged:    true,
+		Envs:          []string{"HELLO=WORLD"},
+		Networks:      []string{session.Id, "arpanet"},
+	}
+	_d.On("ContainerCreate", expectedContainerOpts).Return(nil)
+	_d.On("ContainerIPs", expectedInstance.Name).Return(map[string]string{session.Id: "10.0.0.1"}, nil)
+	_s.On("InstancePut", mock.AnythingOfType("*types.Instance")).Return(nil)
+	_e.M.On("Emit", event.INSTANCE_NEW, "aaaabbbbcccc", []interface{}{"aaaabbbb_aaaabbbbcccc", "10.0.0.1", "node1", "ip10-0-0-1-aaaabbbbcccc"}).Return()
+
+	instance, err := p.InstanceNew(session, types.InstanceConfig{ImageName: "redis", Envs: []string{"HELLO=WORLD"}, Networks: []string{"arpanet"}, Privileged: true})
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedInstance, *instance)
@@ -177,7 +257,7 @@ func TestInstanceNew_WithNotAllowedImage(t *testing.T) {
 		ServerCert:    nil,
 		ServerKey:     nil,
 		CACert:        nil,
-		Privileged:    true,
+		Privileged:    false,
 		Envs:          []string{"HELLO=WORLD"},
 		Networks:      []string{session.Id, "arpanet"},
 	}
@@ -247,7 +327,7 @@ func TestInstanceNew_WithCustomHostname(t *testing.T) {
 		ServerCert:    nil,
 		ServerKey:     nil,
 		CACert:        nil,
-		Privileged:    true,
+		Privileged:    false,
 		Networks:      []string{session.Id},
 	}
 

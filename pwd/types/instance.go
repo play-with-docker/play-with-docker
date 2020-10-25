@@ -29,6 +29,7 @@ type WindowsInstance struct {
 
 type InstanceConfig struct {
 	ImageName      string
+	Privileged     bool
 	Hostname       string
 	ServerCert     []byte
 	ServerKey      []byte

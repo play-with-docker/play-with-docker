@@ -82,7 +82,7 @@ func (d *DinD) InstanceNew(session *types.Session, conf types.InstanceConfig) (*
 		ServerKey:      conf.ServerKey,
 		CACert:         conf.CACert,
 		HostFQDN:       conf.PlaygroundFQDN,
-		Privileged:     true,
+		Privileged:     conf.Privileged,
 		Networks:       networks,
 		DindVolumeSize: conf.DindVolumeSize,
 		Envs:           conf.Envs,
