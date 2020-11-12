@@ -73,15 +73,20 @@ func Login(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	scheme := "http"
-	if req.TLS != nil {
-		scheme = "https"
+	if playground.AuthRedirectURL != "" {
+		provider.RedirectURL = playground.AuthRedirectURL
+	} else {
+		scheme := "http"
+		if req.TLS != nil {
+			scheme = "https"
+		}
+		host := "localhost"
+		if req.Host != "" {
+			host = req.Host
+		}
+		provider.RedirectURL = fmt.Sprintf("%s://%s/oauth/providers/%s/callback", scheme, host, providerName)
 	}
-	host := "localhost"
-	if req.Host != "" {
-		host = req.Host
-	}
-	provider.RedirectURL = fmt.Sprintf("%s://%s/oauth/providers/%s/callback", scheme, host, providerName)
+
 	url := provider.AuthCodeURL(loginRequest.Id, oauth2.SetAuthURLParam("nonce", uuid.NewV4().String()))
 
 	http.Redirect(rw, req, url, http.StatusFound)
