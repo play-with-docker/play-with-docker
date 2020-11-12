@@ -73,8 +73,8 @@ func Login(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if playground.AuthRedirectURL != "" {
-		provider.RedirectURL = playground.AuthRedirectURL
+	if playground.AuthRedirectBase != "" {
+		provider.RedirectURL = fmt.Sprintf("%s/oauth/providers/%s/callback", playground.AuthRedirectBase, providerName)
 	} else {
 		scheme := "http"
 		if req.TLS != nil {
