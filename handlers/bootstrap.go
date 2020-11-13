@@ -221,7 +221,8 @@ func initAssets(p *types.Playground) {
 	lpath := path.Join(p.AssetsDir, "landing.html")
 	landing, err := Asset(lpath)
 	if err != nil {
-		log.Fatalf("Error loading %v: %v", lpath, err)
+		log.Printf("Could not load %v: %v", lpath, err)
+		return
 	}
 
 	var b bytes.Buffer
