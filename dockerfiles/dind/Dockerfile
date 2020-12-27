@@ -1,4 +1,4 @@
-ARG VERSION=docker:stable-dind
+ARG VERSION=docker:dind
 FROM ${VERSION}
 
 RUN apk add --no-cache py-pip python3-dev libffi-dev openssl-dev git tmux apache2-utils vim build-base gettext-dev curl bash-completion bash util-linux jq openssh openssl tree \
