@@ -392,7 +392,7 @@
     $scope.openPort = function(instance) {
       var port = prompt('What port would you like to open?');
       if (!port) return;
-      
+
       var url = $scope.getProxyUrl(instance, port);
       window.open(url, '_blank');
     }
@@ -476,7 +476,8 @@
       var terminalContainer = document.getElementById('terminal-' + instance.name);
 
       var term = new Terminal({
-        cursorBlink: false
+        cursorBlink: false,
+        screenReaderMode: true
       });
 
       term.open(terminalContainer);
