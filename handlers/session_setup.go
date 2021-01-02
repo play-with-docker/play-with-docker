@@ -34,6 +34,7 @@ func SessionSetup(rw http.ResponseWriter, req *http.Request) {
 		body.DindVolumeSize = playground.DindVolumeSize
 	}
 
+	body.Privileged = playground.Privileged
 	err = core.SessionSetup(s, body)
 	if err != nil {
 		if pwd.SessionNotEmpty(err) {

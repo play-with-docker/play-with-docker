@@ -46,6 +46,7 @@ type SessionSetupConf struct {
 	Instances      []SessionSetupInstanceConf `json:"instances"`
 	PlaygroundFQDN string
 	DindVolumeSize string
+	Privileged     bool
 }
 
 type SessionSetupInstanceConf struct {
@@ -188,7 +189,7 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 
 	s.Ready = false
 	p.event.Emit(event.SESSION_READY, s.Id, false)
-	i, err := p.InstanceNew(s, types.InstanceConfig{ImageName: s.ImageName, PlaygroundFQDN: s.Host, DindVolumeSize: "5G"})
+	i, err := p.InstanceNew(s, types.InstanceConfig{ImageName: s.ImageName, PlaygroundFQDN: s.Host, DindVolumeSize: "5G", Privileged: true})
 	if err != nil {
 		log.Printf("Error creating instance for stack [%s]: %s\n", s.Stack, err)
 		return err
@@ -270,6 +271,7 @@ func (p *pwd) SessionSetup(session *types.Session, sconf SessionSetupConf) error
 				Type:           conf.Type,
 				Tls:            conf.Tls,
 				DindVolumeSize: sconf.DindVolumeSize,
+				Privileged:     sconf.Privileged,
 			}
 			i, err := p.InstanceNew(session, instanceConf)
 			if err != nil {
