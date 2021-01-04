@@ -681,7 +681,7 @@
                         setup: {
                                 instances: [
                                         {hostname: 'manager1', is_swarm_manager: true},
-                                        {hostname: 'worker1', is_swarm_manager: false}
+                                        {hostname: 'worker1', is_swarm_worker: true}
                                 ]
                         }
                 }
