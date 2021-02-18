@@ -45,7 +45,8 @@ func (p *pwd) UserLogin(loginRequest *types.LoginRequest, user *types.User) (*ty
 }
 func (p *pwd) UserGet(id string) (*types.User, error) {
 	var user *types.User
-	if user, err := p.storage.UserGet(id); err != nil {
+	var err error
+	if user, err = p.storage.UserGet(id); err != nil {
 		return nil, err
 	} else if user.IsBanned {
 		return user, userBannedError
