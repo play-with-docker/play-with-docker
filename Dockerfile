@@ -1,4 +1,4 @@
-FROM golang:1.9
+FROM golang:1.16
 
 COPY . /go/src/github.com/play-with-docker/play-with-docker
 
@@ -16,7 +16,6 @@ RUN mkdir -p /app/pwd
 
 COPY --from=0 /go/bin/play-with-docker /app/play-with-docker
 COPY --from=0 /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_rsa_key
-COPY ./www /app/www
 
 WORKDIR /app
 CMD ["./play-with-docker"]

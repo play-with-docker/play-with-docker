@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"embed"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -31,12 +33,14 @@ import (
 	"google.golang.org/api/people/v1"
 )
 
-//go:generate go run github.com/jteeuwen/go-bindata/go-bindata -pkg handlers -o gen_bindata.go -prefix ../www/ ../www/...
-//go:generate gofmt -w -s gen_bindata.go
-
 var core pwd.PWDApi
 var e event.EventApi
 var landings = map[string][]byte{}
+
+//go:embed www/*
+var embeddedFiles embed.FS
+
+var staticFiles fs.FS
 
 var latencyHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Name:    "pwd_handlers_duration_ms",
@@ -48,6 +52,7 @@ type HandlerExtender func(h *mux.Router)
 
 func init() {
 	prometheus.MustRegister(latencyHistogramVec)
+	staticFiles, _ = fs.Sub(embeddedFiles, "www")
 
 }
 
@@ -193,7 +198,7 @@ func Register(extend HandlerExtender) {
 }
 
 func serveAsset(w http.ResponseWriter, r *http.Request, name string) {
-	a, err := Asset(name)
+	a, err := fs.ReadFile(staticFiles, name)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -219,7 +224,7 @@ func initAssets(p *types.Playground) {
 	}
 
 	lpath := path.Join(p.AssetsDir, "landing.html")
-	landing, err := Asset(lpath)
+	landing, err := fs.ReadFile(staticFiles, lpath)
 	if err != nil {
 		log.Printf("Could not load %v: %v", lpath, err)
 		return

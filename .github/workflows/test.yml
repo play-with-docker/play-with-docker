@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        go_version: ["1.14.9", "1.15.2"]
+        go_version: ["1.16.0"]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout code

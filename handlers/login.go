@@ -25,6 +25,7 @@ func LoggedInUser(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
 	user, err := core.UserGet(cookie.Id)
 	if err != nil {
 		log.Printf("Couldn't get user with id %s. Got: %v\n", cookie.Id, err)
@@ -206,6 +207,8 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Printf("Lalalala %#v\n", user)
 
 	cookieData := CookieID{Id: user.Id, UserName: user.Name, UserAvatar: user.Avatar, ProviderId: user.ProviderUserId}
 
