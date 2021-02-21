@@ -1,6 +1,6 @@
 module github.com/play-with-docker/play-with-docker
 
-go 1.14
+go 1.16
 
 require (
 	cloud.google.com/go v0.58.0 // indirect
@@ -34,7 +34,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/inconshreveable/go-vhost v0.0.0-20160627193104-06d84117953b
 	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8 // indirect
-	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	github.com/juju/ratelimit v1.0.1 // indirect
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
 	github.com/miekg/dns v0.0.0-20171019064225-822ae18e7187
@@ -59,7 +58,6 @@ require (
 	google.golang.org/genproto v0.0.0-20200611194920-44ba362f84c1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/inf.v0 v0.9.0 // indirect
-	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/api v0.0.0-20171027084545-218912509d74 // indirect
 	k8s.io/apimachinery v0.0.0-20171027084411-18a564baac72
 	k8s.io/client-go v5.0.1+incompatible

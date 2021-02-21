@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io/fs"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -33,9 +34,9 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	index, err := Asset(filepath.Join(playground.AssetsDir, "/index.html"))
+	index, err := fs.ReadFile(staticFiles, filepath.Join(playground.AssetsDir, "/index.html"))
 	if err != nil {
-		index, err = Asset("default/index.html")
+		index, err = fs.ReadFile(staticFiles, "default/index.html")
 	}
 
 	if err != nil {

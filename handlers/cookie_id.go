@@ -20,8 +20,8 @@ func (c *CookieID) SetCookie(rw http.ResponseWriter, host string) error {
 			Value:    encoded,
 			Domain:   host,
 			Path:     "/",
-			SameSite: http.SameSiteNoneMode,
-			Secure:   true,
+			SameSite: http.SameSiteDefaultMode,
+			Secure:   false,
 			HttpOnly: true,
 		}
 		http.SetCookie(rw, cookie)
