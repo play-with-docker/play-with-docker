@@ -117,7 +117,7 @@ func Register(extend HandlerExtender) {
 	r.HandleFunc("/", Landing).Methods("GET")
 
 	corsRouter.HandleFunc("/users/me", LoggedInUser).Methods("GET")
-	r.HandleFunc("/users/{userId:^(?me)}", GetUser).Methods("GET")
+	r.HandleFunc("/users/{userId:.{3,}}", GetUser).Methods("GET")
 	r.HandleFunc("/oauth/providers", ListProviders).Methods("GET")
 	r.HandleFunc("/oauth/providers/{provider}/login", Login).Methods("GET")
 	r.HandleFunc("/oauth/providers/{provider}/callback", LoginCallback).Methods("GET")
