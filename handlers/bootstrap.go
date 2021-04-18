@@ -97,7 +97,7 @@ func Register(extend HandlerExtender) {
 	})
 
 	r.HandleFunc("/ooc", func(rw http.ResponseWriter, r *http.Request) {
-		serveAsset(rw, r, "occ.html")
+		serveAsset(rw, r, "ooc.html")
 	}).Methods("GET")
 	r.HandleFunc("/503", func(rw http.ResponseWriter, r *http.Request) {
 		serveAsset(rw, r, "503.html")
