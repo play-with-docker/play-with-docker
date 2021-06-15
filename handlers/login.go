@@ -15,6 +15,7 @@ import (
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	uuid "github.com/satori/go.uuid"
+	"google.golang.org/api/option"
 	"google.golang.org/api/people/v1"
 )
 
@@ -153,7 +154,7 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		)
 		tc := oauth2.NewClient(ctx, ts)
 
-		p, err := people.New(tc)
+		p, err := people.NewService(ctx, option.WithHTTPClient(tc))
 		if err != nil {
 			log.Printf("Could not initialize people service . Got: %v\n", err)
 			rw.WriteHeader(http.StatusInternalServerError)
