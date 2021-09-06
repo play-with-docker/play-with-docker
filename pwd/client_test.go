@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	dtypes "docker.io/go-docker/api/types"
+	dtypes "github.com/docker/docker/api/types"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/docker"
 	"github.com/play-with-docker/play-with-docker/event"

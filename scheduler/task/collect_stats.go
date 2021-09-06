@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"time"
 
-	dockerTypes "docker.io/go-docker/api/types"
+	dockerTypes "github.com/docker/docker/api/types"
 	units "github.com/docker/go-units"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/play-with-docker/play-with-docker/docker"
