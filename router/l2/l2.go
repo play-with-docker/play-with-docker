@@ -60,7 +60,7 @@ func director(protocol router.Protocol, host string) (*router.DirectorInfo, erro
 
 func connectNetworks() error {
 	ctx := context.Background()
-	c, err := client.NewEnvClient()
+	c, err := client.NewClientWithOpts()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func connectNetworks() error {
 }
 
 func monitorNetworks() {
-	c, err := client.NewEnvClient()
+	c, err := client.NewClientWithOpts()
 	if err != nil {
 		log.Fatal(err)
 	}

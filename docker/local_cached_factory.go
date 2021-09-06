@@ -37,7 +37,7 @@ func (f *localCachedFactory) GetForSession(session *types.Session) (DockerApi, e
 		}
 	}
 
-	c, err := client.NewEnvClient()
+	c, err := client.NewClientWithOpts()
 	if err != nil {
 		return nil, err
 	}

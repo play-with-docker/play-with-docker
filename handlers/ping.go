@@ -15,7 +15,7 @@ func Ping(rw http.ResponseWriter, req *http.Request) {
 	defer latencyHistogramVec.WithLabelValues("ping").Observe(float64(time.Since(time.Now()).Nanoseconds()) / 1000000)
 	// Get system load average of the last 5 minutes and compare it against a threashold.
 
-	c, err := docker.NewEnvClient()
+	c, err := client.NewClientWithOpts()
 
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
