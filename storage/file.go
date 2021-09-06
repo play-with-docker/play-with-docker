@@ -376,12 +376,13 @@ func (store *storage) PlaygroundPut(playground *types.Playground) error {
 func (store *storage) PlaygroundGet(id string) (*types.Playground, error) {
 	store.rw.Lock()
 	defer store.rw.Unlock()
-	if playground, found := store.db.Playgrounds[id]; !found {
+
+	playground, found := store.db.Playgrounds[id]
+	if !found {
 		return nil, NotFoundError
-	} else {
-		return playground, nil
 	}
-	return nil, NotFoundError
+
+	return playground, nil
 }
 
 func (store *storage) load() error {
