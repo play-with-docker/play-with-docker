@@ -12,10 +12,10 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	client "docker.io/go-docker"
-	"docker.io/go-docker/api/types"
-	"docker.io/go-docker/api/types/filters"
-	"docker.io/go-docker/api/types/network"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/client"
 	"github.com/gorilla/mux"
 	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/play-with-docker/play-with-docker/router"
@@ -60,7 +60,7 @@ func director(protocol router.Protocol, host string) (*router.DirectorInfo, erro
 
 func connectNetworks() error {
 	ctx := context.Background()
-	c, err := client.NewEnvClient()
+	c, err := client.NewClientWithOpts()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func connectNetworks() error {
 }
 
 func monitorNetworks() {
-	c, err := client.NewEnvClient()
+	c, err := client.NewClientWithOpts()
 	if err != nil {
 		log.Fatal(err)
 	}

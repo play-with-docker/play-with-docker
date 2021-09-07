@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	client "docker.io/go-docker"
+	"github.com/docker/docker/client"
 	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/play-with-docker/play-with-docker/storage"
 )
@@ -37,7 +37,7 @@ func (f *localCachedFactory) GetForSession(session *types.Session) (DockerApi, e
 		}
 	}
 
-	c, err := client.NewEnvClient()
+	c, err := client.NewClientWithOpts()
 	if err != nil {
 		return nil, err
 	}

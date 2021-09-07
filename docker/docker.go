@@ -14,13 +14,13 @@ import (
 	"strings"
 	"time"
 
-	client "docker.io/go-docker"
-	"docker.io/go-docker/api/types"
-	"docker.io/go-docker/api/types/container"
-	"docker.io/go-docker/api/types/network"
-	"docker.io/go-docker/api/types/swarm"
-	"docker.io/go-docker/api/types/volume"
 	"github.com/containerd/containerd/reference"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/api/types/volume"
+	"github.com/docker/docker/client"
 	"github.com/play-with-docker/play-with-docker/config"
 )
 
@@ -315,7 +315,7 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 			pidsLimit = int64(i)
 		}
 	}
-	h.Resources.PidsLimit = pidsLimit
+	h.Resources.PidsLimit = &pidsLimit
 
 	if memLimit := os.Getenv("MAX_MEMORY_MB"); memLimit != "" {
 		if i, err := strconv.Atoi(memLimit); err == nil {
@@ -344,7 +344,7 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 	}
 
 	if config.ExternalDindVolume {
-		_, err = d.c.VolumeCreate(context.Background(), volume.VolumesCreateBody{
+		_, err = d.c.VolumeCreate(context.Background(), volume.VolumeCreateBody{
 			Driver: "xfsvol",
 			DriverOpts: map[string]string{
 				"size": opts.DindVolumeSize,
@@ -451,7 +451,9 @@ func (d *docker) ExecAttach(instanceName string, command []string, out io.Writer
 	if err != nil {
 		return 0, err
 	}
-	resp, err := d.c.ContainerExecAttach(context.Background(), e.ID, types.ExecConfig{AttachStdout: true, AttachStderr: true, Tty: true})
+	resp, err := d.c.ContainerExecAttach(context.Background(), e.ID, types.ExecStartCheck{
+		Tty: true,
+	})
 	if err != nil {
 		return 0, err
 	}
