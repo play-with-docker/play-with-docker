@@ -18,7 +18,6 @@
     <link href="/assets/landing.css" rel="stylesheet">
 
     <script type="text/javascript" src="//cdn.bizible.com/scripts/bizible.js"async=""></script>
-    
   </head>
 
   <body>
@@ -34,8 +33,8 @@
         </nav>
       </div>
 
-      <div class="jumbotron" ng-cloak> 
-        <img src="https://www.docker.com/sites/default/files/Whale%20Logo332_5.png" />
+      <div class="jumbotron" ng-cloak>
+        <img src="https://galaxyproject.github.io/training-material/topics/admin/images/docker_whale.png" />
         <h1 class="display-3">Play with Docker</h1>
         <p class="lead">A simple, interactive and fun playground to learn Docker</p>
         <div ng-hide="loggedIn" class="btn-group" role="group">
@@ -45,7 +44,7 @@
           <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
               <a ng-repeat="provider in providers" class="dropdown-item" ng-click="login(provider)">{{provider}}</a>
           </div>
-        </div>        
+        </div>
         <form id="landingForm" method="POST" action="/">
             <p ng-show="loggedIn"><a class="btn btn-lg btn-success" href="#" ng-click="start()" role="button">Start</a></p>
                 <input id="stack" type="hidden" name="stack" value=""/>
@@ -66,7 +65,7 @@
         <p>&copy; Play with Docker 2017 - 2021</p>
       </footer>
 
-    </div> 
+    </div>
 
     [[ if .SegmentId ]]
     <script>
