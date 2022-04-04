@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"golang.org/x/oauth2"
+	"github.com/coreos/go-oidc"
 
 	"github.com/google/go-github/github"
 	"github.com/gorilla/mux"
@@ -200,6 +201,38 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		// Since DockerID doesn't return a user avatar, we try with twitter through avatars.io
 		// Worst case we get a generic avatar
 		user.Avatar = fmt.Sprintf("https://avatars.io/twitter/%s", user.Name)
+	} else if providerName == "oidc" {
+
+		endpoint := playground.OidcHost
+		oidcProvider, err := oidc.NewProvider(ctx, fmt.Sprintf("https://%s", endpoint))
+		if err != nil {
+			log.Printf("Could not connect to oidc proivder. Got: %v\n", err)
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		userInfo, err := oidcProvider.UserInfo(ctx, oauth2.StaticTokenSource(tok))
+		if err != nil {
+			log.Printf("Could not get user claim from oidc. Got: %v\n", err)
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	
+		var claims struct {
+			Subject     string `json:"sub"`
+			UserName	string `json:"nickname"`
+			Mail 		string `json:"email"`
+			Picture 	string `json:"picture"`
+		}
+		if err := userInfo.Claims(&claims); err != nil {
+			log.Printf("Could not parse user data from claim. Got: %v\n", err)
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		user.ProviderUserId = claims.Subject
+		user.Name = claims.UserName
+		user.Email = claims.Mail
+		user.Avatar = claims.Picture
 	}
 
 	user, err = core.UserLogin(loginRequest, user)
