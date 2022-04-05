@@ -286,7 +286,7 @@ func initOauthProviders(p *types.Playground) {
 
 		config.Providers[p.Id]["docker"] = conf
 	}
-	if p.OidcClientID != "" && p.OidcClientSecret != "" {
+	if p.OidcClientID != "" && p.OidcClientSecret != "" && p.OidcHost != "" {
 		
 		ctx := context.Background()
 		endpoint := p.OidcHost
