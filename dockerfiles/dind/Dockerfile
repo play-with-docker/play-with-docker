@@ -10,17 +10,17 @@ ENV PATH $PATH:$GOPATH
 
 ENV DOCKER_TLS_CERTDIR=""
 ENV DOCKER_CLI_EXPERIMENTAL=enabled
-ENV DOCKERAPP_VERSION=v0.9.1-beta3
-ENV COMPOSE_VERSION=1.26.0
+ENV COMPOSE_VERSION=2.6.1
 
-RUN pip install docker-compose==${COMPOSE_VERSION}
 
-RUN curl -fsSL --output /tmp/docker-app-linux.tar.gz https://github.com/docker/app/releases/download/${DOCKERAPP_VERSION}/docker-app-linux.tar.gz \
-    && tar xf "/tmp/docker-app-linux.tar.gz" -C /tmp/ && mkdir -p /root/.docker/cli-plugins && mv /tmp/docker-app-plugin-linux /root/.docker/cli-plugins/docker-app && rm /tmp/docker-app*
+# Add bash completion and set bash as default shell
+RUN mkdir -p /usr/lib/docker/cli-plugins \
+    && curl -LsS https://github.com/docker/compose/releases/download/v$COMPOSE_VERSION/docker-compose-linux-x86_64 -o /usr/lib/docker/cli-plugins/docker-compose \
+    && chmod +x /usr/lib/docker/cli-plugins/docker-compose
 
 # Add bash completion and set bash as default shell
 RUN mkdir /etc/bash_completion.d \
-    && curl https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker \
+    && curl -sS https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker \
     && sed -i "s/ash/bash/" /etc/passwd
  
 # Replace modprobe with a no-op to get rid of spurious warnings

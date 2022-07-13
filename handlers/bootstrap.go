@@ -33,9 +33,11 @@ import (
 	"google.golang.org/api/people/v1"
 )
 
-var core pwd.PWDApi
-var e event.EventApi
-var landings = map[string][]byte{}
+var (
+	core     pwd.PWDApi
+	e        event.EventApi
+	landings = map[string][]byte{}
+)
 
 //go:embed www/*
 var embeddedFiles embed.FS
@@ -53,7 +55,6 @@ type HandlerExtender func(h *mux.Router)
 func init() {
 	prometheus.MustRegister(latencyHistogramVec)
 	staticFiles, _ = fs.Sub(embeddedFiles, "www")
-
 }
 
 func Bootstrap(c pwd.PWDApi, ev event.EventApi) {
@@ -278,8 +279,8 @@ func initOauthProviders(p *types.Playground) {
 			ClientSecret: p.DockerClientSecret,
 			Scopes:       []string{"openid"},
 			Endpoint: oauth2.Endpoint{
-				AuthURL:  fmt.Sprintf("https://%s/id/oauth/authorize/", endpoint),
-				TokenURL: fmt.Sprintf("https://%s/id/oauth/token", endpoint),
+				AuthURL:  fmt.Sprintf("https://%s/authorize/", endpoint),
+				TokenURL: fmt.Sprintf("https://%s/oauth/token", endpoint),
 			},
 		}
 

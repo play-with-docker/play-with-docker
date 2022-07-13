@@ -162,7 +162,6 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		}
 
 		person, err := p.People.Get("people/me").PersonFields("emailAddresses,names").Do()
-
 		if err != nil {
 			log.Printf("Could not initialize people service . Got: %v\n", err)
 			rw.WriteHeader(http.StatusInternalServerError)
@@ -180,23 +179,23 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		tc := oauth2.NewClient(ctx, ts)
 
 		endpoint := getDockerEndpoint(playground)
-		resp, err := tc.Get(fmt.Sprintf("https://%s/api/id/v1/openid/userinfo", endpoint))
+		resp, err := tc.Get(fmt.Sprintf("https://%s/userinfo", endpoint))
 		if err != nil {
 			log.Printf("Could not get user from docker. Got: %v\n", err)
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		userInfo := map[string]string{}
+		userInfo := map[string]interface{}{}
 		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
 			log.Printf("Could not decode user info. Got: %v\n", err)
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		user.ProviderUserId = userInfo["sub"]
-		user.Name = userInfo["preferred_username"]
-		user.Email = userInfo["email"]
+		user.ProviderUserId = strings.Split(userInfo["sub"].(string), "|")[1]
+		user.Name = userInfo["https://hub.docker.com"].(map[string]interface{})["username"].(string)
+		user.Email = userInfo["https://hub.docker.com"].(map[string]interface{})["email"].(string)
 		// Since DockerID doesn't return a user avatar, we try with twitter through avatars.io
 		// Worst case we get a generic avatar
 		user.Avatar = fmt.Sprintf("https://avatars.io/twitter/%s", user.Name)
@@ -262,5 +261,5 @@ func getDockerEndpoint(p *types.Playground) string {
 	if len(p.DockerHost) > 0 {
 		return p.DockerHost
 	}
-	return "id.docker.com"
+	return "login.docker.com"
 }
