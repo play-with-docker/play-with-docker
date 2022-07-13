@@ -273,7 +273,6 @@ func initOauthProviders(p *types.Playground) {
 	if p.DockerClientID != "" && p.DockerClientSecret != "" {
 
 		endpoint := getDockerEndpoint(p)
-		oauth2.RegisterBrokenAuthHeaderProvider(fmt.Sprintf(".%s", endpoint))
 		conf := &oauth2.Config{
 			ClientID:     p.DockerClientID,
 			ClientSecret: p.DockerClientSecret,

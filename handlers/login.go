@@ -208,8 +208,6 @@ func LoginCallback(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Printf("Lalalala %#v\n", user)
-
 	cookieData := CookieID{Id: user.Id, UserName: user.Name, UserAvatar: user.Avatar, ProviderId: user.ProviderUserId}
 
 	host := "localhost"
