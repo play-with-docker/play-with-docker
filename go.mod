@@ -48,11 +48,12 @@ require (
 	github.com/spf13/pflag v1.0.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/negroni v0.2.0
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	golang.org/x/text v0.3.3
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/text v0.3.6
 	google.golang.org/api v0.26.0
 	google.golang.org/genproto v0.0.0-20200611194920-44ba362f84c1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
