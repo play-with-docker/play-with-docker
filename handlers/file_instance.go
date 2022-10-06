@@ -36,7 +36,6 @@ func file(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	instanceFile, err := core.InstanceFile(i, path)
-
 	if err != nil {
 		log.Println(err)
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -50,4 +49,6 @@ func file(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	encoder.Close()
 }
