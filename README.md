@@ -68,7 +68,7 @@ Don't forget to change your computer's default DNS to use the dnsmasq server to 
 ### How can I connect to a published port from the outside world?
 
 
-If you need to access your services from outside, use the following URL pattern `http://ip<hyphen-ip>-<session_jd>-<port>.direct.labs.play-with-docker.com` (i.e: http://ip-2-135-3-b8ir6vbg5vr00095iil0-8080.direct.labs.play-with-docker.com).
+If you need to access your services from outside, use the following URL pattern `http://ip<hyphen-ip>-<session_jd>-<port>.direct.labs.play-with-docker.com` (i.e: http://ip2-135-3-b8ir6vbg5vr00095iil0-8080.direct.labs.play-with-docker.com).
 
 ### Why is PWD running in ports 80 and 443? Can I change that?
 
