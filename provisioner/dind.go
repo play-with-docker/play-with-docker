@@ -11,12 +11,12 @@ import (
 	"strings"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/play-with-docker/play-with-docker/docker"
-	"github.com/play-with-docker/play-with-docker/id"
-	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/play-with-docker/play-with-docker/router"
-	"github.com/play-with-docker/play-with-docker/storage"
+	"github.com/thebsdbox/play-with-docker/config"
+	"github.com/thebsdbox/play-with-docker/docker"
+	"github.com/thebsdbox/play-with-docker/id"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
+	"github.com/thebsdbox/play-with-docker/router"
+	"github.com/thebsdbox/play-with-docker/storage"
 )
 
 type DinD struct {

@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/play-with-docker/play-with-docker/event"
-	"github.com/play-with-docker/play-with-docker/pwd"
-	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/play-with-docker/play-with-docker/storage"
+	"github.com/thebsdbox/play-with-docker/event"
+	"github.com/thebsdbox/play-with-docker/pwd"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
+	"github.com/thebsdbox/play-with-docker/storage"
 )
 
 type Task interface {

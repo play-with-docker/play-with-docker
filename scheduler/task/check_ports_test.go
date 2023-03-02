@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/play-with-docker/play-with-docker/docker"
-	"github.com/play-with-docker/play-with-docker/event"
-	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/thebsdbox/play-with-docker/docker"
+	"github.com/thebsdbox/play-with-docker/event"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
 )
 
 func TestCheckPorts_Name(t *testing.T) {

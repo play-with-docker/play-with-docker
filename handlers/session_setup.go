@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/play-with-docker/play-with-docker/pwd"
+	"github.com/thebsdbox/play-with-docker/pwd"
 )
 
 func SessionSetup(rw http.ResponseWriter, req *http.Request) {

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/play-with-docker/play-with-docker/provisioner"
-	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/thebsdbox/play-with-docker/config"
+	"github.com/thebsdbox/play-with-docker/provisioner"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
 )
 
 type NewSessionResponse struct {

@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/play-with-docker/play-with-docker/pwd/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
 )
 
 func TestSessionPut(t *testing.T) {

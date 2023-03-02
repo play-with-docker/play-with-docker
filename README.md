@@ -16,7 +16,7 @@ A live version is available at: http://play-with-docker.com/
 
 ```bash
 # Clone this repo locally
-git clone https://github.com/play-with-docker/play-with-docker
+git clone https://github.com/thebsdbox/play-with-docker
 cd play-with-docker
 
 # Verify the Docker daemon is running

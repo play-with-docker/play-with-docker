@@ -4,15 +4,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/play-with-docker/play-with-docker/docker"
-	"github.com/play-with-docker/play-with-docker/event"
-	"github.com/play-with-docker/play-with-docker/id"
-	"github.com/play-with-docker/play-with-docker/provisioner"
-	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/play-with-docker/play-with-docker/storage"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/thebsdbox/play-with-docker/docker"
+	"github.com/thebsdbox/play-with-docker/event"
+	"github.com/thebsdbox/play-with-docker/id"
+	"github.com/thebsdbox/play-with-docker/provisioner"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
+	"github.com/thebsdbox/play-with-docker/storage"
 )
 
 func TestPlaygroundNew(t *testing.T) {

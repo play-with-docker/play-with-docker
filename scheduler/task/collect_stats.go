@@ -13,11 +13,11 @@ import (
 	dockerTypes "github.com/docker/docker/api/types"
 	units "github.com/docker/go-units"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/play-with-docker/play-with-docker/docker"
-	"github.com/play-with-docker/play-with-docker/event"
-	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/play-with-docker/play-with-docker/router"
-	"github.com/play-with-docker/play-with-docker/storage"
+	"github.com/thebsdbox/play-with-docker/docker"
+	"github.com/thebsdbox/play-with-docker/event"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
+	"github.com/thebsdbox/play-with-docker/router"
+	"github.com/thebsdbox/play-with-docker/storage"
 )
 
 type InstanceStats struct {

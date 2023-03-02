@@ -3,7 +3,7 @@ package storage
 import (
 	"errors"
 
-	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
 )
 
 var NotFoundError = errors.New("NotFound")

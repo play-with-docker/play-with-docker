@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/play-with-docker/play-with-docker/storage"
+	"github.com/thebsdbox/play-with-docker/storage"
 )
 
 type PublicUserInfo struct {

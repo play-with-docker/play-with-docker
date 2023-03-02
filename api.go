@@ -5,18 +5,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/play-with-docker/play-with-docker/config"
-	"github.com/play-with-docker/play-with-docker/docker"
-	"github.com/play-with-docker/play-with-docker/event"
-	"github.com/play-with-docker/play-with-docker/handlers"
-	"github.com/play-with-docker/play-with-docker/id"
-	"github.com/play-with-docker/play-with-docker/k8s"
-	"github.com/play-with-docker/play-with-docker/provisioner"
-	"github.com/play-with-docker/play-with-docker/pwd"
-	"github.com/play-with-docker/play-with-docker/pwd/types"
-	"github.com/play-with-docker/play-with-docker/scheduler"
-	"github.com/play-with-docker/play-with-docker/scheduler/task"
-	"github.com/play-with-docker/play-with-docker/storage"
+	"github.com/thebsdbox/play-with-docker/config"
+	"github.com/thebsdbox/play-with-docker/docker"
+	"github.com/thebsdbox/play-with-docker/event"
+	"github.com/thebsdbox/play-with-docker/handlers"
+	"github.com/thebsdbox/play-with-docker/id"
+	"github.com/thebsdbox/play-with-docker/k8s"
+	"github.com/thebsdbox/play-with-docker/provisioner"
+	"github.com/thebsdbox/play-with-docker/pwd"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
+	"github.com/thebsdbox/play-with-docker/scheduler"
+	"github.com/thebsdbox/play-with-docker/scheduler/task"
+	"github.com/thebsdbox/play-with-docker/storage"
 )
 
 func main() {
@@ -52,7 +52,7 @@ func main() {
 		log.Fatalf("Cannot parse duration Got: %v", err)
 	}
 
-	playground := types.Playground{Domain: config.PlaygroundDomain, DefaultDinDInstanceImage: "franela/dind", AvailableDinDInstanceImages: []string{"franela/dind"}, AllowWindowsInstances: config.NoWindows, DefaultSessionDuration: d, Extras: map[string]interface{}{"LoginRedirect": "http://localhost:3000"}, Privileged: true}
+	playground := types.Playground{Domain: config.PlaygroundDomain, DefaultDinDInstanceImage: "thebsdbox/dind", AvailableDinDInstanceImages: []string{"thebsdbox/dind"}, AllowWindowsInstances: config.NoWindows, DefaultSessionDuration: d, Extras: map[string]interface{}{"LoginRedirect": "http://localhost:3000"}, Privileged: true}
 	if _, err := core.PlaygroundNew(playground); err != nil {
 		log.Fatalf("Cannot create default playground. Got: %v", err)
 	}

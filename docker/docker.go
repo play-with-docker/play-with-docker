@@ -21,7 +21,7 @@ import (
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
-	"github.com/play-with-docker/play-with-docker/config"
+	"github.com/thebsdbox/play-with-docker/config"
 )
 
 const (
@@ -294,10 +294,11 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 	}
 
 	h := &container.HostConfig{
-		NetworkMode: container.NetworkMode(opts.SessionId),
-		Privileged:  opts.Privileged,
-		AutoRemove:  true,
-		LogConfig:   container.LogConfig{Config: map[string]string{"max-size": "10m", "max-file": "1"}},
+		NetworkMode:  container.NetworkMode(opts.SessionId),
+		Privileged:   opts.Privileged,
+		AutoRemove:   true,
+		LogConfig:    container.LogConfig{Config: map[string]string{"max-size": "10m", "max-file": "1"}},
+		CgroupnsMode: "host",
 	}
 
 	if os.Getenv("APPARMOR_PROFILE") != "" {
@@ -327,6 +328,7 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 	h.Resources.OomKillDisable = &t
 
 	env = append(env, fmt.Sprintf("PWD_HOST_FQDN=%s", opts.HostFQDN))
+	env = append(env, "DAN", "TEST")
 	cf := &container.Config{
 		Hostname:     opts.Hostname,
 		Image:        opts.Image,
@@ -362,8 +364,7 @@ func (d *docker) ContainerCreate(opts CreateContainerOpts) (err error) {
 			}
 		}()
 	}
-
-	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, opts.ContainerName)
+	container, err := d.c.ContainerCreate(context.Background(), cf, h, networkConf, nil, opts.ContainerName)
 
 	if err != nil {
 		//if client.IsErrImageNotFound(err) {

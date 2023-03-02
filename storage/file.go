@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/play-with-docker/play-with-docker/pwd/types"
+	"github.com/thebsdbox/play-with-docker/pwd/types"
 )
 
 type storage struct {

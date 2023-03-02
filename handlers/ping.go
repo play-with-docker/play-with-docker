@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
-	"github.com/play-with-docker/play-with-docker/config"
 	"github.com/shirou/gopsutil/load"
+	"github.com/thebsdbox/play-with-docker/config"
 )
 
 func Ping(rw http.ResponseWriter, req *http.Request) {
