@@ -10,7 +10,7 @@ ENV PATH $PATH:$GOPATH
 
 ENV DOCKER_TLS_CERTDIR=""
 ENV DOCKER_CLI_EXPERIMENTAL=enabled
-ENV COMPOSE_VERSION=2.6.1
+ENV COMPOSE_VERSION=2.16.0
 
 
 # Add bash completion and set bash as default shell

@@ -1,8 +1,14 @@
 {
-    "experimental": true,
-    "debug": true,
-    "log-level": "info",
-    "storage-driver": "vfs",
-    "insecure-registries": ["127.0.0.1"],
-    "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"]
+  "experimental": true,
+  "debug": true,
+  "cri-containerd": true,
+  "log-level": "info",
+  "tls": false,
+  "insecure-registries": [
+    "127.0.0.1"
+  ],
+  "hosts": [
+    "unix:///var/run/docker.sock",
+    "tcp://0.0.0.0:2375"
+  ]
 }

@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 # Copyright 2017 Mirantis
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -138,10 +138,10 @@ fi
 
 if [[ "$@" == "init"* || "$@" == "join"* ]]; then
 # Call kubeadm with params and skip flag
-	/usr/bin/kubeadm "$@" --ignore-preflight-errors all
+	/usr/bin/kubeadm "$@" --ignore-preflight-errors all --cri-socket /run/docker/containerd/containerd.sock
 else
 # Call kubeadm with params
-	/usr/bin/kubeadm "$@" 
+	/usr/bin/kubeadm "$@"
 fi
 
 # Frob cluster
