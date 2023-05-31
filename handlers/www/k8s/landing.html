@@ -17,7 +17,7 @@
     <!-- Custom styles for this template -->
     <link href="/assets/landing.css" rel="stylesheet">
     <script type="text/javascript" src="//cdn.bizible.com/scripts/bizible.js"async=""></script>
-    
+
   </head>
 
   <body>
@@ -33,7 +33,7 @@
         </nav>
       </div>
 
-      <div class="jumbotron" ng-cloak> 
+      <div class="jumbotron" ng-cloak>
         <img src="https://kubernetes.io/images/favicon.png" />
         <h1 class="display-3">Play with Kubernetes</h1>
         <p class="lead">A simple, interactive and fun playground to learn Kubernetes</p>
@@ -44,7 +44,7 @@
           <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
               <a ng-repeat="provider in providers" class="dropdown-item" ng-click="login(provider)">{{provider}}</a>
           </div>
-        </div>        
+        </div>
         <form id="landingForm" method="POST" action="/">
             <p ng-show="loggedIn"><a class="btn btn-lg btn-success" href="#" ng-click="start()" role="button">Start</a></p>
                 <input id="stack" type="hidden" name="stack" value=""/>
@@ -61,11 +61,10 @@
       </div>
 
       <footer class="footer">
-        <p>Your use of Play With Docker is subject to the Docker Terms of Service which can be accessed  <a target="_blank" href="https://www.docker.com/legal/docker-terms-service">here</a></p>
-        <p>Site provided by <a href="https://docker.com">Docker, Inc.</a>, created by Tutorius</p>
+        <p>&copy; Play with Kubernetes 2017 - 2023</p>
       </footer>
 
-    </div> 
+    </div>
 
     [[ if .SegmentId ]]
     <script>
@@ -76,9 +75,9 @@
     </script>
     [[ end ]]
 
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/popper.js@1.11.0/dist/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/bootstrap@4.0.0-beta/dist/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script crossorigin="anonymous" src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script crossorigin="anonymous" src="https://unpkg.com/popper.js@1.11.0/dist/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script crossorigin="anonymous" src="https://unpkg.com/bootstrap@4.0.0-beta/dist/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
     <script>
         angular.module('PWDLanding', [])
             .controller('LoginController', ['$scope', '$http', '$window', function($scope, $http, $window) {
