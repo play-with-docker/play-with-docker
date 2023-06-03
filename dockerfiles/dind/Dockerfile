@@ -39,8 +39,8 @@ WORKDIR /root
 
 # Setup certs and ssh keys
 RUN mkdir -p /var/run/pwd/certs && mkdir -p /var/run/pwd/uploads \
-    && ssh-keygen -N "" -t rsa -f  /etc/ssh/ssh_host_rsa_key >/dev/null \
-    && mkdir ~/.ssh && ssh-keygen -N "" -t rsa -f ~/.ssh/id_rsa \
+    && ssh-keygen -N "" -t ed25519 -f  /etc/ssh/ssh_host_ed25519_key >/dev/null \
+    && mkdir ~/.ssh && ssh-keygen -N "" -t ed25519 -f ~/.ssh/id_rsa \
     && cat ~/.ssh/id_rsa.pub > ~/.ssh/authorized_keys
 
 # Remove IPv6 alias for localhost and start docker in the background ...
