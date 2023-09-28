@@ -74,3 +74,10 @@ If you need to access your services from outside, use the following URL pattern 
 
 No, it needs to run on those ports for DNS resolve to work. Ideas or suggestions about how to improve this
 are welcome
+
+## Hints
+
+### How can I use Copy / Paste shortcuts?
+
+Ctrl  + insert  : Copy<br>
+shift + insert  : Paste
