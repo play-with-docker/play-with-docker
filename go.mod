@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	cloud.google.com/go v0.58.0 // indirect
+	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.4.5 // indirect
 	github.com/PuerkitoBio/purell v1.1.0 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -36,11 +37,12 @@ require (
 	github.com/juju/ratelimit v1.0.1 // indirect
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
 	github.com/miekg/dns v0.0.0-20171019064225-822ae18e7187
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.11.1
 	github.com/rs/xid v0.0.0-20170604230408-02dd45c33376
 	github.com/satori/go.uuid v1.1.1-0.20170321230731-5bf94b69c6b6
 	github.com/shirou/gopsutil v2.16.13-0.20170924065440-6e221c482653+incompatible
@@ -51,13 +53,14 @@ require (
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/text v0.3.6
 	google.golang.org/api v0.26.0
 	google.golang.org/genproto v0.0.0-20200611194920-44ba362f84c1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/inf.v0 v0.9.0 // indirect
+	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/api v0.0.0-20171027084545-218912509d74 // indirect
 	k8s.io/apimachinery v0.0.0-20171027084411-18a564baac72
 	k8s.io/client-go v5.0.1+incompatible
