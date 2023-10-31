@@ -320,6 +320,7 @@ func (r *proxyRouter) ListenDnsUdpAddress() string {
 
 	return ""
 }
+
 func (r *proxyRouter) ListenDnsTcpAddress() string {
 	if r.tcpDnsServer != nil && r.tcpDnsServer.Listener != nil {
 		return r.tcpDnsServer.Listener.Addr().String()
@@ -459,7 +460,7 @@ func proxyConn(src, dst net.Conn) {
 }
 
 func NewRouter(director Director, keyPath string) *proxyRouter {
-	var sshConfig = &ssh.ServerConfig{
+	sshConfig := &ssh.ServerConfig{
 		PublicKeyCallback: func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
 			return nil, nil
 		},

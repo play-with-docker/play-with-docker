@@ -16,8 +16,6 @@
 
     <!-- Custom styles for this template -->
     <link href="/assets/landing.css" rel="stylesheet">
-    <script type="text/javascript" src="//cdn.bizible.com/scripts/bizible.js"async=""></script>
-
   </head>
 
   <body>
@@ -66,15 +64,6 @@
 
     </div>
 
-    [[ if .SegmentId ]]
-    <script>
-    !function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on"];analytics.factory=function(t){return function(){var e=Array.prototype.slice.call(arguments);e.unshift(t);analytics.push(e);return analytics}};for(var t=0;t<analytics.methods.length;t++){var e=analytics.methods[t];analytics[e]=analytics.factory(e)}analytics.load=function(t){var e=document.createElement("script");e.type="text/javascript";e.async=!0;e.src=("https:"===document.location.protocol?"https://":"http://")+"cdn.segment.com/analytics.js/v1/"+t+"/analytics.min.js";var n=document.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)};analytics.SNIPPET_VERSION="4.0.0";
-    analytics.load('[[ .SegmentId ]]');
-    analytics.page();
-    }}();
-    </script>
-    [[ end ]]
-
     <script crossorigin="anonymous" src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
     <script crossorigin="anonymous" src="https://unpkg.com/popper.js@1.11.0/dist/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
     <script crossorigin="anonymous" src="https://unpkg.com/bootstrap@4.0.0-beta/dist/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
@@ -90,16 +79,9 @@
                         method: 'GET',
                         url: '/users/me'
                     }).then(function(response) {
-                        [[ if .SegmentId ]]
-                            analytics.identify(response.data.provider_user_id, {"email": response.data.email});
-                        [[ end ]]
                         $scope.user = response.data;
                         $scope.loggedIn = true;
                     }, function(response) {
-                        [[ if .SegmentId ]]
-                            analytics.identify();
-                        [[ end ]]
-                        console.log('ERROR', response);
                         $scope.user = null;
                         $scope.loggedIn = false;
                     });

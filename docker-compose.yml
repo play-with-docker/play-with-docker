@@ -15,6 +15,8 @@ services:
         image: golang
         # go to the right place and starts the app
         command: /bin/sh -c 'ssh-keygen -N "" -t rsa -f /etc/ssh/ssh_host_rsa_key >/dev/null; cd /go/src/; if [ -e /runbin/pwd ]; then /runbin/pwd  -save /pwd/sessions -name l2; else go run api.go -save /pwd/sessions -name l2; fi'
+        environment:
+          - APPARMOR_PROFILE=docker-dind
         volumes:
             # since this app creates networks and launches containers, we need to talk to docker daemon
             - /var/run/docker.sock:/var/run/docker.sock
