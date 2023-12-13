@@ -276,7 +276,7 @@ func initOauthProviders(p *types.Playground) {
 		conf := &oauth2.Config{
 			ClientID:     p.DockerClientID,
 			ClientSecret: p.DockerClientSecret,
-			Scopes:       []string{"openid"},
+			Scopes:       []string{"openid", "full_access:account"},
 			Endpoint: oauth2.Endpoint{
 				AuthURL:  fmt.Sprintf("https://%s/authorize/", endpoint),
 				TokenURL: fmt.Sprintf("https://%s/oauth/token", endpoint),

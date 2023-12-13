@@ -23,6 +23,7 @@ ENV SCOUT_VERSION=1.0.9
 RUN wget -O /tmp/scout.tar.gz https://github.com/docker/scout-cli/releases/download/v1.0.9/docker-scout_1.0.9_linux_amd64.tar.gz \
     && tar -xvf /tmp/scout.tar.gz docker-scout -C /usr/local/bin \
     && chmod +x /usr/local/bin/docker-scout \
+    && ln -s $(which docker-scout) /usr/lib/docker/cli-plugins \
     && rm /tmp/scout.tar.gz
     
     
