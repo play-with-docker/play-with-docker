@@ -143,7 +143,6 @@ func (p *pwd) SessionClose(s *types.Session) error {
 	p.setGauges()
 	p.event.Emit(event.SESSION_END, s.Id)
 	return nil
-
 }
 
 func (p *pwd) SessionGetSmallestViewPort(sessionId string) types.ViewPort {
@@ -214,6 +213,11 @@ func (p *pwd) SessionDeployStack(s *types.Session) error {
 		return err
 	}
 
+	if _, err := p.dockerFactory.GetForInstance(i); err != nil {
+		log.Printf("error retrieving docker client for new instance %v", err)
+		return err
+	}
+
 	code, err := dockerClient.ExecAttach(i.Name, []string{"sh", "-c", cmd}, &w)
 	if err != nil {
 		log.Printf("Error executing stack [%s]: %s\n", s.Stack, err)
@@ -233,7 +237,6 @@ func (p *pwd) SessionGet(sessionId string) (*types.Session, error) {
 	defer observeAction("SessionGet", time.Now())
 
 	s, err := p.storage.SessionGet(sessionId)
-
 	if err != nil {
 		log.Println(err)
 		return nil, err
