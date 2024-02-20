@@ -59,17 +59,18 @@
                 </md-toolbar>
                 <md-content layout-padding>
                   <md-button ng-click="newInstance()" ng-disabled="isInstanceBeingCreated" class="md-primary">{{newInstanceBtnText}}</md-button>
-              <md-list class="md-dense" flex>
-                <md-list-item ng-switch on="instance.isManager || instance.isK8sManager" class="md-2-line" ng-repeat="instance in instances | orderBy:'hostname'" ng-click="showInstance(instance)" ng-class="instance.name == selectedInstance.name ? 'selected' : false">
-                    <md-icon ng-switch-when="true" style="color: blue" md-svg-icon="person"></md-icon>
-                    <md-icon ng-switch-when="false" md-svg-icon="person-outline"></md-icon>
-                    <div class="md-list-item-text" layout="column">
+                  <md-list class="md-dense" flex>
+                    <md-list-item ng-switch on="instance.isManager || instance.isK8sManager" class="md-2-line" ng-repeat="instance in instances | orderBy:'hostname'" ng-click="showInstance(instance)" ng-class="instance.name == selectedInstance.name ? 'selected' : false">
+                      <md-icon ng-switch-when="true" style="color: blue" md-svg-icon="person"></md-icon>
+                      <md-icon ng-switch-when="false" md-svg-icon="person-outline"></md-icon>
+                      <div class="md-list-item-text" layout="column">
                         <h3>{{instance.ip}}</h3>
                         <h4>{{instance.hostname}}</h4>
-                    </div>
-                    <md-divider ng-if="!$last"></md-divider>
-                </md-list-item>
-              </md-list>
+                      </div>
+                      <md-divider ng-if="!$last"></md-divider>
+                    </md-list-item>
+                  </md-list>
+                  <survey-request></survey-request>
                 </md-content>
               </md-sidenav>
               <md-content flex layout-padding ng-if="!instances.length">
@@ -226,6 +227,20 @@
                         Close
                     </md-button>
                 </md-dialog-actions>
+        </script>
+        <script type="text/ng-template" id="survey-toast.html">
+            <md-toast role="alert" aria-relevant="all">
+                <span class="md-toast-text">We'd love to hear about your usage of Play with Docker. Please take a moment to fill out our survey.</span>
+                <span class="md-visually-hidden">
+                    Press Escape to dismiss.
+                </span>
+                <md-button class="md-highlight" ng-click="ctrl.openSurvey($event)">
+                    Take Survey
+                </md-button>
+                <md-button ng-click="ctrl.closeToast()">
+                    Not now
+                </md-button>
+            </md-toast>
         </script>
         <script type="text/ng-template" id="settings-modal.html">
             <md-toolbar>
