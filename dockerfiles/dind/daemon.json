@@ -2,6 +2,7 @@
     "experimental": true,
     "debug": true,
     "log-level": "info",
+    "registry-mirrors": ["https://mirror.gcr.io"],
     "insecure-registries": [
         "127.0.0.1"
     ],

@@ -25,14 +25,13 @@ RUN wget -O /tmp/scout.tar.gz https://github.com/docker/scout-cli/releases/downl
     && chmod +x /usr/local/bin/docker-scout \
     && ln -s $(which docker-scout) /usr/lib/docker/cli-plugins \
     && rm /tmp/scout.tar.gz
-    
-    
+
+
 
 # Add bash completion and set bash as default shell
-RUN mkdir /etc/bash_completion.d \
-    && curl -sS https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker \
+RUN curl -sS https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker \
     && sed -i "s/ash/bash/" /etc/passwd
- 
+
 # Replace modprobe with a no-op to get rid of spurious warnings
 # (note: we can't just symlink to /bin/true because it might be busybox)
 RUN rm /sbin/modprobe && echo '#!/bin/true' >/sbin/modprobe && chmod +x /sbin/modprobe
