@@ -34,10 +34,11 @@ func encodeJWT(token string) string {
 func (p *pwd) PlaygroundNew(playground types.Playground) (*types.Playground, error) {
 	playground.Id = uuid.NewV5(uuid.NamespaceOID, playground.Domain).String()
 	
-	// Generate JWT token
+	// Generate JWT token for Basic Auth
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["username"] = playground.Domain
+	claims["username"] = "pwd" // Fixed username for Basic Auth
+	claims["domain"] = playground.Domain
 	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
 	
 	tokenString, err := token.SignedString([]byte("secret"))
@@ -46,7 +47,7 @@ func (p *pwd) PlaygroundNew(playground types.Playground) (*types.Playground, err
 		return nil, err
 	}
 	
-	// Encode and store the JWT
+	// Encode and store the JWT that will be used as password in Basic Auth
 	playground.JWT = encodeJWT(tokenString)
 	
 	if err := p.storage.PlaygroundPut(&playground); err != nil {
@@ -55,7 +56,11 @@ func (p *pwd) PlaygroundNew(playground types.Playground) (*types.Playground, err
 	}
 
 	p.event.Emit(event.PLAYGROUND_NEW, playground.Id)
-	return &playground, nil
+	
+	// Create a copy without JWT to return
+	playgroundResponse := playground
+	playgroundResponse.JWT = ""
+	return &playgroundResponse, nil
 }
 
 func (p *pwd) PlaygroundGet(id string) *types.Playground {
@@ -63,7 +68,7 @@ func (p *pwd) PlaygroundGet(id string) *types.Playground {
 		log.Printf("Error retrieving playground %s. Got: %v\n", id, err)
 		return nil
 	} else {
-		// Don't expose JWT in response
+		// Return playground without JWT
 		playground.JWT = ""
 		return playground
 	}
@@ -73,7 +78,6 @@ func (p *pwd) PlaygroundFindByDomain(domain string) *types.Playground {
 	id := uuid.NewV5(uuid.NamespaceOID, domain).String()
 	playground := p.PlaygroundGet(id)
 	if playground != nil {
-		// Don't expose JWT in response
 		playground.JWT = ""
 	}
 	return playground
@@ -85,7 +89,7 @@ func (p *pwd) PlaygroundList() ([]*types.Playground, error) {
 		return nil, err
 	}
 	
-	// Don't expose JWTs in response
+	// Remove JWT from all playgrounds before returning
 	for _, playground := range playgrounds {
 		playground.JWT = ""
 	}
