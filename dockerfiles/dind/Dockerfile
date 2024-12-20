@@ -5,7 +5,8 @@ RUN apk add --no-cache py-pip python3-dev libffi-dev openssl-dev git tmux apache
     && ln -s /usr/local/bin/docker /usr/bin/docker
 
 ENV GOPATH /root/go
-ENV PATH $PATH:$GOPATH
+ENV IPTABLES_LEGACY /usr/local/sbin/.iptables-legacy/
+ENV PATH $IPTABLES_LEGACY:$GOPATH:$PATH
 
 
 ENV DOCKER_TLS_CERTDIR=""
@@ -29,7 +30,7 @@ RUN wget -O /tmp/scout.tar.gz https://github.com/docker/scout-cli/releases/downl
 
 
 # Add bash completion and set bash as default shell
-RUN curl -sS https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker \
+RUN curl -sS https://raw.githubusercontent.com/docker/cli/refs/heads/master/contrib/completion/bash/docker -o /etc/bash_completion.d/docker \
     && sed -i "s/ash/bash/" /etc/passwd
 
 # Replace modprobe with a no-op to get rid of spurious warnings
