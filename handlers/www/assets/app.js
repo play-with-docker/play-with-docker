@@ -847,44 +847,6 @@
       return "None";
     }
   }])
-  .controller("SurveyToastController", function($mdToast) {
-    var ctrl = this;
-    ctrl.openSurvey = function() {
-      $mdToast.hide("ok");
-    }
-    ctrl.closeToast = function() {
-      $mdToast.hide();
-    }
-  })
-  .component('surveyRequest', {
-    template : "<md-button class='md-mini' ng-click='$ctrl.openSurvey()'>Give feedback</md-button>",
-    controller : function($mdToast, $timeout) {
-      var $ctrl = this;
-
-      $ctrl.$onInit = function() {
-        window.$mdToast = $mdToast;
-        $timeout(function() {
-          $mdToast.show({
-            hideDelay: 0,
-            position: 'bottom right',
-            controller: "SurveyToastController",
-            controllerAs: "ctrl",
-            bindToControlller: true,
-            templateUrl: "survey-toast.html"
-          }).then(function (result) {
-            if (result === "ok") {
-              $ctrl.openSurvey();
-            }
-          });
-        }, 300000); // Display toast after five minutes
-      }
-
-      $ctrl.openSurvey = function() {
-        window.open("https://docker.qualtrics.com/jfe/form/SV_267blbhIjjf3Mma", "_blank");
-      }
-
-    },
-  })
   .service('TerminalService', ['$window', '$rootScope', function($window, $rootScope) {
     var fullscreen;
     var fontSize = getFontSize();
