@@ -17,6 +17,7 @@ import (
 
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
+	"github.com/coreos/go-oidc"
 
 	gh "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -283,5 +284,23 @@ func initOauthProviders(p *types.Playground) {
 		}
 
 		config.Providers[p.Id]["docker"] = conf
+	}
+	if p.OidcClientID != "" && p.OidcClientSecret != "" && p.OidcHost != "" {
+		
+		ctx := context.Background()
+		endpoint := p.OidcHost
+		oidcProvider, err := oidc.NewProvider(ctx, fmt.Sprintf("https://%s", endpoint))
+		if err != nil {
+			log.Fatalf("Could not connect to oidc provider. Got %s", err )
+		}
+
+		conf := &oauth2.Config{
+			ClientID:     p.OidcClientID,
+			ClientSecret: p.OidcClientSecret,
+			Scopes:       []string{"openid"},
+			Endpoint:     oidcProvider.Endpoint(),
+		}
+
+		config.Providers[p.Id]["oidc"] = conf
 	}
 }
