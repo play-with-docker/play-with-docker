@@ -29,7 +29,7 @@ require (
 	github.com/gorilla/handlers v1.3.0
 	github.com/gorilla/mux v1.5.0
 	github.com/gorilla/securecookie v0.0.0-20160422134519-667fe4e3466a
-	github.com/gorilla/websocket v1.2.0
+	github.com/gorilla/websocket v1.4.1
 	github.com/gregjones/httpcache v0.0.0-20171119193500-2bcd89a1743f // indirect
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/inconshreveable/go-vhost v0.0.0-20160627193104-06d84117953b
