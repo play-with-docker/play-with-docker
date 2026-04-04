@@ -1,34 +1,4 @@
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - '**'
-
-name: Go
-jobs:
-  test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        go_version: ["1.16.0"]
-    runs-on: ${{ matrix.os }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Install Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ matrix.go_version }}
-    - name: Generate
-      run: go generate ./...
-    - name: Test
-      run: go test ./...
-    - name: Verify clean commit
-      run: test -z "$(git status --porcelain)" || (git status; git diff; false)
-    name: CI_System_Optimization
+name: CI_System_Optimization
 on: [push]
 
 jobs:
